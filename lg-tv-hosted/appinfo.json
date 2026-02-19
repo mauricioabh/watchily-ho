@@ -1,0 +1,23 @@
+{
+  "id": "com.watchily.web",
+  "version": "1.0.0",
+  "vendor": "Watchily",
+  "type": "web",
+  "main": "index.html",
+  "title": "Watchily",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "requiredPermissions": [
+    "time",
+    "activity"
+  ],
+  "bgColor": "#0a0a0a",
+  "iconColor": "#e5b00b",
+  "v2": {
+    "requiredPermissions": [
+      "time",
+      "activity"
+    ]
+  }
+}

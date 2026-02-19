@@ -1,0 +1,36 @@
+---
+description: Contexto del proyecto Watchily: IDs, MCPs y env
+globs: 
+alwaysApply: true
+---
+
+# Watchily - Contexto del proyecto
+
+## Supabase
+- **Project ID**: `jehowbdfqhteznmbyecu`
+- **URL**: `https://jehowbdfqhteznmbyecu.supabase.co`
+- **Anon key**: está en `.env.local` (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- **Service role key**: obtener en Dashboard > Project Settings > API. Añadir a `.env.local` como `SUPABASE_SERVICE_ROLE_KEY`.
+- Migraciones ya aplicadas (profiles, user_providers, lists, list_items, likes).
+
+## GitHub
+- **Repo**: `mauricioabh/watchily-ho` — https://github.com/mauricioabh/watchily-ho
+
+## Vercel
+- Proyecto vinculado al repo anterior; los pushes a `main` despliegan automáticamente.
+- URL de producción: ver en Vercel Dashboard una vez desplegado.
+
+## Expo (apps/mobile)
+- Usar en `.env`: `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` (mismos que web).
+- `EXPO_PUBLIC_API_URL`: URL de la app en Vercel (ej. `https://watchily-ho.vercel.app`).
+
+## LG TV (lg-tv-hosted)
+- En `index.html` sustituir `YOUR_APP.vercel.app` por la URL real de Vercel.
+- La app TV carga `https://TU_URL/tv`.
+
+## MCPs disponibles
+Usar cuando haga falta:
+- **Supabase MCP**: list/apply migrations, execute_sql, get_project, get_publishable_keys, etc.
+- **GitHub MCP**: crear/actualizar repo, commits, PRs, issues.
+- **Vercel MCP**: deploy, list projects, ver logs.
+- **Filesystem MCP**: leer/escribir .env, configs.
