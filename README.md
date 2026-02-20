@@ -20,10 +20,11 @@ npm install
 cp .env.local.example .env.local
 ```
 
-3. Configura en `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase)
+3. Configura en `.env.local` (claves actuales de Supabase: Publishable + Secret, no legacy):
+   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Dashboard → API Keys → publishable)
+   - `SUPABASE_SECRET_KEY` (opcional; solo si usas `createAdminClient()` en servidor; crear en API Keys → Create new → Secret)
    - `WATCHMODE_API_KEY` (https://api.watchmode.com/requestApiKey)
-   - Opcional: `STREAMING_AVAILABILITY_API_KEY` o `RAPIDAPI_KEY` para fallback
+   - Opcional: `STREAMING_AVAILABILITY_API_KEY` para fallback
 
 4. Crea un proyecto en Supabase y aplica las migraciones:
 
@@ -43,10 +44,13 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000).
 
+Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la clave Secret solo se usa en servidor con `createAdminClient()` cuando hace falta bypass RLS (p. ej. jobs internos). No exponer la Secret key al cliente.
+
 ## Deploy en Vercel
 
-- Conecta el repo a Vercel y configura las mismas variables de entorno.
-- Añade en Supabase Auth > URL Configuration la URL de producción (ej. `https://tu-app.vercel.app/auth/callback`).
+1. En [Vercel](https://vercel.com/new) importa el repo `mauricioabh/watchily-ho`. Configura las mismas variables que en `.env.local` (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY si aplica, y opcionalmente las API keys de streaming).
+2. Añade en **Supabase** > Authentication > URL Configuration la URL de producción (ej. `https://tu-app.vercel.app/auth/callback`).
+3. Tras el primer deploy, reemplaza en `lg-tv-hosted/index.html` la URL `YOUR_APP.vercel.app` por tu URL de Vercel, y en `apps/mobile/.env` define `EXPO_PUBLIC_API_URL` con esa misma URL.
 
 ## Estructura
 
@@ -54,7 +58,8 @@ Abre [http://localhost:3000](http://localhost:3000).
 - `src/components` – Componentes reutilizables
 - `src/lib` – Supabase, streaming API unificada
 - `src/types` – Tipos TypeScript
-- `supabase/migrations` – SQL para profiles, lists, likes, user_providers
+- `supabase/migrations` – SQL (profiles, user_providers, lists, list_items, likes, RLS)
+- `docs/schema.md` – Documentación del schema de la base de datos
 
 ## LG TV
 

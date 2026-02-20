@@ -1,36 +1,43 @@
 ---
-description: Contexto del proyecto Watchily: IDs, MCPs y env
+description: Contexto del proyecto Watchily: IDs, claves Supabase, MCPs y env
 globs: 
 alwaysApply: true
 ---
 
 # Watchily - Contexto del proyecto
 
-## Supabase
+## Supabase (claves actuales: Publishable + Secret, no legacy)
 - **Project ID**: `jehowbdfqhteznmbyecu`
 - **URL**: `https://jehowbdfqhteznmbyecu.supabase.co`
-- **Anon key**: está en `.env.local` (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-- **Service role key**: obtener en Dashboard > Project Settings > API. Añadir a `.env.local` como `SUPABASE_SERVICE_ROLE_KEY`.
-- Migraciones ya aplicadas (profiles, user_providers, lists, list_items, likes).
+- **Publishable key**: en `.env.local` como `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (cliente: web y Expo). Se obtiene en Dashboard → **API Keys** (pestaña principal, no Legacy).
+- **Secret key**: en `.env.local` como `SUPABASE_SECRET_KEY`. Crear en Dashboard → API Keys → "Create new API key" → tipo Secret. Solo para `createAdminClient()` en servidor (bypass RLS); no usar en rutas API normales.
+- **URL API Keys**: https://supabase.com/dashboard/project/jehowbdfqhteznmbyecu/settings/api-keys
+- **Schema documentado**: `docs/schema.md`. Tipos TS: `src/types/database.ts`. Migraciones: `supabase/migrations/`.
 
 ## GitHub
 - **Repo**: `mauricioabh/watchily-ho` — https://github.com/mauricioabh/watchily-ho
 
 ## Vercel
-- Proyecto vinculado al repo anterior; los pushes a `main` despliegan automáticamente.
-- URL de producción: ver en Vercel Dashboard una vez desplegado.
+- **URL producción**: https://watchily-ho.vercel.app
+- Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (si se usa admin client), y opcionalmente WATCHMODE_API_KEY, STREAMING_AVAILABILITY_API_KEY.
+- Los pushes a `main` despliegan automáticamente.
 
 ## Expo (apps/mobile)
-- Usar en `.env`: `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` (mismos que web).
-- `EXPO_PUBLIC_API_URL`: URL de la app en Vercel (ej. `https://watchily-ho.vercel.app`).
+- `.env`: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL` (URL de Vercel).
 
 ## LG TV (lg-tv-hosted)
-- En `index.html` sustituir `YOUR_APP.vercel.app` por la URL real de Vercel.
-- La app TV carga `https://TU_URL/tv`.
+- `index.html` apunta a `https://watchily-ho.vercel.app/tv`.
 
-## MCPs disponibles
-Usar cuando haga falta:
-- **Supabase MCP**: list/apply migrations, execute_sql, get_project, get_publishable_keys, etc.
-- **GitHub MCP**: crear/actualizar repo, commits, PRs, issues.
-- **Vercel MCP**: deploy, list projects, ver logs.
-- **Filesystem MCP**: leer/escribir .env, configs.
+## API routes y seguridad
+- Las API routes usan `createClient()` (sesión del usuario vía cookies); RLS se aplica. No exponer nunca la Secret key al cliente.
+- `createAdminClient()` solo cuando haga falta bypass RLS en lógica de servidor confiable (p. ej. cron, jobs internos).
+
+## Documentación: mantener actualizada
+Cada vez que cambies algo que tenga documentación asociada, actualiza los archivos correspondientes:
+
+- **Schema de base de datos**: Si creas o modificas tablas, columnas, RLS o migraciones en `supabase/migrations/`, actualiza **`docs/schema.md`** (tablas, columnas, políticas, índices) y, si aplica, regenera **`src/types/database.ts`** (p. ej. con Supabase MCP `generate_typescript_types` o `npx supabase gen types typescript --project-id jehowbdfqhteznmbyecu`).
+- **Variables de entorno**: Si añades o renombras variables usadas en el código, actualiza **`.env.local.example`**, y si afectan a Expo también **`apps/mobile/.env.example`** y esta regla (sección Supabase/Expo/Vercel).
+- **APIs o integraciones**: Si cambias rutas API, contratos o integraciones externas, actualiza el **README** (Setup, Estructura, Deploy) o la documentación específica que exista (p. ej. en `docs/`).
+- **Configuración del proyecto**: Si cambias URLs, IDs de proyecto (Supabase, Vercel) o pasos de deploy, actualiza esta regla y el README donde corresponda.
+
+Regla: **cambio en schema → actualizar docs/schema.md (y tipos DB); cambio en env o en configuración relevante → actualizar examples y/o README y/o esta regla.**

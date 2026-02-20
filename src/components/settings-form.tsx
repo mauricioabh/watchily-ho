@@ -104,7 +104,7 @@ export function SettingsForm({
           {PROVIDERS.map((p) => (
             <label
               key={p.id}
-              className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/10"
+              className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 has-checked:border-primary has-checked:bg-primary/10"
             >
               <input
                 type="checkbox"

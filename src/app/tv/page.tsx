@@ -10,7 +10,7 @@ async function TVPopular() {
   return (
     <div className="grid grid-cols-4 gap-6">
       {combined.map((title) => (
-        <div key={title.id} className="focusable-tv focus:outline focus:outline-2 focus:outline-primary">
+        <div key={title.id} className="focusable-tv focus:outline-2 focus:outline-primary">
           <Link href={`/title/${title.id}?device=tv`} className="block">
             <TitleTile title={title} />
           </Link>
@@ -27,13 +27,13 @@ export default function TVPage() {
       <nav className="mb-8 flex gap-4">
         <Link
           href="/tv"
-          className="rounded bg-primary px-4 py-2 text-primary-foreground focus:outline focus:outline-2 focus:outline-primary"
+          className="rounded bg-primary px-4 py-2 text-primary-foreground focus:outline-2 focus:outline-primary"
         >
           Inicio
         </Link>
         <Link
           href="/search?device=tv"
-          className="rounded border border-border px-4 py-2 focus:outline focus:outline-2 focus:outline-primary"
+          className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
         >
           Buscar
         </Link>

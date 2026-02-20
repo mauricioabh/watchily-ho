@@ -14,10 +14,12 @@ export async function POST(request: NextRequest) {
   if (!title_id || !title_type) {
     return Response.json({ error: "Missing title_id or title_type" }, { status: 400 });
   }
-  const { error } = await supabase.from("likes").upsert(
-    { user_id: user.id, title_id, title_type },
-    { onConflict: "user_id,title_id" }
-  );
+  const { error } = await supabase
+    .from("likes")
+    .upsert(
+      { user_id: user.id, title_id, title_type },
+      { onConflict: "user_id,title_id" }
+    );
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });
 }

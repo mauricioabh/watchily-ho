@@ -99,7 +99,7 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
 
   return (
-    <div className="group relative aspect-[2/3] overflow-hidden rounded-lg border border-border bg-muted">
+    <div className="group relative aspect-2/3 overflow-hidden rounded-lg border border-border bg-muted">
       <Link href={`/title/${title.id}`} className="block h-full w-full">
         {posterUrl ? (
           <Image
