@@ -20,8 +20,6 @@ const NUM_COLUMNS = 2;
 const HORIZONTAL_PADDING = 16;
 const GAP = 12;
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
-
 type Section = { id: string; title: string; data: MobileTitle[][] };
 
 export function AllTitlesScreen() {
@@ -40,13 +38,10 @@ export function AllTitlesScreen() {
 
       const sectionsData = await Promise.all(
         lists.map(async (list) => {
-          const res = await fetch(`${API_BASE}/api/lists/${list.id}/items`, {
-            headers: { "Content-Type": "application/json" },
-          });
-          const data = await res.json();
-          const items: { title_id: string; title_type: string }[] = data.items ?? [];
+          const { items } = await api.lists.getItems(list.id);
+          const itemsList: { title_id: string; title_type: string }[] = items ?? [];
           const details = await Promise.allSettled(
-            items.map((item) => api.titles.get(item.title_id))
+            itemsList.map((item) => api.titles.get(item.title_id))
           );
           const titles = details
             .filter((r) => r.status === "fulfilled" && r.value)

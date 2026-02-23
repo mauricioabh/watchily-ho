@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getTitleDetails } from "@/lib/streaming/unified";
+import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { TitleActions } from "@/components/title-actions";
 import { BackButton } from "@/components/back-button";
 import { createClient } from "@/lib/supabase/server";
@@ -90,8 +91,19 @@ export default async function TitlePage({
     if (profile?.country_code) userCountry = profile.country_code;
   }
 
-  const title = await getTitleDetails(id, { region: userCountry, country: userCountry });
+  let title = await getTitleDetails(id, { region: userCountry, country: userCountry });
   if (!title) notFound();
+
+  // Trim sources to only user's subscribed providers when logged in
+  if (user) {
+    const { data: providerRows } = await supabase
+      .from("user_providers")
+      .select("provider_id")
+      .eq("user_id", user.id);
+    const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+    const filtered = filterTitlesByUserProviders([title], userProviderIds);
+    title = filtered[0] ?? { ...title, sources: [] };
+  }
 
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
   const backdropUrl = title.backdrop?.startsWith("http") ? title.backdrop : undefined;

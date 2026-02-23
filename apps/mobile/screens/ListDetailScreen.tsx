@@ -21,21 +21,18 @@ export function ListDetailScreen() {
   const tileWidth = (width - HORIZONTAL_PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   useEffect(() => {
-    // Fetch list items then enrich with title details
-    fetch(`${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000"}/api/lists/${id}/items`, {
-        headers: { "Content-Type": "application/json" },
-      })
-      .then((r) => r.json())
-      .then(async (data) => {
-        const items: { title_id: string; title_type: string }[] = data.items ?? [];
+    // Fetch list items then enrich with title details (uses auth via fetchApi)
+    api.lists
+      .getItems(id)
+      .then(async ({ items: itemsList }) => {
+        const items: { title_id: string; title_type: string }[] = itemsList ?? [];
         const details = await Promise.allSettled(
-          items.map((item) =>
-            api.titles.get(item.title_id).catch(() => null)
-          )
+          items.map((item) => api.titles.get(item.title_id).catch(() => null))
         );
         const loaded = details
           .filter((r) => r.status === "fulfilled" && r.value)
-          .map((r) => (r as PromiseFulfilledResult<any>).value as MobileTitle);
+          .map((r) => (r as PromiseFulfilledResult<any>).value as MobileTitle)
+          .filter((t) => t.poster?.startsWith("http")); // only with poster
         setTitles(loaded);
       })
       .catch(() => setTitles([]))

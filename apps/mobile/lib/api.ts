@@ -40,6 +40,10 @@ export const api = {
   },
   lists: {
     all: () => fetchApi<{ lists: { id: string; name: string; is_public: boolean; created_at: string }[] }>("/api/lists"),
+    getItems: (listId: string) =>
+      fetchApi<{ items: { id?: string; title_id: string; title_type: string; added_at?: string }[] }>(
+        `/api/lists/${listId}/items`
+      ),
     forTitle: (titleId: string) =>
       fetchApi<{ listIdsByTitle: Record<string, string[]> }>(`/api/lists/items?title_id=${titleId}`),
     addItem: (listId: string, titleId: string, titleType: string) =>

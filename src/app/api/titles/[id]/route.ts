@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
+import { createClientForRequest } from "@/lib/supabase/server";
+import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 
 export async function GET(
   request: NextRequest,
@@ -14,10 +16,24 @@ export async function GET(
   }
 
   try {
-    const title = await getTitleDetails(id, { region, country: region });
+    let title = await getTitleDetails(id, { region, country: region });
     if (!title) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
+
+    // When user is authenticated, trim sources to only their subscribed providers
+    const supabase = await createClientForRequest();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: providerRows } = await supabase
+        .from("user_providers")
+        .select("provider_id")
+        .eq("user_id", user.id);
+      const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+      const filtered = filterTitlesByUserProviders([title], userProviderIds);
+      title = filtered[0] ?? { ...title, sources: [] };
+    }
+
     return Response.json(title);
   } catch (e) {
     console.error("Title details error:", e);
