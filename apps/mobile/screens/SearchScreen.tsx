@@ -1,59 +1,122 @@
-import { useState } from "react";
-import { View, TextInput, FlatList, TouchableOpacity, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useState, useRef, useEffect } from "react";
+import {
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { api } from "../lib/api";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { theme } from "../theme";
+import { GradientBackground } from "../components/GradientBackground";
+import { TitleCard, type MobileTitle } from "../components/TitleCard";
 
-type Title = { id: string; name: string; type: string; year?: number };
+const NUM_COLUMNS = 2;
+const HORIZONTAL_PADDING = 16;
+const GAP = 12;
 
 export function SearchScreen() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Title[]>([]);
+  const [results, setResults] = useState<MobileTitle[]>([]);
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const { width } = useWindowDimensions();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const tileWidth =
+    (width - HORIZONTAL_PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+  }, [fadeAnim]);
 
   const search = () => {
     if (!query.trim()) return;
     setLoading(true);
-    api.titles.search(query.trim()).then((r) => setResults(r.titles as Title[])).catch(() => setResults([])).finally(() => setLoading(false));
+    api.titles
+      .search(query.trim())
+      .then((r) => setResults(
+        (r.titles as MobileTitle[]).filter((t) => t.poster?.startsWith("http"))
+      ))
+      .catch(() => setResults([]))
+      .finally(() => setLoading(false));
   };
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Películas o series..."
-        placeholderTextColor="#666"
-        value={query}
-        onChangeText={setQuery}
-        onSubmitEditing={search}
-      />
-      <TouchableOpacity style={styles.button} onPress={search} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? "Buscando…" : "Buscar"}</Text>
-      </TouchableOpacity>
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+    <GradientBackground>
+      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        {/* Search bar */}
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Películas o series..."
+            placeholderTextColor={theme.colors.mutedForeground}
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={search}
+            returnKeyType="search"
+          />
           <TouchableOpacity
-            style={styles.row}
-            onPress={() => navigation.navigate("Title", { id: item.id })}
+            style={styles.button}
+            onPress={search}
+            disabled={loading}
+            activeOpacity={0.85}
           >
-            <Text style={styles.title}>{item.name}</Text>
-            {item.year != null && <Text style={styles.muted}>{item.year}</Text>}
+            <Text style={styles.buttonText}>{loading ? "…" : "Buscar"}</Text>
           </TouchableOpacity>
+        </View>
+
+        {results.length > 0 && (
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.id}
+            numColumns={NUM_COLUMNS}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TitleCard title={item} width={tileWidth} />
+            )}
+          />
         )}
-      />
-    </View>
+
+        {!loading && results.length === 0 && query.trim().length > 0 && (
+          <Text style={styles.emptyText}>Sin resultados en tus plataformas.</Text>
+        )}
+      </Animated.View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#0a0a0a" },
-  input: { borderWidth: 1, borderColor: "#333", borderRadius: 8, padding: 12, color: "#fff", marginBottom: 12 },
-  button: { backgroundColor: "#e5b00b", padding: 14, borderRadius: 8, marginBottom: 16 },
-  buttonText: { color: "#000", textAlign: "center", fontWeight: "600" },
-  row: { padding: 12, borderBottomWidth: 1, borderBottomColor: "#222" },
-  title: { color: "#fff", fontSize: 16 },
-  muted: { color: "#888", fontSize: 12 },
+  container: { flex: 1, paddingHorizontal: HORIZONTAL_PADDING, paddingTop: 8 },
+  searchRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: theme.colors.foreground,
+    fontSize: 14,
+  },
+  button: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: theme.radii.md,
+    justifyContent: "center",
+  },
+  buttonText: { color: theme.colors.primaryForeground, fontWeight: "700", fontSize: 14 },
+  row: { justifyContent: "space-between" },
+  listContent: { paddingBottom: 24 },
+  emptyText: {
+    color: theme.colors.mutedForeground,
+    textAlign: "center",
+    marginTop: 32,
+    fontSize: 14,
+  },
 });

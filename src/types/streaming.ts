@@ -20,12 +20,15 @@ export interface UnifiedTitle {
   year?: number;
   poster?: string;
   backdrop?: string;
-  overview?: string;
-  imdbRating?: number;
+  overview?: string;        // plot/synopsis
+  imdbRating?: number;      // 0-10
   rottenTomatoesRating?: number; // 0-100
-  runtime?: number; // minutes
+  userRating?: number;      // Watchmode user rating 0-10
+  criticScore?: number;     // Watchmode critic score 0-100
+  runtime?: number;         // minutes
   genres?: string[];
   sources?: StreamingSource[];
+  trailer?: string;
   // For series
   numberOfSeasons?: number;
 }

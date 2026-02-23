@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/settings-form";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -24,11 +22,18 @@ export default async function SettingsPage() {
   const selectedProviderIds = (providerRows ?? []).map((r) => r.provider_id);
 
   const provider = user.app_metadata?.provider ?? "email";
+  const defaultCountry =
+    provider === "google"
+      ? profile?.country_code && profile.country_code !== "US"
+        ? profile.country_code
+        : "MX"
+      : (profile?.country_code ?? "US");
+  const needsOnboarding = !profile?.country_code || selectedProviderIds.length === 0;
 
   return (
-    <main className="container max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold">Configuración</h1>
-      <div className="mt-6 space-y-6 rounded-lg border border-border bg-card p-6">
+    <main className="container mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <h1 className="text-center text-2xl font-bold tracking-tight">Configuración</h1>
+      <div className="mt-6 space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
         <div>
           <p className="text-sm text-muted-foreground">Email</p>
           <p className="font-medium">{user.email ?? "—"}</p>
@@ -38,12 +43,10 @@ export default async function SettingsPage() {
           <p className="font-medium">{provider === "google" ? "Google" : "Email y contraseña"}</p>
         </div>
         <SettingsForm
-          initialCountry={profile?.country_code ?? "US"}
+          initialCountry={defaultCountry}
           initialProviderIds={selectedProviderIds}
+          redirectOnSave={needsOnboarding}
         />
-        <Link href="/">
-          <Button variant="outline">Volver al inicio</Button>
-        </Link>
       </div>
     </main>
   );

@@ -1,54 +1,35 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import { getPopularTitles } from "@/lib/streaming/unified";
-import { TitleTile } from "@/components/title-tile";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
+import { AnimatedSection } from "@/components/animated-section";
+import { createClient } from "@/lib/supabase/server";
+import { AuthInlineCard } from "@/components/auth-inline-card";
 
-async function PopularSection() {
-  const [movies, series] = await Promise.all([
-    getPopularTitles({ type: "movie" }),
-    getPopularTitles({ type: "series" }),
-  ]);
-  const combined = [...movies, ...series].slice(0, 24);
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return (
-    <section className="container px-4 py-8">
-      <h2 className="mb-4 text-xl font-semibold">Películas y series más populares</h2>
-      {combined.length === 0 ? (
-        <p className="text-muted-foreground">
-          Configura WATCHMODE_API_KEY en .env.local para ver títulos populares. Mientras tanto,
-          usa la búsqueda.
-        </p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {combined.map((title) => (
-            <TitleTile key={title.id} title={title} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
+  if (user) redirect("/popular");
 
-export default function Home() {
   return (
     <main>
-      <section className="border-b border-border bg-card/50 py-12">
-        <div className="container px-4 text-center">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Dónde ver películas y series
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Busca títulos y descubre en qué plataformas están disponibles.
-          </p>
-          <Link href="/search">
-            <Button className="mt-4">Buscar</Button>
-          </Link>
-        </div>
-      </section>
-      <Suspense fallback={<div className="container px-4 py-8">Cargando...</div>}>
-        <PopularSection />
-      </Suspense>
+      <AnimatedSection>
+        <section className="relative py-14 sm:py-20">
+          <div className="container mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 md:grid-cols-2 md:items-center">
+            <div className="text-left">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+                Encuentra en qué plataforma ver cada título
+              </h1>
+              <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+                Inicia sesión y personaliza tus servicios para obtener resultados ajustados a tus plataformas.
+              </p>
+            </div>
+            <div className="flex justify-center md:justify-end">
+              <AuthInlineCard />
+            </div>
+          </div>
+        </section>
+      </AnimatedSection>
     </main>
   );
 }

@@ -1,0 +1,52 @@
+---
+description: Layout centering and page structure rules for Watchily web app
+globs: src/app/**/*.tsx, src/components/**/*.tsx
+alwaysApply: true
+---
+
+# Layout y Centrado de Contenido — Reglas Obligatorias
+
+## Contenedor estándar
+Todo el contenido de las páginas DEBE usar el mismo contenedor que el header y el footer:
+
+```tsx
+<main className="container mx-auto max-w-6xl px-4 sm:px-6">
+```
+
+- `container mx-auto` — centra horizontalmente
+- `max-w-6xl` — ancho máximo consistente con header y footer
+- `px-4 sm:px-6` — padding lateral idéntico al header y footer
+
+## NUNCA hacer esto
+```tsx
+// ❌ MAL: sin max-w-6xl o sin mx-auto → contenido pegado al borde izquierdo
+<main className="container px-4 py-8">
+<main className="px-4 py-8">
+<div className="p-4">
+```
+
+## Estructura de cada página
+```tsx
+<main className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
+  {/* contenido aquí */}
+</main>
+```
+
+## Secciones con fondo full-width dentro de la página
+Si una sección necesita fondo full-width (border, gradiente), el fondo va en el elemento exterior y el contenido interior usa el contenedor:
+
+```tsx
+<section className="border-b border-white/6 py-12">
+  <div className="container mx-auto max-w-6xl px-4 sm:px-6">
+    {/* contenido centrado */}
+  </div>
+</section>
+```
+
+## Header y Footer
+- Ambos usan `container mx-auto max-w-6xl px-4 sm:px-6`
+- El contenido de todas las páginas DEBE alinearse visualmente con estos bordes
+- NO uses max-w diferente (max-w-4xl, max-w-5xl, max-w-7xl) a menos que sea explícitamente requerido
+
+## Recordatorio
+Cada vez que crees o edites una página en `src/app/`, verifica que el `<main>` o su primer `<div>` hijo tenga exactamente `container mx-auto max-w-6xl px-4 sm:px-6`.

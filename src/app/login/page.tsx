@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { FcGoogle } from "react-icons/fc";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,13 +49,35 @@ export default function LoginPage() {
     setMessage(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) setMessage({ type: "error", text: error.message });
-    else window.location.href = "/";
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+      return;
+    }
+
+    try {
+      const onboardingRes = await fetch("/api/profile/onboarding");
+      if (onboardingRes.ok) {
+        const onboarding = await onboardingRes.json();
+        if (onboarding.needsOnboarding) {
+          window.location.href = "/settings?onboarding=1";
+          return;
+        }
+      }
+    } catch {
+      // Fallback to home if onboarding status can't be checked.
+    }
+
+    window.location.href = "/popular";
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border border-border bg-card p-6">
+      <motion.div
+        className="w-full max-w-sm space-y-6 rounded-lg border border-border bg-card p-6"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
+      >
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Watchily</h1>
           <p className="text-muted-foreground text-sm">Inicia sesión para continuar</p>
@@ -66,6 +90,7 @@ export default function LoginPage() {
           onClick={handleGoogleSignIn}
           disabled={loading}
         >
+          <FcGoogle className="size-5" aria-hidden />
           Continuar con Google
         </Button>
 
@@ -128,7 +153,7 @@ export default function LoginPage() {
             Volver al inicio
           </Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

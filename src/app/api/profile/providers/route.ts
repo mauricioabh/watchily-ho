@@ -7,11 +7,7 @@ const KNOWN_PROVIDERS = [
   { id: "hbo_max", name: "HBO Max" },
   { id: "amazon_prime", name: "Amazon Prime Video" },
   { id: "apple_tv_plus", name: "Apple TV+" },
-  { id: "hulu", name: "Hulu" },
   { id: "paramount_plus", name: "Paramount+" },
-  { id: "peacock", name: "Peacock" },
-  { id: "star_plus", name: "Star+" },
-  { id: "movistar_plus", name: "Movistar+" },
 ];
 
 export async function GET() {

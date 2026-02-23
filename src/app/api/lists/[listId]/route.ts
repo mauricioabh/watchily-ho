@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClientForRequest } from "@/lib/supabase/server";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClient();
+  const supabase = await createClientForRequest();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -28,7 +28,7 @@ export async function PATCH(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClient();
+  const supabase = await createClientForRequest();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -57,7 +57,7 @@ export async function DELETE(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClient();
+  const supabase = await createClientForRequest();
   const {
     data: { user },
   } = await supabase.auth.getUser();

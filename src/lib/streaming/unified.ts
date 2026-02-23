@@ -12,23 +12,26 @@ function mapWatchmodeDetailsToUnified(
     type: (s.type as "sub" | "rent" | "buy" | "free") ?? "sub",
     price: s.price,
     currency: s.currency,
-    url: s.web_url ?? s.ios_url ?? s.android_url,
+    url: s.web_url,
     quality: s.format as StreamingSource["quality"],
   }));
   return {
     id: String(d.id),
-    name: d.name,
-    originalName: d.original_name,
+    name: d.title,                          // Watchmode uses "title" not "name"
+    originalName: d.original_title,
     type: d.type === "tv_series" ? "series" : "movie",
     year: d.year,
-    poster: d.poster ?? d.image,
+    poster: d.posterLarge ?? d.posterMedium ?? d.poster,
     backdrop: d.backdrop,
-    overview: d.overview,
+    overview: d.plot_overview,              // Watchmode uses "plot_overview"
     imdbRating: d.imdb_rating,
     rottenTomatoesRating: d.rotten_tomatoes,
-    runtime: d.runtime,
+    userRating: d.user_rating,
+    criticScore: d.critic_score,
+    runtime: d.runtime_minutes,             // Watchmode uses "runtime_minutes"
     genres: d.genre_names,
     sources: src.length ? src : undefined,
+    trailer: d.trailer,
   };
 }
 
@@ -42,19 +45,59 @@ function mapWatchmodeResultToUnified(r: watchmode.WatchmodeTitleResult): Unified
   };
 }
 
+function mapWatchmodeAutocompleteToUnified(r: watchmode.WatchmodeAutocompleteResult): UnifiedTitle {
+  return {
+    id: String(r.id),
+    name: r.name,
+    type: r.type === "tv_series" ? "series" : "movie",
+    year: r.year,
+    poster: r.image_url,  // thumbnail from CDN — already sorted by relevance
+  };
+}
+
 export async function searchTitles(
   query: string,
   options?: { types?: ("movie" | "series")[]; country?: string }
 ): Promise<UnifiedSearchResult> {
-  const types = options?.types?.map((t) => (t === "series" ? "tv_series" : "movie"));
+  const country = (options?.country ?? "us").toLowerCase();
+
+  // Primary: Watchmode autocomplete — relevance-sorted + thumbnails
   try {
+    const res = await watchmode.watchmodeAutocompleteSearch(query);
+    let results = res.results ?? [];
+
+    // Client-side type filter if specified
+    if (options?.types?.length) {
+      const wmTypes = options.types.map((t) => (t === "series" ? "tv_series" : "movie"));
+      results = results.filter((r) => wmTypes.includes(r.type));
+    }
+
+    const titles = results.map(mapWatchmodeAutocompleteToUnified);
+    if (titles.length > 0) {
+      return { titles, totalCount: titles.length };
+    }
+  } catch {
+    // fall through
+  }
+
+  // Fallback: legacy Watchmode search
+  try {
+    const types = options?.types?.map((t) => (t === "series" ? "tv_series" : "movie"));
     const res = await watchmode.watchmodeSearch(query, types);
     const titles = (res.title_results ?? []).map(mapWatchmodeResultToUnified);
-    return { titles, totalCount: titles.length };
+    if (titles.length > 0) {
+      return { titles, totalCount: titles.length };
+    }
   } catch {
-    const country = options?.country ?? "us";
+    // fall through
+  }
+
+  // Last resort: Streaming Availability API
+  try {
     const titles = await streamingAvailability.streamingAvailabilitySearch(query, country);
     return { titles, totalCount: titles.length };
+  } catch {
+    return { titles: [], totalCount: 0 };
   }
 }
 
@@ -64,12 +107,11 @@ export async function getTitleDetails(
 ): Promise<UnifiedTitle | null> {
   const region = options?.region ?? options?.country ?? "US";
   try {
-    const [details, sourcesRes] = await Promise.all([
-      watchmode.watchmodeTitleDetails(id),
-      watchmode.watchmodeTitleSources(id, region),
-    ]);
+    // Single call: details + sources via append_to_response (half the API quota)
+    const details = await watchmode.watchmodeTitleDetails(id, region);
     if (details) {
-      return mapWatchmodeDetailsToUnified(details, sourcesRes?.sources);
+      // sources are embedded in details when append_to_response=sources is used
+      return mapWatchmodeDetailsToUnified(details, details.sources);
     }
   } catch {
     // fallback
@@ -84,17 +126,47 @@ export async function getTitleDetails(
 export async function getPopularTitles(options?: {
   type?: "movie" | "series";
   country?: string;
+  enrich?: boolean;
+  sourceIds?: number[]; // Watchmode source IDs to pre-filter by provider
 }): Promise<UnifiedTitle[]> {
   const type = options?.type ?? "movie";
+  const country = options?.country ?? "US";
+
   try {
-    const list = await watchmode.watchmodeTrending(type === "movie" ? "movies" : "series");
-    return list.map((t) => ({
+    const list = await watchmode.watchmodeListTitles(
+      type === "movie" ? "movie" : "tv_series",
+      { pageSize: 20, sourceIds: options?.sourceIds }
+    );
+
+    const basic: UnifiedTitle[] = list.map((t) => ({
       id: String(t.id),
       name: t.name,
       type: type === "movie" ? "movie" : "series",
       year: t.year,
       poster: t.image,
     }));
+
+    if (!options?.enrich || basic.length === 0) return basic;
+
+    // Enrich only top 12 for ratings + sources (API already filtered by provider)
+    const ENRICH = 12;
+    const toEnrich = basic.slice(0, ENRICH);
+    const rest = basic.slice(ENRICH);
+
+    const enriched = await Promise.allSettled(
+      toEnrich.map((t) => getTitleDetails(t.id, { country, region: country }))
+    );
+
+    const enrichedTitles: UnifiedTitle[] = toEnrich.map((original, i) => {
+      const r = enriched[i];
+      if (r.status === "fulfilled" && r.value) {
+        return { ...r.value, poster: r.value.poster ?? original.poster };
+      }
+      return original;
+    });
+
+    // Only return titles that have a poster to display
+    return [...enrichedTitles, ...rest].filter((t) => t.poster?.startsWith("http"));
   } catch {
     return [];
   }

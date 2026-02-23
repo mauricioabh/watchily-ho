@@ -1,73 +1,49 @@
-"use client";
-
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { TitleTile } from "@/components/title-tile";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
+import { getPopularTitles } from "@/lib/streaming/unified";
+import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import { createClient } from "@/lib/supabase/server";
+import { SearchContent } from "@/components/search-content";
 import type { UnifiedTitle } from "@/types/streaming";
 
-function SearchContent() {
-  const searchParams = useSearchParams();
-  const q = searchParams.get("q") ?? "";
-  const [query, setQuery] = useState(q);
-  const [results, setResults] = useState<UnifiedTitle[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+async function getPopularForUser(): Promise<UnifiedTitle[]> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  const search = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!query.trim()) return;
-    setLoading(true);
-    setSearched(true);
-    try {
-      const res = await fetch(
-        `/api/titles/search?q=${encodeURIComponent(query.trim())}`
-      );
-      const data = await res.json();
-      setResults(data.titles ?? []);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const { data: providerRows } = user
+      ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)
+      : { data: [] };
 
-  return (
-    <main className="container px-4 py-8">
-      <h1 className="mb-4 text-2xl font-bold">Buscar</h1>
-      <form onSubmit={search} className="mb-6 flex gap-2">
-        <Input
-          placeholder="Películas o series..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="max-w-md"
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? "Buscando…" : "Buscar"}
-        </Button>
-      </form>
-      {searched && (
-        <>
-          {loading ? (
-            <p className="text-muted-foreground">Cargando...</p>
-          ) : results.length === 0 ? (
-            <p className="text-muted-foreground">No hay resultados.</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {results.map((title) => (
-                <TitleTile key={title.id} title={title} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </main>
-  );
+    const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+    const sourceIds = userProviderIds
+      .map((id) => PROVIDER_TO_SOURCE_ID[id])
+      .filter(Boolean) as number[];
+
+    const [movies, series] = await Promise.all([
+      getPopularTitles({ type: "movie", enrich: true, sourceIds }),
+      getPopularTitles({ type: "series", enrich: true, sourceIds }),
+    ]);
+
+    const all = [...movies, ...series];
+    // Trim sources to only the user's subscribed providers
+    return filterTitlesByUserProviders(all, userProviderIds).slice(0, 24) as UnifiedTitle[];
+  } catch {
+    return [];
+  }
 }
 
-export default function SearchPage() {
+export default async function SearchPage() {
+  const popular = await getPopularForUser();
+
   return (
-    <Suspense fallback={<main className="container px-4 py-8"><p className="text-muted-foreground">Cargando...</p></main>}>
-      <SearchContent />
+    <Suspense
+      fallback={
+        <main className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
+          <p className="text-muted-foreground">Cargando...</p>
+        </main>
+      }
+    >
+      <SearchContent popular={popular} />
     </Suspense>
   );
 }

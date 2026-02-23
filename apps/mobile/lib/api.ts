@@ -1,12 +1,31 @@
+import { supabase } from "./supabase";
+
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return { Authorization: `Bearer ${session.access_token}` };
+    }
+  } catch {
+    // No session available
+  }
+  return {};
+}
 
 export async function fetchApi<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders,
+      ...options?.headers,
+    },
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<T>;
@@ -19,5 +38,21 @@ export const api = {
     popular: (type?: "movie" | "series") =>
       fetchApi<{ titles: unknown[] }>(`/api/titles/popular${type ? `?type=${type}` : ""}`),
   },
-  lists: () => fetchApi<{ lists: unknown[] }>("/api/lists"),
+  lists: {
+    all: () => fetchApi<{ lists: { id: string; name: string; is_public: boolean; created_at: string }[] }>("/api/lists"),
+    forTitle: (titleId: string) =>
+      fetchApi<{ listIdsByTitle: Record<string, string[]> }>(`/api/lists/items?title_id=${titleId}`),
+    addItem: (listId: string, titleId: string, titleType: string) =>
+      fetchApi(`/api/lists/${listId}/items`, {
+        method: "POST",
+        body: JSON.stringify({ title_id: titleId, title_type: titleType }),
+      }),
+    removeItem: (listId: string, titleId: string) =>
+      fetchApi(`/api/lists/${listId}/items?title_id=${titleId}`, { method: "DELETE" }),
+    create: (name: string) =>
+      fetchApi<{ id: string; name: string }>("/api/lists", {
+        method: "POST",
+        body: JSON.stringify({ name, is_public: false }),
+      }),
+  },
 };

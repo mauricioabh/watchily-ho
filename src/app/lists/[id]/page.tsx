@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getTitleDetails } from "@/lib/streaming/unified";
+import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { TitleTile } from "@/components/title-tile";
 import { ListActions } from "@/components/list-actions";
 import type { UnifiedTitle } from "@/types/streaming";
@@ -20,6 +21,12 @@ export default async function ListDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { data: providerRows } = await supabase
+    .from("user_providers")
+    .select("provider_id")
+    .eq("user_id", user.id);
+  const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
 
   const { data: list } = await supabase
     .from("lists")
@@ -40,14 +47,16 @@ export default async function ListDetailPage({
   if (filterType === "movie") filtered = filtered.filter((i) => i.title_type === "movie");
   if (filterType === "series") filtered = filtered.filter((i) => i.title_type === "series");
 
-  const titles: UnifiedTitle[] = [];
+  const rawTitles: UnifiedTitle[] = [];
   for (const item of filtered) {
     const t = await getTitleDetails(item.title_id);
-    if (t) titles.push(t);
+    if (t) rawTitles.push(t);
   }
+  // Trim sources to only the user's subscribed providers
+  const titles = filterTitlesByUserProviders(rawTitles, userProviderIds);
 
   return (
-    <main className="container px-4 py-8">
+    <main className="container mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-4 flex items-center gap-4">
         <Link href="/lists" className="text-sm text-muted-foreground hover:text-foreground">
           ← Mis listas

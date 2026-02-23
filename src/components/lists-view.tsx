@@ -48,8 +48,11 @@ export function ListsView({ lists }: { lists: ListRow[] }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button
+          size="sm"
+          className="h-9 gap-2 bg-blue-800 text-white hover:bg-blue-900 hover:text-white"
+        >
+          <Plus className="h-3.5 w-3.5" />
           Nueva lista
         </Button>
       </DialogTrigger>
