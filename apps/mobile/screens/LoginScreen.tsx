@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated } from "react-native";
+import { makeRedirectUri } from "expo-auth-session";
+import * as QueryParams from "expo-auth-session/build/QueryParams";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 import { supabase } from "../lib/supabase";
 import { theme } from "../theme";
 import { GradientBackground } from "../components/GradientBackground";
-import * as Linking from "expo-linking";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -12,8 +17,6 @@ export function LoginScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  const redirectUrl = Linking.createURL("auth/callback");
-
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -21,13 +24,55 @@ export function LoginScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  const initialUrl = Linking.useURL();
+  useEffect(() => {
+    if (initialUrl) {
+      createSessionFromUrl(initialUrl).catch((e) => {
+        if (__DEV__) console.warn("[Auth] createSessionFromUrl:", e);
+        Alert.alert("Error", e instanceof Error ? e.message : "Error al iniciar sesión");
+      });
+    }
+  }, [initialUrl]);
+
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", (e) => {
+      createSessionFromUrl(e.url).catch((err) => {
+        if (__DEV__) console.warn("[Auth] createSessionFromUrl:", err);
+        Alert.alert("Error", err instanceof Error ? err.message : "Error al iniciar sesión");
+      });
+    });
+    return () => sub.remove();
+  }, []);
+
+  const createSessionFromUrl = async (url: string) => {
+    const { params, errorCode } = QueryParams.getQueryParams(url);
+    if (errorCode) throw new Error(errorCode);
+    const { code, access_token, refresh_token, error: oauthError } = params;
+    if (oauthError) throw new Error(params.error_description ?? oauthError);
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) throw error;
+    } else if (access_token) {
+      const { error } = await supabase.auth.setSession({ access_token, refresh_token: refresh_token ?? "" });
+      if (error) throw error;
+    }
+  };
+
   const signInWithGoogle = async () => {
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? "https://watchily-ho.vercel.app";
+    const appRedirect = makeRedirectUri({ path: "auth/callback" });
+    const redirectTo = `${apiUrl}/auth/mobile-callback?app_redirect=${encodeURIComponent(appRedirect)}`;
+    if (__DEV__) console.log("[Auth] Redirect URL:", redirectTo);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: redirectUrl },
+      options: { redirectTo, skipBrowserRedirect: true },
     });
-    if (error) Alert.alert("Error", error.message);
-    else if (data?.url) Linking.openURL(data.url);
+    if (error) {
+      Alert.alert("Error", error.message);
+      return;
+    }
+    if (!data?.url) return;
+    Linking.openURL(data.url);
   };
 
   const signInWithEmail = async () => {
@@ -39,7 +84,8 @@ export function LoginScreen() {
 
   const signUp = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectUrl } });
+    const redirectTo = makeRedirectUri({ path: "auth/callback" });
+    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
     setLoading(false);
     if (error) Alert.alert("Error", error.message);
     else Alert.alert("Listo", "Revisa tu correo para confirmar.");

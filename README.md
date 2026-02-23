@@ -34,7 +34,9 @@ supabase db push
 # O ejecuta manualmente los archivos en supabase/migrations/
 ```
 
-5. En Supabase Dashboard > Authentication > Providers: activa Google y Email. Añade la URL de redirección (ej. `http://localhost:3000/auth/callback`).
+5. En Supabase Dashboard > Authentication > Providers: activa Google y Email. En **URL Configuration** > Redirect URLs añade:
+   - Web: `http://localhost:3000/auth/callback` y `https://tu-app.vercel.app/auth/callback`
+   - Mobile (proxy): `https://tu-app.vercel.app/auth/mobile-callback` o `https://tu-app.vercel.app/auth/mobile-callback*`
 
 6. Arranca el servidor:
 
