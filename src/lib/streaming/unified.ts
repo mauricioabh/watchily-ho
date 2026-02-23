@@ -69,7 +69,7 @@ export async function searchTitles(
     // Client-side type filter if specified
     if (options?.types?.length) {
       const wmTypes = options.types.map((t) => (t === "series" ? "tv_series" : "movie"));
-      results = results.filter((r) => wmTypes.includes(r.type));
+      results = results.filter((r) => (wmTypes as string[]).includes(r.type));
     }
 
     const titles = results.map(mapWatchmodeAutocompleteToUnified);
