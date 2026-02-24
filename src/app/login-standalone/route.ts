@@ -54,7 +54,6 @@ export async function GET(request: Request) {
     .pair-url{font-size:28px;color:#60a5fa;word-break:break-all;margin-bottom:16px;line-height:1.4}
     .pair-hint{font-size:30px;color:#a1a1aa}
     .pair-loading{font-size:32px;color:#a1a1aa;margin:28px 0}
-    .right h2{font-size:40px;font-weight:700;margin-bottom:16px;color:#fff}
     .right .sub{font-size:28px;color:#a1a1aa;margin-bottom:32px}
     form{display:flex;flex-direction:column;gap:24px}
     form .field-group{margin-bottom:4px}
@@ -92,7 +91,6 @@ export async function GET(request: Request) {
       </div>
     </div>
     <div class="right">
-      <h2>O con email</h2>
       <p class="sub">Entra con email y contrase&ntilde;a</p>
       <form method="POST" action="/api/auth/signin-standalone">
         <input type="hidden" name="redirect" value="/tv-standalone" />
