@@ -60,7 +60,11 @@ export async function GET() {
   <title>Watchily</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
+    body{
+      background:linear-gradient(180deg,#0b1120 0%,#080c18 30%,#060810 65%,#05070d 100%);
+      color:#fff;font-family:Arial,sans-serif;min-height:100vh;
+      padding:40px;max-width:1152px;margin:0 auto
+    }
     h1{font-size:42px;margin-bottom:24px;color:#e5b00b}
     nav{margin-bottom:32px;display:flex;gap:12px;flex-wrap:wrap}
     nav a,nav button{display:inline-block;padding:12px 20px;border-radius:8px;font-size:16px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none}
