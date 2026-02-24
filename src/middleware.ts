@@ -17,13 +17,19 @@ export async function middleware(request: NextRequest) {
   if (isTVRequest(request)) {
     let rewritePath: string | null = null;
     if (path === "/tv" || path === "/") rewritePath = "/tv-standalone";
+    else if (path === "/search") rewritePath = "/search-standalone";
     else if (path === "/lists") rewritePath = "/lists-standalone";
     else if (path === "/lists/all") rewritePath = "/lists-all-standalone";
     else if (path.match(/^\/lists\/[^/]+$/)) rewritePath = path.replace("/lists/", "/lists-standalone/");
+    else if (path.match(/^\/title\/([^/]+)$/)) rewritePath = path.replace("/title/", "/title-standalone/");
     else if (path === "/login") rewritePath = "/login-standalone";
     else if (path === "/settings") rewritePath = "/settings-standalone";
 
-    if (rewritePath) return NextResponse.rewrite(new URL(rewritePath, request.url));
+    if (rewritePath) {
+      const url = new URL(rewritePath, request.url);
+      url.search = request.nextUrl.search;
+      return NextResponse.rewrite(url);
+    }
   }
 
   return updateSession(request);

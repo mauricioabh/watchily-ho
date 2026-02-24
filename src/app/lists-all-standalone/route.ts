@@ -58,7 +58,7 @@ export async function GET() {
   const tiles = filtered
     .map(
       (t) => `
-      <a href="${BASE}/title/${t.id}" tabindex="0" class="tile-link" style="display:block;text-decoration:none;color:inherit;">
+      <a href="${BASE}/title-standalone/${t.id}" tabindex="0" class="tile-link" style="display:block;text-decoration:none;color:inherit;">
         <div class="tile">
           <div class="tile-poster">
             ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
@@ -103,7 +103,7 @@ export async function GET() {
   <h1>Ver todo</h1>
   <nav>
     <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${BASE}/search?device=tv" tabindex="0">Buscar</a>
+    <a href="${BASE}/search-standalone" tabindex="0">Buscar</a>
     <a href="${BASE}/lists-standalone" tabindex="0">Listas</a>
     <a href="${BASE}/lists-all-standalone" tabindex="0">Ver todo</a>
     <a href="${BASE}/settings-standalone" tabindex="0">Configuración</a>
@@ -114,6 +114,7 @@ export async function GET() {
     (function(){
       var f=document.querySelectorAll('nav a, nav button, .tile-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
+      f[0]?.focus();
       document.addEventListener('keydown',function(e){
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         var idx=i(document.activeElement);

@@ -37,7 +37,7 @@ export async function GET() {
     const tiles = combined
       .map(
         (t, i) => `
-        <a href="${base}/title/${t.id}" tabindex="${6 + i}" class="tile-link" style="display:block;text-decoration:none;color:inherit;">
+        <a href="${base}/title-standalone/${t.id}" tabindex="0" class="tile-link" style="display:block;text-decoration:none;color:inherit;">
           <div class="tile">
             <div class="tile-poster">
               ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
@@ -86,8 +86,8 @@ export async function GET() {
 <body>
   <h1>Watchily</h1>
   <nav id="nav">
-    <a href="${base}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${base}/search?device=tv" tabindex="0">Buscar</a>
+    <a href="${base}/tv-standalone" tabindex="0" id="firstFocus">Inicio</a>
+    <a href="${base}/search-standalone" tabindex="0">Buscar</a>
     <a href="${base}/lists-standalone" tabindex="0">Listas</a>
     <a href="${base}/lists-all-standalone" tabindex="0">Ver todo</a>
     <a href="${base}/settings-standalone" tabindex="0">Configuración</a>
@@ -97,11 +97,18 @@ export async function GET() {
   <script>
     (function(){
       var focusables=document.querySelectorAll('nav a, nav button, .tile-link');
+      var inicio=document.getElementById("firstFocus");
       function idxOf(el){for(var i=0;i<focusables.length;i++)if(focusables[i]===el)return i;return -1}
+      function focusInicio(){if(inicio)inicio.focus()}
+      focusInicio();
       document.addEventListener('keydown',function(e){
-        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         var idx=idxOf(document.activeElement);
-        if(idx<0)return;
+        if(idx<0){
+          focusInicio();
+          e.preventDefault();
+          return;
+        }
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var cols=4,next=-1;
         if(e.key==='ArrowRight')next=idx+1;
@@ -109,7 +116,7 @@ export async function GET() {
         else if(e.key==='ArrowDown')next=idx+cols;
         else if(e.key==='ArrowUp')next=idx-cols;
         if(next>=0&&next<focusables.length)focusables[next].focus();
-      });
+      },true);
     })();
   </script>
 </body>

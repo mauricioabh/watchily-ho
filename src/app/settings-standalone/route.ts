@@ -67,7 +67,7 @@ export async function GET() {
   <h1>Configuración</h1>
   <nav>
     <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${BASE}/search?device=tv" tabindex="0">Buscar</a>
+    <a href="${BASE}/search-standalone" tabindex="0">Buscar</a>
     <a href="${BASE}/lists-standalone" tabindex="0">Listas</a>
     <a href="${BASE}/lists-all-standalone" tabindex="0">Ver todo</a>
     <a href="${BASE}/settings-standalone" tabindex="0">Configuración</a>
@@ -88,6 +88,7 @@ export async function GET() {
     (function(){
       var f=document.querySelectorAll('nav a, nav button');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
+      f[0]?.focus();
       document.addEventListener('keydown',function(e){
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         var idx=i(document.activeElement);
