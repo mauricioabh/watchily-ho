@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
     else if (path === "/lists/all") rewritePath = "/lists-all-standalone";
     else if (path.match(/^\/lists\/[^/]+$/)) rewritePath = path.replace("/lists/", "/lists-standalone/");
     else if (path === "/login") rewritePath = "/login-standalone";
+    else if (path === "/settings") rewritePath = "/settings-standalone";
 
     if (rewritePath) return NextResponse.rewrite(new URL(rewritePath, request.url));
   }

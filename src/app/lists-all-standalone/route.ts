@@ -58,15 +58,15 @@ export async function GET() {
   const tiles = filtered
     .map(
       (t) => `
-      <a href="${BASE}/title/${t.id}" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
-        <div style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
-          <div style="aspect-ratio:2/3;background:#2a2a2a;position:relative;">
-            ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;color:#666;">${escapeHtml(t.name.slice(0,2))}</div>`}
-            <span style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,0.7);padding:4px 8px;border-radius:4px;font-size:10px;">${t.type === "series" ? "SERIE" : "PELÍCULA"}</span>
+      <a href="${BASE}/title/${t.id}" tabindex="0" class="tile-link" style="display:block;text-decoration:none;color:inherit;">
+        <div class="tile">
+          <div class="tile-poster">
+            ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
+            <span class="tile-badge">${t.type === "series" ? "SERIE" : "PELÍCULA"}</span>
           </div>
-          <div style="padding:12px;">
-            <p style="font-size:14px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(t.name)}</p>
-            ${t.year ? `<span style="font-size:11px;color:#888;">${t.year}</span>` : ""}
+          <div class="tile-info">
+            <p class="tile-title">${escapeHtml(t.name)}</p>
+            ${t.year ? `<span class="tile-year">${t.year}</span>` : ""}
           </div>
         </div>
       </a>`
@@ -81,22 +81,53 @@ export async function GET() {
   <title>Watchily - Ver todo</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
-    h1{font-size:42px;margin-bottom:24px;color:#e5b00b}
-    nav{margin-bottom:32px;display:flex;gap:12px;flex-wrap:wrap}
-    nav a{display:inline-block;padding:12px 20px;border-radius:8px;font-size:16px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
-    a:focus{outline:3px solid #e5b00b;outline-offset:4px}
-    .grid a:focus>div{border-color:#e5b00b!important;box-shadow:0 0 0 2px #e5b00b}
+    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:48px}
+    h1{font-size:48px;margin-bottom:28px;color:#e5b00b}
+    nav{margin-bottom:36px;display:flex;gap:16px;flex-wrap:wrap}
+    nav a,nav button{display:inline-block;padding:16px 24px;border-radius:10px;font-size:22px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;transition:all 0.2s}
+    nav a:hover,nav button:hover,nav a:focus,nav button:focus{background:rgba(99,102,241,0.4);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:3px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+    .tile-link:focus{outline:none}
+    .tile-link:focus .tile{transform:scale(1.04);border-color:#e5b00b;box-shadow:0 0 0 3px #e5b00b,0 12px 32px rgba(229,176,11,0.25)}
+    .tile{background:rgba(26,26,30,0.95);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s}
+    .tile-poster{aspect-ratio:2/3;background:#1f1f23;position:relative;overflow:hidden}
+    .tile-poster img{width:100%;height:100%;object-fit:cover}
+    .tile-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:32px;font-weight:700;color:#555}
+    .tile-badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,0.75);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600}
+    .tile-info{padding:16px}
+    .tile-title{font-size:18px;font-weight:600;margin:0 0 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tile-year{font-size:14px;color:#888}
   </style>
 </head>
 <body>
   <h1>Ver todo</h1>
-  <nav id="nav">
-    <a href="${BASE}/tv?device=tv" tabindex="0">Inicio</a>
-    <a href="${BASE}/lists?device=tv" tabindex="0">← Mis listas</a>
+  <nav>
+    <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
+    <a href="${BASE}/search?device=tv" tabindex="0">Buscar</a>
+    <a href="${BASE}/lists-standalone" tabindex="0">Listas</a>
+    <a href="${BASE}/lists-all-standalone" tabindex="0">Ver todo</a>
+    <a href="${BASE}/settings-standalone" tabindex="0">Configuración</a>
+    <form action="${BASE}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0" style="padding:16px 24px;border-radius:10px;font-size:22px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer">Cerrar sesión</button></form>
   </nav>
   <div class="grid" id="grid">${tiles}</div>
+  <script>
+    (function(){
+      var f=document.querySelectorAll('nav a, nav button, .tile-link');
+      function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
+      document.addEventListener('keydown',function(e){
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
+        var idx=i(document.activeElement);
+        if(idx<0)return;
+        e.preventDefault();
+        var next=-1,cols=4;
+        if(e.key==='ArrowRight')next=idx+1;
+        else if(e.key==='ArrowLeft')next=idx-1;
+        else if(e.key==='ArrowDown')next=idx+cols;
+        else if(e.key==='ArrowUp')next=idx-cols;
+        if(next>=0&&next<f.length)f[next].focus();
+      });
+    })();
+  </script>
 </body>
 </html>`;
 
