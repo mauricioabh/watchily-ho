@@ -55,7 +55,8 @@ export async function GET(
     const t = await getTitleDetails(item.title_id);
     if (t) titles.push(t);
   }
-  const filtered = filterTitlesByUserProviders(titles, userProviderIds);
+  const validTitles = titles.filter((t): t is NonNullable<typeof t> => t != null);
+  const filtered = filterTitlesByUserProviders(validTitles, userProviderIds);
 
   const tiles = filtered
     .map(
