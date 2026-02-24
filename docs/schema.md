@@ -95,11 +95,30 @@ Likes de usuario por título.
 
 ---
 
+### `public.pairing_codes`
+
+Códigos de vinculación para login en TV (second-screen, estilo JustWatch).
+
+| Columna            | Tipo      | Nullable | Default | Descripción                          |
+|--------------------|-----------|----------|---------|--------------------------------------|
+| code               | text      | NO       | —       | PK, código de 6 dígitos              |
+| exchange_token     | text      | YES      | —       | Token para intercambio por sesión    |
+| user_id            | uuid      | YES      | —       | FK → auth.users                      |
+| refresh_token      | text      | YES      | —       | Temporal (10 min) para transferir   |
+| expires_at         | timestamptz | NO     | now()+10m | Expiración                           |
+| created_at         | timestamptz | NO     | now()   | —                                    |
+
+- **RLS:** activado.
+- **Políticas:** ninguna. Usado solo por API routes con `createAdminClient` (service role).
+
+---
+
 ## Migraciones
 
 - `20250219000001_profiles_and_providers.sql` — profiles, user_providers, trigger `handle_new_user`.
 - `20250219000002_lists_and_likes.sql` — lists, list_items, likes.
 - `20250223000001_default_country_mx.sql` — default country_code para nuevos perfiles: MX.
+- `20250224000001_pairing_codes.sql` — pairing_codes para TV second-screen login.
 
 ---
 

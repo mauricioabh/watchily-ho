@@ -14,7 +14,7 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user) {
+      if (user && next !== "/tv/pair") {
         const [{ data: profile }, { data: providerRows }] = await Promise.all([
           supabase.from("profiles").select("country_code").eq("id", user.id).single(),
           supabase.from("user_providers").select("provider_id").eq("user_id", user.id),

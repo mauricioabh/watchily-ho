@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/popular";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +24,7 @@ export default function LoginPage() {
     setMessage(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
     if (error) {
       setMessage({ type: "error", text: error.message });
@@ -36,7 +39,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
     setLoading(false);
     if (error) setMessage({ type: "error", text: error.message });
@@ -67,7 +70,7 @@ export default function LoginPage() {
       // Fallback to home if onboarding status can't be checked.
     }
 
-    window.location.href = "/popular";
+    window.location.href = next;
   };
 
   return (

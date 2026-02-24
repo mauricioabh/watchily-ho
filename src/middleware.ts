@@ -2,13 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 function isTVRequest(request: NextRequest): boolean {
-  const ua = request.headers.get("user-agent")?.toLowerCase() ?? "";
+  const ua = request.headers.get("user-agent") ?? "";
   const url = new URL(request.url);
   if (url.searchParams.get("device") === "tv") return true;
-  return /webos|web0s|tizen|tv/i.test(ua);
+  return (
+    /webos|web0s|tizen|tv/i.test(ua) ||
+    /linux\/smarttv|lg browser|netcast/i.test(ua)
+  );
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   if (isTVRequest(request)) {
