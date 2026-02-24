@@ -94,10 +94,10 @@ export function UpdatePasswordForm() {
         </div>
         <button
           type="submit"
-          disabled={status === "loading"}
+          disabled={false}
           className="w-full rounded-lg bg-indigo-600 py-3 font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
         >
-          {status === "loading" ? "Guardando…" : "Guardar contraseña"}
+          Guardar contraseña
         </button>
       </form>
     );

@@ -22,6 +22,7 @@ alwaysApply: true
 - **URL producción**: https://watchily-ho.vercel.app
 - Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (si se usa admin client), y opcionalmente WATCHMODE_API_KEY, STREAMING_AVAILABILITY_API_KEY.
 - Los pushes a `main` despliegan automáticamente.
+- **Regla de deployment**: `.cursor/rules/deployment-verification.mdc` — ejecutar `npm run build` antes de push para evitar deploys fallidos.
 
 ## Expo (apps/mobile)
 - `.env`: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL` (URL de Vercel).

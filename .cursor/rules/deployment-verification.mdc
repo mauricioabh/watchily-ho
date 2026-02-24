@@ -1,0 +1,29 @@
+---
+description: Verificar que el deployment a Vercel sea correcto antes de push
+globs: 
+alwaysApply: false
+---
+
+# Verificación de deployment
+
+Antes de hacer push a `main` (o antes de un deploy manual), verificar que el build pase localmente.
+
+## Flujo obligatorio
+
+1. **Ejecutar build local**:
+   ```bash
+   npm run build
+   ```
+   Si falla, corregir errores antes de push.
+
+2. **Errores comunes que rompen el deploy**:
+   - Errores de TypeScript (type errors)
+   - Imports inexistentes
+   - Variables de entorno faltantes (Vercel las tiene; local usa `.env.local`)
+   - Middleware con export incorrecto (Next.js espera `middleware` o default)
+
+3. **Tras el push**: Si el deploy falla en Vercel, revisar el log en https://vercel.com → proyecto → Deployments → último deployment → Building.
+
+## Regla
+
+**Antes de push a main: ejecutar `npm run build` y asegurarse de que termine sin errores.**
