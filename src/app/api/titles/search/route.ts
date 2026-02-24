@@ -1,14 +1,13 @@
 import { NextRequest } from "next/server";
 import { searchTitles, getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { createClientForRequest } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 import type { UnifiedTitle } from "@/types/streaming";
 
 const ENRICH_COUNT = 8;
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClientForRequest();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);

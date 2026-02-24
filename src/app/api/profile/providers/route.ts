@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 const KNOWN_PROVIDERS = [
   { id: "netflix", name: "Netflix" },
@@ -8,13 +8,11 @@ const KNOWN_PROVIDERS = [
   { id: "amazon_prime", name: "Amazon Prime Video" },
   { id: "apple_tv_plus", name: "Apple TV+" },
   { id: "paramount_plus", name: "Paramount+" },
+  { id: "crunchyroll", name: "Crunchyroll" },
 ];
 
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) return Response.json({ providers: [], selectedIds: [] });
   const { data: rows } = await supabase
     .from("user_providers")
@@ -25,10 +23,7 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json();
   const { providerIds } = body as { providerIds: string[] };

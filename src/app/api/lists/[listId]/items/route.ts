@@ -1,15 +1,12 @@
 import { NextRequest } from "next/server";
-import { createClientForRequest } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ items: [] });
   }
@@ -34,10 +31,7 @@ export async function POST(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -63,10 +57,7 @@ export async function DELETE(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

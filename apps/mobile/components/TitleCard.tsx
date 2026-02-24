@@ -7,6 +7,9 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
@@ -58,104 +61,154 @@ function getSubSources(sources: MobileTitle["sources"]) {
   });
 }
 
-/* ── Bookmark button ── */
+/* ── Bookmark button + modal (like web) ── */
 function BookmarkButton({ title }: { title: MobileTitle }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [listIds, setListIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
+  const [newListName, setNewListName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const refreshLists = () => {
+    api.lists.forTitle(title.id).then((d) => {
+      const ids = d.listIdsByTitle?.[title.id] ?? [];
+      setListIds(ids);
+      setBookmarked(ids.length > 0);
+    }).catch(() => {});
+  };
 
   useEffect(() => {
-    api.lists
-      .forTitle(title.id)
-      .then((d) => {
-        const ids = d.listIdsByTitle?.[title.id] ?? [];
-        setListIds(ids);
-        setBookmarked(ids.length > 0);
-      })
-      .catch(() => {});
+    refreshLists();
   }, [title.id]);
 
-  const handlePress = async () => {
+  useEffect(() => {
+    if (!modalVisible) return;
+    api.lists.all().then(({ lists: data }) => setLists(data)).catch(() => setLists([]));
+  }, [modalVisible]);
+
+  const handlePress = () => {
     if (loading) return;
+    setModalVisible(true);
+  };
 
-    if (bookmarked) {
-      // Already bookmarked — offer to remove from all lists
-      Alert.alert(
-        title.name,
-        "¿Quitar de tus listas?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Quitar",
-            style: "destructive",
-            onPress: async () => {
-              setLoading(true);
-              try {
-                await Promise.all(listIds.map((id) => api.lists.removeItem(id, title.id)));
-                setListIds([]);
-                setBookmarked(false);
-              } finally {
-                setLoading(false);
-              }
-            },
-          },
-        ]
-      );
-      return;
-    }
-
-    // Not bookmarked — fetch lists and let user pick or create
-    setLoading(true);
+  const addToList = async (listId: string) => {
     try {
-      const { lists } = await api.lists.all();
+      await api.lists.addItem(listId, title.id, title.type ?? "movie");
+      setListIds((prev) => (prev.includes(listId) ? prev : [...prev, listId]));
+      setBookmarked(true);
+    } catch {}
+  };
 
-      if (lists.length === 0) {
-        // No lists → create default and add
-        const created = await api.lists.create("Mi lista");
-        await api.lists.addItem(created.id, title.id, title.type ?? "movie");
-        setListIds([created.id]);
-        setBookmarked(true);
-        return;
-      }
+  const removeFromList = async (listId: string) => {
+    try {
+      await api.lists.removeItem(listId, title.id);
+      setListIds((prev) => prev.filter((id) => id !== listId));
+      setBookmarked(listIds.length > 1);
+    } catch {}
+  };
 
-      const options = lists.map((l) => ({
-        text: l.name,
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.lists.addItem(l.id, title.id, title.type ?? "movie");
-            setListIds((prev) => [...prev, l.id]);
-            setBookmarked(true);
-          } finally {
-            setLoading(false);
-          }
-        },
-      }));
-
-      Alert.alert("Añadir a lista", title.name, [
-        ...options,
-        { text: "Cancelar", style: "cancel" },
-      ]);
+  const createListAndAdd = async () => {
+    if (!newListName.trim() || creating) return;
+    setCreating(true);
+    try {
+      const created = await api.lists.create(newListName.trim());
+      await addToList(created.id);
+      setLists((prev) => [...prev, { id: created.id, name: created.name }]);
+      setNewListName("");
     } catch {
-      Alert.alert("Error", "No se pudo cargar tus listas.");
+      Alert.alert("Error", "No se pudo crear la lista.");
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.bookmarkBtn, bookmarked && styles.bookmarkBtnActive]}
-      onPress={handlePress}
-      activeOpacity={0.75}
-      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color="#fff" />
-      ) : (
-        <Text style={styles.bookmarkIcon}>{bookmarked ? "🔖" : "🏷️"}</Text>
-      )}
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.bookmarkBtn, bookmarked && styles.bookmarkBtnActive]}
+        onPress={handlePress}
+        activeOpacity={0.75}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.bookmarkIcon}>{bookmarked ? "🔖" : "🏷️"}</Text>
+        )}
+      </TouchableOpacity>
+
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalBox}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={styles.modalTitle}>Añadir a lista</Text>
+            <Text style={styles.modalSubtitle} numberOfLines={1}>{title.name}</Text>
+
+            {lists.length === 0 ? (
+              <Text style={styles.modalHint}>Aún no tienes listas. Crea una abajo.</Text>
+            ) : (
+              <ScrollView style={styles.modalListScroll} showsVerticalScrollIndicator={false}>
+                {lists.map((list) => {
+                  const inList = listIds.includes(list.id);
+                  return (
+                    <TouchableOpacity
+                      key={list.id}
+                      style={styles.modalListRow}
+                      onPress={() => (inList ? removeFromList(list.id) : addToList(list.id))}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.checkbox, inList && styles.checkboxChecked]}>
+                        {inList && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                      <Text style={styles.modalListName} numberOfLines={1}>{list.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            <View style={styles.modalCreateRow}>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nueva lista"
+                placeholderTextColor={theme.colors.mutedForeground}
+                value={newListName}
+                onChangeText={setNewListName}
+                onSubmitEditing={createListAndAdd}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={[styles.modalCreateBtn, (!newListName.trim() || creating) && styles.modalCreateBtnDisabled]}
+                onPress={createListAndAdd}
+                disabled={!newListName.trim() || creating}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCreateBtnText}>
+                  {creating ? "Creando…" : "Crear y añadir"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalCloseText}>Cerrar</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
@@ -212,24 +265,6 @@ export function TitleCard({ title, width }: Props) {
         <TouchableOpacity onPress={() => navigation.navigate("Title", { id: title.id })} activeOpacity={0.7}>
           <Text style={styles.title} numberOfLines={1}>{title.name}</Text>
         </TouchableOpacity>
-
-        {/* Ratings */}
-        {(title.imdbRating != null || title.criticScore != null) && (
-          <View style={styles.ratings}>
-            {title.imdbRating != null && (
-              <View style={styles.imdbBadge}>
-                <Text style={styles.imdbText}>IMDb {title.imdbRating.toFixed(1)}</Text>
-              </View>
-            )}
-            {title.criticScore != null && (
-              <View style={[styles.rtBadge, title.criticScore >= 60 ? styles.rtFresh : styles.rtRotten]}>
-                <Text style={styles.rtText}>
-                  {title.criticScore >= 60 ? "🍅" : "🥦"} {title.criticScore}%
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
 
         {/* Platform badges — each links to that source */}
         {subSources.length > 0 && (
@@ -335,14 +370,83 @@ const styles = StyleSheet.create({
   bookmarkIcon: { fontSize: 13 },
   info: { padding: 10, gap: 6 },
   title: { color: theme.colors.foreground, fontWeight: "600", fontSize: 13, lineHeight: 17 },
-  ratings: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
-  imdbBadge: { backgroundColor: "#f5c518", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
-  imdbText: { color: "#000", fontSize: 10, fontWeight: "700" },
-  rtBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
-  rtFresh: { backgroundColor: "#dc2626" },
-  rtRotten: { backgroundColor: "#52525b" },
-  rtText: { color: "#fff", fontSize: 10, fontWeight: "700" },
   platforms: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
+  // Bookmark modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalBox: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#0f1629",
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    padding: 20,
+    gap: 16,
+  },
+  modalTitle: { color: theme.colors.foreground, fontSize: 17, fontWeight: "700" },
+  modalSubtitle: { color: theme.colors.mutedForeground, fontSize: 13 },
+  modalHint: { color: theme.colors.mutedForeground, fontSize: 13 },
+  modalListScroll: { maxHeight: 180 },
+  modalListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radii.md,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 6,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  checkmark: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  modalListName: { flex: 1, color: theme.colors.foreground, fontSize: 14 },
+  modalCreateRow: { flexDirection: "row", gap: 8 },
+  modalInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: theme.colors.foreground,
+    fontSize: 14,
+  },
+  modalCreateBtn: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: theme.radii.md,
+    justifyContent: "center",
+  },
+  modalCreateBtnDisabled: { opacity: 0.5 },
+  modalCreateBtnText: { color: theme.colors.primaryForeground, fontSize: 13, fontWeight: "600" },
+  modalCloseBtn: {
+    paddingVertical: 10,
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  modalCloseText: { color: theme.colors.mutedForeground, fontSize: 14, fontWeight: "600" },
   platformBadge: {
     borderRadius: 6,
     borderWidth: 1,

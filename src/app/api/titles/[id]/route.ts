@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
-import { createClientForRequest } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 
 export async function GET(
@@ -22,8 +22,7 @@ export async function GET(
     }
 
     // When user is authenticated, trim sources to only their subscribed providers
-    const supabase = await createClientForRequest();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { client: supabase, user } = await getSupabaseAndUser();
     if (user) {
       const { data: providerRows } = await supabase
         .from("user_providers")

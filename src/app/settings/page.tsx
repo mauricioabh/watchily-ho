@@ -21,13 +21,7 @@ export default async function SettingsPage() {
     .eq("user_id", user.id);
   const selectedProviderIds = (providerRows ?? []).map((r) => r.provider_id);
 
-  const provider = user.app_metadata?.provider ?? "email";
-  const defaultCountry =
-    provider === "google"
-      ? profile?.country_code && profile.country_code !== "US"
-        ? profile.country_code
-        : "MX"
-      : (profile?.country_code ?? "US");
+  const defaultCountry = profile?.country_code ?? "MX";
   const needsOnboarding = !profile?.country_code || selectedProviderIds.length === 0;
 
   return (

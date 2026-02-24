@@ -1,12 +1,9 @@
 import { NextRequest } from "next/server";
-import { createClientForRequest } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 // GET: which lists contain the given title_ids (for current user)
 export async function GET(request: NextRequest) {
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ listIdsByTitle: {} });
   }

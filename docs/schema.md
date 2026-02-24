@@ -18,7 +18,7 @@ Perfil extendido del usuario (vinculado a `auth.users`).
 | email         | text      | YES      | —       |                      |
 | display_name  | text      | YES      | —       |                      |
 | avatar_url    | text      | YES      | —       |                      |
-| country_code  | text      | YES      | 'US'    |                      |
+| country_code  | text      | YES      | 'MX'    |                      |
 | created_at    | timestamptz | YES    | now()   |                      |
 | updated_at    | timestamptz | YES    | now()   |                      |
 
@@ -99,6 +99,7 @@ Likes de usuario por título.
 
 - `20250219000001_profiles_and_providers.sql` — profiles, user_providers, trigger `handle_new_user`.
 - `20250219000002_lists_and_likes.sql` — lists, list_items, likes.
+- `20250223000001_default_country_mx.sql` — default country_code para nuevos perfiles: MX.
 
 ---
 

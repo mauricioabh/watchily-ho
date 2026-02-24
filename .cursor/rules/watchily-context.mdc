@@ -13,6 +13,7 @@ alwaysApply: true
 - **Secret key**: en `.env.local` como `SUPABASE_SECRET_KEY`. Crear en Dashboard → API Keys → "Create new API key" → tipo Secret. Solo para `createAdminClient()` en servidor (bypass RLS); no usar en rutas API normales.
 - **URL API Keys**: https://supabase.com/dashboard/project/jehowbdfqhteznmbyecu/settings/api-keys
 - **Schema documentado**: `docs/schema.md`. Tipos TS: `src/types/database.ts`. Migraciones: `supabase/migrations/`.
+- **Regla de migraciones**: `.cursor/rules/supabase-migrations.mdc` — flujo obligatorio para evitar desincronización local/remoto.
 
 ## GitHub
 - **Repo**: `mauricioabh/watchily-ho` — https://github.com/mauricioabh/watchily-ho

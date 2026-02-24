@@ -1,0 +1,61 @@
+---
+description: Reglas para migraciones Supabase - evitar desincronización local/remoto
+globs: supabase/**/*, **/migrations/*.sql
+alwaysApply: false
+---
+
+# Supabase - Migraciones
+
+## Flujo obligatorio
+
+1. **Siempre** crear migraciones en `supabase/migrations/` con el formato:
+   ```
+   YYYYMMDDHHMMSS_descripcion_corta.sql
+   ```
+   Ejemplo: `20250223000001_default_country_mx.sql`
+
+2. **Nunca** ejecutar DDL (CREATE, ALTER, DROP) directamente en el SQL Editor del Dashboard de Supabase. Usar solo migraciones locales + `supabase db push`.
+
+3. **Antes de crear una migración nueva**:
+   - Verificar que el proyecto está enlazado: `supabase link --project-ref jehowbdfqhteznmbyecu`
+   - Verificar estado: `supabase migration list`
+
+4. **Después de crear una migración**:
+   - Aplicar: `supabase db push`
+   - Actualizar `docs/schema.md` y, si aplica, `src/types/database.ts`
+
+## Si el historial local y remoto se desincroniza
+
+Cuando `supabase migration list` muestre versiones solo en Local o solo en Remote:
+
+1. **Revisar el estado**:
+   ```bash
+   supabase migration list
+   ```
+
+2. **Si Remote tiene versiones que no existen localmente** (ej. 20260219180245):
+   - Esas versiones se crearon fuera del flujo (Dashboard, otro equipo, etc.)
+   - Marcar como revertidas en el historial (no ejecuta SQL, solo limpia el historial):
+     ```bash
+     supabase migration repair --status reverted <version1> <version2>
+     ```
+
+3. **Registrar las migraciones locales como ya aplicadas** (el esquema ya existe en remoto):
+   ```bash
+   supabase migration repair --status applied <version1> <version2>
+   ```
+   Usar solo el número de versión (ej. `20250219000001`), no el nombre del archivo.
+
+4. **Aplicar migraciones pendientes**:
+   ```bash
+   supabase db push
+   ```
+
+## Si `db push` falla por autenticación
+
+- Ejecutar `supabase login` para refrescar credenciales.
+- O aplicar el SQL manualmente en: https://supabase.com/dashboard/project/jehowbdfqhteznmbyecu/sql/new
+
+## Project ref
+
+- **jehowbdfqhteznmbyecu** — enlazar con `supabase link --project-ref jehowbdfqhteznmbyecu`

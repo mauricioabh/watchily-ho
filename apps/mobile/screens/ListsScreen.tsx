@@ -17,7 +17,7 @@ import { theme } from "../theme";
 import { GradientBackground } from "../components/GradientBackground";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-type List = { id: string; name: string; is_public: boolean; created_at: string };
+type List = { id: string; name: string; is_public: boolean; created_at: string; item_count?: number };
 
 const ACCENT_COLORS = [
   { border: "rgba(99,102,241,0.6)",  fill: "rgba(99,102,241,0.10)",  badge: "#818cf8" },
@@ -44,20 +44,21 @@ export function ListsScreen() {
     try {
       const { lists: data } = await api.lists.all();
       setLists(data);
-      // Fetch item counts per list
-      if (data.length > 0) {
-        const counts: Record<string, number> = {};
-        await Promise.allSettled(
-          data.map(async (l) => {
-            const r = await api.lists.forTitle("__count__").catch(() => null);
-            // Use a lightweight approach: fetch items for each list separately
+      // Use item_count from API if available; otherwise fetch items per list
+      const counts: Record<string, number> = {};
+      for (const l of data) {
+        if (typeof l.item_count === "number") {
+          counts[l.id] = l.item_count;
+        } else {
+          try {
+            const { items } = await api.lists.getItems(l.id);
+            counts[l.id] = items?.length ?? 0;
+          } catch {
             counts[l.id] = 0;
-          })
-        );
-        // Simpler: fetch all items in one go via a custom approach
-        // Since API doesn't have bulk count, we track from bookmark interactions
-        setCountByList(counts);
+          }
+        }
       }
+      setCountByList(counts);
     } catch {
       setLists([]);
     } finally {

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getPopularTitles } from "@/lib/streaming/unified";
 import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { createClientForRequest } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,8 +9,7 @@ export async function GET(request: NextRequest) {
   const country = searchParams.get("country") ?? "MX";
 
   try {
-    const supabase = await createClientForRequest();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { client: supabase, user } = await getSupabaseAndUser();
 
     const { data: providerRows } = user
       ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)

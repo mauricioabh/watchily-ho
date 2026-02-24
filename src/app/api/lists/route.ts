@@ -1,28 +1,38 @@
 import { NextRequest } from "next/server";
-import { createClientForRequest } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 export async function GET() {
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ lists: [] });
   }
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("lists")
-    .select("id, name, is_public, created_at")
+    .select("id, name, is_public, created_at, list_items(count)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+  // Fallback if list_items(count) relation not available
+  if (error) {
+    const fallback = await supabase
+      .from("lists")
+      .select("id, name, is_public, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    data = fallback.data ?? [];
+    error = fallback.error;
+  }
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ lists: data ?? [] });
+  // Normalize: list_items comes as [{ count: N }] from PostgREST when available
+  const lists = (data ?? []).map((l: { list_items?: { count: number }[] }) => {
+    const { list_items, ...rest } = l as { list_items?: { count: number }[] };
+    const count = Array.isArray(list_items) && list_items[0] ? list_items[0].count : 0;
+    return { ...rest, item_count: count };
+  });
+  return Response.json({ lists });
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -15,7 +15,7 @@ export function TVPageClient() {
         Watchily
       </motion.h1>
       <motion.nav
-        className="mb-8 flex gap-4"
+        className="mb-8 flex flex-wrap gap-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.1 }}
@@ -33,11 +33,25 @@ export function TVPageClient() {
           Buscar
         </Link>
         <Link
+          href="/lists?device=tv"
+          className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
+        >
+          Listas
+        </Link>
+        <Link
           href="/lists/all?device=tv"
           className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
         >
           Ver todo
         </Link>
+        <form action="/auth/signout" method="POST" className="inline">
+          <button
+            type="submit"
+            className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
+          >
+            Cerrar sesión
+          </button>
+        </form>
       </motion.nav>
     </>
   );

@@ -32,6 +32,20 @@ export async function fetchApi<T>(
 }
 
 export const api = {
+  profile: {
+    get: () => fetchApi<{ country_code?: string; display_name?: string }>("/api/profile"),
+    update: (data: { country_code?: string; display_name?: string }) =>
+      fetchApi("/api/profile", { method: "PATCH", body: JSON.stringify(data) }),
+  },
+  profileProviders: {
+    get: () =>
+      fetchApi<{ providers: { id: string; name: string }[]; selectedIds: string[] }>("/api/profile/providers"),
+    update: (providerIds: string[]) =>
+      fetchApi("/api/profile/providers", {
+        method: "PUT",
+        body: JSON.stringify({ providerIds }),
+      }),
+  },
   titles: {
     search: (q: string) => fetchApi<{ titles: unknown[] }>(`/api/titles/search?q=${encodeURIComponent(q)}`),
     get: (id: string) => fetchApi<unknown>(`/api/titles/${id}`),
@@ -39,13 +53,13 @@ export const api = {
       fetchApi<{ titles: unknown[] }>(`/api/titles/popular${type ? `?type=${type}` : ""}`),
   },
   lists: {
-    all: () => fetchApi<{ lists: { id: string; name: string; is_public: boolean; created_at: string }[] }>("/api/lists"),
+    all: () => fetchApi<{ lists: { id: string; name: string; is_public: boolean; created_at: string; item_count?: number }[] }>("/api/lists"),
     getItems: (listId: string) =>
       fetchApi<{ items: { id?: string; title_id: string; title_type: string; added_at?: string }[] }>(
         `/api/lists/${listId}/items`
       ),
     forTitle: (titleId: string) =>
-      fetchApi<{ listIdsByTitle: Record<string, string[]> }>(`/api/lists/items?title_id=${titleId}`),
+      fetchApi<{ listIdsByTitle: Record<string, string[]> }>(`/api/lists/items?title_id=${encodeURIComponent(titleId)}`),
     addItem: (listId: string, titleId: string, titleType: string) =>
       fetchApi(`/api/lists/${listId}/items`, {
         method: "POST",

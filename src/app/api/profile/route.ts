@@ -1,11 +1,8 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAndUser } from "@/lib/supabase/server";
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function GET(request: NextRequest) {
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { data, error } = await supabase
     .from("profiles")
@@ -17,10 +14,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json();
   const { display_name, country_code } = body as { display_name?: string; country_code?: string };

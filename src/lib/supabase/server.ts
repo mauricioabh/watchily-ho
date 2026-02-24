@@ -55,6 +55,37 @@ export async function createClientForRequest() {
   return createClient();
 }
 
+/**
+ * Returns Supabase client + authenticated user. Use in API routes called by mobile.
+ * When mobile sends Bearer token, getUser() without JWT returns null — we must pass
+ * the token explicitly: getUser(token).
+ */
+export async function getSupabaseAndUser(): Promise<{
+  client: Awaited<ReturnType<typeof createClientForRequest>>;
+  user: { id: string } | null;
+}> {
+  const headerStore = await headers();
+  const auth = headerStore.get("authorization") ?? headerStore.get("Authorization");
+
+  if (auth?.startsWith("Bearer ")) {
+    const token = auth.slice(7);
+    const client = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      }
+    );
+    const { data: { user } } = await client.auth.getUser(token);
+    return { client, user };
+  }
+
+  const client = await createClient();
+  const { data: { user } } = await client.auth.getUser();
+  return { client, user };
+}
+
 /** Server-only admin client (bypasses RLS). Use only for trusted server logic, never expose. */
 export function createAdminClient() {
   const key = process.env.SUPABASE_SECRET_KEY;

@@ -22,10 +22,11 @@ export const theme = {
   },
   /** Gradient colors matching the web background (top → bottom) */
   gradient: {
-    colors: ["#0b1120", "#090e1c", "#070a14", "#05070d"] as const,
-    /** Overlay glow color for the top radial effect */
-    glowBlue: "rgba(56,120,255,0.28)",
-    glowPurple: "rgba(130,60,220,0.15)",
+    colors: ["#0b1120", "#080c18", "#060810", "#05070d"] as const,
+    /** Overlay glow colors matching web globals.css radial-gradients */
+    glowBlue: "rgba(56,120,255,0.38)",
+    glowPurple: "rgba(130,60,220,0.22)",
+    glowTeal: "rgba(20,160,220,0.18)",
   },
   radii: {
     sm: 6,
