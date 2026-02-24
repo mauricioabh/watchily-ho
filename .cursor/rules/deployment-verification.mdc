@@ -1,7 +1,7 @@
 ---
-description: Verificar que el deployment a Vercel sea correcto antes y después del push
+description: SIEMPRE verificar que el deployment a Vercel termine correctamente después de cada push
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Verificación de deployment
@@ -20,15 +20,15 @@ alwaysApply: false
    - Variables de entorno faltantes (Vercel las tiene; local usa `.env.local`)
    - Middleware con export incorrecto (Next.js espera `middleware` o default)
 
-## Después del push (obligatorio)
+## Después del push (OBLIGATORIO)
 
-**Verificar que el deploy se haya completado correctamente:**
+**SIEMPRE ejecutar `vercel ls` tras hacer push y confirmar que el deploy terminó:**
 
 1. **Listar deployments**:
    ```bash
    vercel ls
    ```
-   El primer deployment debe mostrar **● Ready** (no ● Error).
+   El primer deployment debe mostrar **● Ready** (no ● Error). Si muestra ● Building, esperar y volver a ejecutar hasta que esté ● Ready.
 
 2. **Comprobar producción** (opcional pero recomendado):
    - Hacer fetch de `https://watchily-ho.vercel.app/` y confirmar que responde 200 con contenido válido.
@@ -37,4 +37,4 @@ alwaysApply: false
 
 ## Regla
 
-**Antes de push: `npm run build` sin errores. Después de push: `vercel ls` y confirmar que el último deployment está ● Ready.**
+**Antes de push: `npm run build` sin errores. Después de push: SIEMPRE `vercel ls` y confirmar que el último deployment está ● Ready antes de dar por terminada la tarea.**

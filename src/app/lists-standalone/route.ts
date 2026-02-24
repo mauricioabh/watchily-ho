@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { tvNavHtml, tvNavCss } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -40,13 +41,22 @@ export async function GET() {
 
   const listCards = (lists ?? []).map(
     (list) => `
-    <a href="${BASE}/lists-standalone/${list.id}" tabindex="0" class="list-card-link" style="display:block;text-decoration:none;color:inherit;">
+    <a href="${BASE}/lists-standalone/${list.id}" tabindex="0" class="list-card-link">
       <div class="list-card">
         <p class="list-name">${escapeHtml(list.name)}</p>
         <span class="list-count">${countByList[list.id] ?? 0} títulos</span>
       </div>
     </a>`
   ).join("");
+
+  const newListCard = `<a href="${BASE}/lists" tabindex="0" class="list-card-link list-card-new">
+    <div class="list-card">
+      <p class="list-name">+ Nueva lista</p>
+      <span class="list-count">Crear en web o móvil</span>
+    </div>
+  </a>`;
+
+  const gridContent = listCards ? listCards + newListCard : newListCard + '<p class="empty">Aún no tienes listas. Crea una en la web o móvil.</p>';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -56,44 +66,35 @@ export async function GET() {
   <title>Watchily - Mis listas</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:48px}
-    h1{font-size:48px;margin-bottom:28px;color:#e5b00b}
-    nav{margin-bottom:36px;display:flex;gap:16px;flex-wrap:wrap}
-    nav a,nav button{display:inline-block;padding:16px 24px;border-radius:10px;font-size:22px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;transition:all 0.2s}
-    nav a:hover,nav button:hover,nav a:focus,nav button:focus{background:rgba(99,102,241,0.4);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:3px}
-    nav a:nth-child(3){background:#6366f1;border-color:#6366f1}
+    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
+    .page{padding:32px 48px 48px}
+    ${tvNavCss}
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .list-card-link{display:block;text-decoration:none;color:inherit;outline:none}
     .list-card-link:focus{outline:none}
     .list-card-link:focus .list-card{transform:scale(1.03);border-color:#e5b00b;box-shadow:0 0 0 3px #e5b00b}
     .list-card{background:rgba(26,26,30,0.95);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:24px;min-height:100px;transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s}
-    .list-name{font-size:24px;font-weight:600;margin:0 0 8px 0}
-    .list-count{font-size:18px;color:#888}
-    .empty{color:#888;font-size:22px;padding:40px 0}
+    .list-card-new .list-card{border-style:dashed}
+    .list-name{font-size:26px;font-weight:600;margin:0 0 8px 0}
+    .list-count{font-size:20px;color:#888}
+    .empty{color:#888;font-size:24px;padding:40px 0;grid-column:1/-1}
   </style>
 </head>
 <body>
-  <h1>Mis listas</h1>
-  <nav>
-    <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${BASE}/search-standalone" tabindex="0">Buscar</a>
-    <a href="${BASE}/lists-standalone" tabindex="0">Listas</a>
-    <a href="${BASE}/lists-all-standalone" tabindex="0">Ver todo</a>
-    <a href="${BASE}/settings-standalone" tabindex="0">Configuración</a>
-    <form action="${BASE}/auth/signout" method="POST" style="display:inline">
-      <input type="hidden" name="redirect" value="/tv-standalone" />
-      <button type="submit" tabindex="0">Cerrar sesión</button>
-    </form>
-  </nav>
-  <div class="grid" id="grid">${listCards || '<p class="empty">Aún no tienes listas. Crea una en tu móvil.</p>'}</div>
+  ${tvNavHtml(BASE, "listas", "listas")}
+  <main class="page">
+    <h1 style="font-size:36px;color:#e5b00b;margin-bottom:24px">Mis listas</h1>
+    <div class="grid" id="grid">${gridContent}</div>
+  </main>
   <script>
     (function(){
-      var f=document.querySelectorAll('nav a, nav button, .list-card-link');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .list-card-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      f[0]?.focus();
+      document.getElementById('firstFocus')?.focus();
       document.addEventListener('keydown',function(e){
-        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         var idx=i(document.activeElement);
-        if(idx<0)return;
+        if(idx<0){document.getElementById('firstFocus')?.focus();e.preventDefault();return;}
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,cols=3;
         if(e.key==='ArrowRight')next=idx+1;
@@ -101,7 +102,7 @@ export async function GET() {
         else if(e.key==='ArrowDown')next=idx+cols;
         else if(e.key==='ArrowUp')next=idx-cols;
         if(next>=0&&next<f.length)f[next].focus();
-      });
+      },true);
     })();
   </script>
 </body>

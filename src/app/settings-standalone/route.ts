@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { tvNavHtml, tvNavCss } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -48,8 +49,9 @@ export async function GET() {
   <title>Watchily - Configuración</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:48px}
-    h1{font-size:48px;margin-bottom:32px;color:#e5b00b}
+    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
+    .page{padding:32px 48px 48px}
+    ${tvNavCss}
     .card{background:rgba(26,26,30,0.95);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:40px;max-width:600px}
     .row{margin-bottom:24px;font-size:28px}
     .row .label{color:#a1a1aa;margin-bottom:8px}
@@ -58,21 +60,12 @@ export async function GET() {
     .providers span{background:rgba(99,102,241,0.3);padding:8px 16px;border-radius:8px;font-size:22px}
     .web-link{margin-top:32px;font-size:26px}
     .web-link a{color:#60a5fa;text-decoration:underline}
-    nav{margin-bottom:32px;display:flex;gap:12px;flex-wrap:wrap}
-    nav a{display:inline-block;padding:16px 24px;border-radius:10px;font-size:24px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none}
-    nav a:focus{outline:3px solid #e5b00b;outline-offset:4px}
   </style>
 </head>
 <body>
-  <h1>Configuración</h1>
-  <nav>
-    <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${BASE}/search-standalone" tabindex="0">Buscar</a>
-    <a href="${BASE}/lists-standalone" tabindex="0">Listas</a>
-    <a href="${BASE}/lists-all-standalone" tabindex="0">Ver todo</a>
-    <a href="${BASE}/settings-standalone" tabindex="0">Configuración</a>
-    <form action="${BASE}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0" style="padding:16px 24px;border-radius:10px;font-size:24px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer">Cerrar sesión</button></form>
-  </nav>
+  ${tvNavHtml(BASE, "config")}
+  <main class="page">
+  <h1 style="font-size:36px;color:#e5b00b;margin-bottom:24px">Configuración</h1>
   <div class="card">
     <div class="row">
       <p class="label">País</p>
@@ -84,21 +77,22 @@ export async function GET() {
     </div>
     <p class="web-link">Para cambiar país o plataformas, abre <a href="${BASE}/settings">watchily-ho.vercel.app/settings</a> en tu móvil o PC.</p>
   </div>
+  </main>
   <script>
     (function(){
-      var f=document.querySelectorAll('nav a, nav button');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      f[0]?.focus();
+      document.querySelector('.tv-nav a')?.focus();
       document.addEventListener('keydown',function(e){
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         var idx=i(document.activeElement);
-        if(idx<0)return;
+        if(idx<0){f[0]?.focus();e.preventDefault();return;}
         e.preventDefault();
         var next=-1;
         if(e.key==='ArrowRight'||e.key==='ArrowDown')next=idx+1;
         else if(e.key==='ArrowLeft'||e.key==='ArrowUp')next=idx-1;
         if(next>=0&&next<f.length)f[next].focus();
-      });
+      },true);
     })();
   </script>
 </body>

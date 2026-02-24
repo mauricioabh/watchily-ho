@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import { tvNavHtml, tvNavCss } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -77,45 +78,38 @@ export async function GET(
   <title>Watchily - ${escapeHtml(t.name)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:48px}
-    h1{font-size:48px;margin-bottom:28px;color:#e5b00b}
-    nav{margin-bottom:36px;display:flex;gap:16px;flex-wrap:wrap}
-    nav a,nav button{display:inline-block;padding:16px 24px;border-radius:10px;font-size:22px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;transition:all 0.2s}
-    nav a:hover,nav button:hover,nav a:focus,nav button:focus{background:rgba(99,102,241,0.4);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:3px}
-    .hero{display:flex;gap:40px;margin-bottom:40px}
-    .poster-wrap{flex-shrink:0;width:280px;aspect-ratio:2/3;border-radius:14px;overflow:hidden;background:#1f1f23}
+    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
+    .page{padding:32px 48px 48px}
+    ${tvNavCss}
+    .hero{display:flex;gap:48px;margin-bottom:48px}
+    .poster-wrap{flex-shrink:0;width:320px;aspect-ratio:2/3;border-radius:14px;overflow:hidden;background:#1f1f23}
     .poster-wrap img{width:100%;height:100%;object-fit:cover}
-    .poster-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:48px;font-weight:700;color:#555}
-    .info h2{font-size:36px;margin-bottom:12px}
-    .meta{font-size:18px;color:#888;margin-bottom:16px}
-    .meta span{margin-right:12px}
-    .overview{font-size:20px;line-height:1.6;max-width:700px;margin-bottom:24px;color:#ccc}
-    .scores{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px}
-    .score{display:flex;flex-direction:column;align-items:center;padding:16px 24px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05)}
-    .score-label{font-size:14px;color:#888}
-    .score-value{font-size:24px;font-weight:700;margin-top:4px}
-    .trailer-link{display:inline-block;padding:16px 24px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;font-size:20px;margin-bottom:32px}
-    .trailer-link:hover,.trailer-link:focus{background:rgba(99,102,241,0.4);outline:3px solid #e5b00b;outline-offset:2px}
-    section{margin-bottom:32px}
-    section h3{font-size:24px;margin-bottom:16px;color:#e5b00b}
-    .sources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .source-link{display:block;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;transition:all 0.2s}
+    .poster-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:56px;font-weight:700;color:#555}
+    .info{flex:1;min-width:0}
+    .info h2{font-size:48px;margin-bottom:16px;line-height:1.2}
+    .meta{font-size:24px;color:#888;margin-bottom:24px}
+    .meta span{margin-right:16px}
+    .overview{font-size:28px;line-height:1.6;max-width:800px;margin-bottom:32px;color:#ccc}
+    .scores{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:32px}
+    .score{display:flex;flex-direction:column;align-items:center;padding:20px 28px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05)}
+    .score-label{font-size:18px;color:#888}
+    .score-value{font-size:32px;font-weight:700;margin-top:6px}
+    .actions{margin-bottom:32px;display:flex;gap:16px;flex-wrap:wrap}
+    .btn-bookmark,.trailer-link{display:inline-flex;align-items:center;gap:8px;padding:18px 28px;border-radius:10px;font-size:24px;text-decoration:none;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff}
+    .btn-bookmark{color:#e5b00b}
+    .btn-bookmark:hover,.btn-bookmark:focus,.trailer-link:hover,.trailer-link:focus{background:rgba(99,102,241,0.4);outline:3px solid #e5b00b;outline-offset:2px}
+    section{margin-bottom:40px}
+    section h3{font-size:32px;margin-bottom:20px;color:#e5b00b}
+    .sources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .source-link{display:block;padding:24px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;transition:all 0.2s;font-size:20px}
     .source-link:hover,.source-link:focus{background:rgba(99,102,241,0.3);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
-    .source-name{display:block;font-size:18px;font-weight:600;margin-bottom:4px}
-    .source-type{font-size:14px;color:#888}
+    .source-name{display:block;font-size:22px;font-weight:600;margin-bottom:6px}
+    .source-type{font-size:18px;color:#888}
   </style>
 </head>
 <body>
-  <h1>${escapeHtml(t.name)}</h1>
-  <nav>
-    <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${BASE}/search-standalone" tabindex="0">Buscar</a>
-    <a href="${BASE}/lists-standalone" tabindex="0">Listas</a>
-    <a href="${BASE}/lists-all-standalone" tabindex="0">Ver todo</a>
-    <a href="${BASE}/settings-standalone" tabindex="0">Configuración</a>
-    <a href="${BASE}/tv-standalone" tabindex="0">Volver</a>
-    <form action="${BASE}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0">Cerrar sesión</button></form>
-  </nav>
+  ${tvNavHtml(BASE, "none")}
+  <main class="page">
   <div class="hero">
     <div class="poster-wrap">
       ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" />` : `<div class="poster-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
@@ -131,21 +125,25 @@ export async function GET(
       </div>
       ${scores.length ? `<div class="scores">${scores.join("")}</div>` : ""}
       ${t.overview ? `<p class="overview">${escapeHtml(t.overview)}</p>` : ""}
-      ${t.trailer ? `<a href="${escapeHtml(t.trailer)}" target="_blank" rel="noopener noreferrer" class="trailer-link" tabindex="0">▶ Ver tráiler</a>` : ""}
+      <div class="actions">
+        <a href="${BASE}/title-standalone/${t.id}/add-to-list" tabindex="0" class="btn-bookmark">⊕ Añadir a lista</a>
+        ${t.trailer ? `<a href="${escapeHtml(t.trailer)}" target="_blank" rel="noopener noreferrer" class="trailer-link" tabindex="0">▶ Ver tráiler</a>` : ""}
+      </div>
     </div>
   </div>
   ${subSources.length ? `<section><h3>Disponible con suscripción</h3><div class="sources-grid">${sourceCards(subSources)}</div></section>` : ""}
   ${paidSources.length ? `<section><h3>Alquiler / Compra</h3><div class="sources-grid">${sourceCards(paidSources)}</div></section>` : ""}
-  ${uniqueSources.length === 0 ? `<p style="color:#888;font-size:20px">No hay fuentes de streaming disponibles para esta región.</p>` : ""}
+  ${uniqueSources.length === 0 ? `<p style="color:#888;font-size:24px">No hay fuentes de streaming disponibles para esta región.</p>` : ""}
+  </main>
   <script>
     (function(){
-      var f=document.querySelectorAll('nav a, nav button, .trailer-link, .source-link');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       f[0]?.focus();
       document.addEventListener('keydown',function(e){
-        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         var idx=i(document.activeElement);
-        if(idx<0)return;
+        if(idx<0){f[0]?.focus();e.preventDefault();return;}
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,cols=4;
         if(e.key==='ArrowRight')next=idx+1;
@@ -153,7 +151,7 @@ export async function GET(
         else if(e.key==='ArrowDown')next=idx+cols;
         else if(e.key==='ArrowUp')next=idx-cols;
         if(next>=0&&next<f.length)f[next].focus();
-      });
+      },true);
     })();
   </script>
 </body>
