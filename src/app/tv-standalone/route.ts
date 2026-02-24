@@ -62,8 +62,7 @@ export async function GET() {
     *{margin:0;padding:0;box-sizing:border-box}
     body{
       background:linear-gradient(180deg,#0b1120 0%,#080c18 30%,#060810 65%,#05070d 100%);
-      color:#fff;font-family:Arial,sans-serif;min-height:100vh;
-      padding:40px;max-width:1152px;margin:0 auto
+      color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px
     }
     h1{font-size:42px;margin-bottom:24px;color:#e5b00b}
     nav{margin-bottom:32px;display:flex;gap:12px;flex-wrap:wrap}
