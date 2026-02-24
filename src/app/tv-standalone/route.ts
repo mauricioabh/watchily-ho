@@ -30,7 +30,7 @@ export async function GET() {
     const tiles = combined
       .map(
         (t) => `
-        <a href="${base}/title/${t.id}" style="display:block;text-decoration:none;color:inherit;">
+        <a href="${base}/title/${t.id}" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
           <div style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
             <div style="aspect-ratio:2/3;background:#2a2a2a;position:relative;">
               ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;color:#666;">${escapeHtml(t.name.slice(0,2))}</div>`}
@@ -51,6 +51,7 @@ export async function GET() {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <title>Watchily</title>
+  <script src="https://cdn.jsdelivr.net/npm/js-spatial-navigation@1.0.1/spatial_navigation.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
@@ -59,20 +60,32 @@ export async function GET() {
     nav a,nav button{display:inline-block;padding:12px 20px;border-radius:8px;font-size:16px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none}
     nav a:first-child{background:#6366f1;border-color:#6366f1}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+    a:focus,button:focus{outline:3px solid #e5b00b;outline-offset:4px}
+    .grid a:focus>div{border-color:#e5b00b!important;box-shadow:0 0 0 2px #e5b00b}
   </style>
 </head>
 <body>
   <h1>Watchily</h1>
-  <nav>
-    <a href="${base}/tv">Inicio</a>
-    <a href="${base}/search?device=tv">Buscar</a>
-    <a href="${base}/lists?device=tv">Listas</a>
-    <a href="${base}/lists/all?device=tv">Ver todo</a>
+  <nav id="nav">
+    <a href="${base}/tv-standalone" tabindex="0" class="focusable">Inicio</a>
+    <a href="${base}/search?device=tv" tabindex="0" class="focusable">Buscar</a>
+    <a href="${base}/lists?device=tv" tabindex="0" class="focusable">Listas</a>
+    <a href="${base}/lists/all?device=tv" tabindex="0" class="focusable">Ver todo</a>
     <form action="${base}/auth/signout" method="POST" style="display:inline">
-      <button type="submit">Cerrar sesión</button>
+      <button type="submit" tabindex="0" class="focusable">Cerrar sesión</button>
     </form>
   </nav>
-  <div class="grid">${tiles}</div>
+  <div class="grid" id="grid">${tiles}</div>
+  <script>
+    (function(){
+      if(typeof SpatialNavigation==="undefined"){setTimeout(function(){var f=document.querySelector("a");if(f)f.focus()},100);return}
+      SpatialNavigation.init();
+      SpatialNavigation.add("main",{selector:"#nav a, #nav button, .grid a",defaultElement:"#nav a"});
+      SpatialNavigation.makeFocusable();
+      SpatialNavigation.setDefaultSection("main");
+      SpatialNavigation.focus();
+    })();
+  </script>
 </body>
 </html>`;
 
