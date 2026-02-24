@@ -9,27 +9,26 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  RefreshControl,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SimpleIcon } from "../components/SimpleIcon";
 import { supabase } from "../lib/supabase";
 import { api } from "../lib/api";
 import { theme } from "../theme";
 import { GradientBackground } from "../components/GradientBackground";
 
+// Simple Icons CDN. Disney+ no existe → fallback. Prime Video → amazonprime.
 const PROVIDERS = [
-  { id: "netflix", name: "Netflix", icon: "play-circle" as const, color: "#E50914" },
-  { id: "disney_plus", name: "Disney+", icon: "play-circle" as const, color: "#113CCF" },
-  { id: "hbo_max", name: "HBO Max", icon: "play-circle" as const, color: "#B535F6" },
-  { id: "amazon_prime", name: "Amazon Prime Video", icon: "play-circle" as const, color: "#00A8E1" },
-  { id: "apple_tv_plus", name: "Apple TV+", icon: "apple" as const, color: "#FFFFFF" },
-  { id: "paramount_plus", name: "Paramount+", icon: "play-circle" as const, color: "#0064FF" },
-  { id: "crunchyroll", name: "Crunchyroll", icon: "play-circle" as const, color: "#F47521" },
+  { id: "netflix", name: "Netflix", slug: "netflix", color: "#E50914", fallback: false },
+  { id: "disney_plus", name: "Disney+", slug: "disneyplus", color: "#113CCF", fallback: true },
+  { id: "hbo_max", name: "HBO Max", slug: "hbomax", color: "#B535F6", fallback: false },
+  { id: "amazon_prime", name: "Amazon Prime Video", slug: "amazonprime", color: "#00A8E1", fallback: true },
+  { id: "apple_tv_plus", name: "Apple TV+", slug: "appletv", color: "#FFFFFF", fallback: false },
+  { id: "paramount_plus", name: "Paramount+", slug: "paramountplus", color: "#0064FF", fallback: false },
+  { id: "crunchyroll", name: "Crunchyroll", slug: "crunchyroll", color: "#F47521", fallback: false },
 ] as const;
-
-function ProviderIcon({ icon, color, size = 20 }: { icon: string; color: string; size?: number }) {
-  return <MaterialCommunityIcons name={icon as "play-circle" | "apple"} size={size} color={color} />;
-}
 
 const COUNTRIES = [
   { code: "US", name: "Estados Unidos" },
@@ -51,7 +50,15 @@ export function SettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setLoading(true);
+    await loadSettings(0);
+    setRefreshing(false);
+  }, [loadSettings]);
 
   const loadSettings = useCallback(async (retryCount = 0) => {
     try {
@@ -61,13 +68,19 @@ export function SettingsScreen() {
         await new Promise((r) => setTimeout(r, 300));
         return loadSettings(retryCount + 1);
       }
+      if (!session) {
+        setCountry("MX");
+        setSelectedIds(new Set());
+        return;
+      }
       const [profileRes, providersRes] = await Promise.all([
         api.profile.get(),
         api.profileProviders.get(),
       ]);
       setCountry(profileRes.country_code ?? "MX");
       setSelectedIds(new Set(providersRes.selectedIds ?? []));
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.warn("[Settings] loadSettings error:", e);
       if (retryCount < 2) {
         await new Promise((r) => setTimeout(r, 500));
         return loadSettings(retryCount + 1);
@@ -131,7 +144,17 @@ export function SettingsScreen() {
   return (
     <GradientBackground>
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
+          }
+        >
           <Text style={styles.sectionTitle}>Configuración</Text>
 
           {/* País */}
@@ -171,10 +194,11 @@ export function SettingsScreen() {
                   onPress={() => toggleProvider(p.id)}
                   activeOpacity={0.8}
                 >
-                  <ProviderIcon
-                    icon={p.icon}
+                  <SimpleIcon
+                    name={p.slug}
                     color={isSelected ? theme.colors.primary : p.color}
                     size={20}
+                    fallback={p.fallback}
                   />
                   <Text
                     style={[

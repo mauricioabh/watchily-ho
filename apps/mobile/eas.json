@@ -1,0 +1,46 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jehowbdfqhteznmbyecu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_5FjUVNZc-5CKVXt65m1ahA_w2igeEln",
+        "EXPO_PUBLIC_API_URL": "https://watchily-ho.vercel.app"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jehowbdfqhteznmbyecu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_5FjUVNZc-5CKVXt65m1ahA_w2igeEln",
+        "EXPO_PUBLIC_API_URL": "https://watchily-ho.vercel.app"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jehowbdfqhteznmbyecu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_5FjUVNZc-5CKVXt65m1ahA_w2igeEln",
+        "EXPO_PUBLIC_API_URL": "https://watchily-ho.vercel.app"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, View, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SimpleIcon } from "../components/SimpleIcon";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { makeRedirectUri } from "expo-auth-session";
 import * as QueryParams from "expo-auth-session/build/QueryParams";
@@ -11,6 +12,19 @@ import { theme } from "../theme";
 import { GradientBackground } from "../components/GradientBackground";
 
 WebBrowser.maybeCompleteAuthSession();
+
+const isPKCEError = (e: unknown) =>
+  e instanceof Error && (e.name === "AuthPKCECodeVerifierMissingError" || e.message?.includes("PKCE code verifier"));
+
+// Simple Icons CDN. Disney+ no existe en SI → fallback. Prime Video → amazonprime (logo Amazon Prime).
+const PLATFORMS = [
+  { name: "Netflix", slug: "netflix", color: "#E50914", fallback: false },
+  { name: "Disney+", slug: "disneyplus", color: "#113CCF", fallback: true },
+  { name: "Prime Video", slug: "amazonprime", color: "#00A8E1", fallback: true },
+  { name: "HBO Max", slug: "hbomax", color: "#B535F6", fallback: false },
+  { name: "Crunchyroll", slug: "crunchyroll", color: "#F47521", fallback: false },
+  { name: "Apple TV", slug: "appletv", color: "#FFFFFF", fallback: false },
+] as const;
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -33,7 +47,7 @@ export function LoginScreen() {
     if (initialUrl) {
       createSessionFromUrl(initialUrl).catch((e) => {
         if (__DEV__) console.warn("[Auth] createSessionFromUrl:", e);
-        Alert.alert("Error", e instanceof Error ? e.message : "Error al iniciar sesión");
+        if (!isPKCEError(e)) Alert.alert("Error", e instanceof Error ? e.message : "Error al iniciar sesión");
       });
     }
   }, [initialUrl]);
@@ -42,7 +56,7 @@ export function LoginScreen() {
     const sub = Linking.addEventListener("url", (e) => {
       createSessionFromUrl(e.url).catch((err) => {
         if (__DEV__) console.warn("[Auth] createSessionFromUrl:", err);
-        Alert.alert("Error", err instanceof Error ? err.message : "Error al iniciar sesión");
+        if (!isPKCEError(err)) Alert.alert("Error", err instanceof Error ? err.message : "Error al iniciar sesión");
       });
     });
     return () => sub.remove();
@@ -66,6 +80,8 @@ export function LoginScreen() {
     setMessage(null);
     const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? "https://watchily-ho.vercel.app";
     const appRedirect = makeRedirectUri({ path: "auth/callback" });
+    // Proxy: Supabase redirige a nuestra web, nosotros redirigimos a la app con el code.
+    // Evita que Supabase redirija a la web (Site URL) en vez de la app.
     const redirectTo = `${apiUrl}/auth/mobile-callback?app_redirect=${encodeURIComponent(appRedirect)}`;
     if (__DEV__) console.log("[Auth] Redirect URL:", redirectTo);
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -83,7 +99,7 @@ export function LoginScreen() {
         await createSessionFromUrl(res.url);
       } catch (e) {
         if (__DEV__) console.warn("[Auth] createSessionFromUrl:", e);
-        Alert.alert("Error", e instanceof Error ? e.message : "Error al iniciar sesión");
+        if (!isPKCEError(e)) Alert.alert("Error", e instanceof Error ? e.message : "Error al iniciar sesión");
       }
     }
   };
@@ -124,9 +140,13 @@ export function LoginScreen() {
       >
         <View style={styles.hero}>
           <Text style={styles.heroTitle}>Encuentra en qué plataforma ver cada título</Text>
-          <Text style={styles.heroSubtitle}>
-            Inicia sesión y personaliza tus servicios para obtener resultados ajustados a tus plataformas.
-          </Text>
+          <View style={styles.heroPlatforms}>
+            {PLATFORMS.map((p) => (
+              <View key={p.name} style={styles.heroPlatformIcon}>
+                <SimpleIcon name={p.slug} color={p.color} size={18} fallback={p.fallback} />
+              </View>
+            ))}
+          </View>
         </View>
 
         <Animated.View
@@ -136,7 +156,10 @@ export function LoginScreen() {
           ]}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Watchily</Text>
+            <View style={styles.titleRow}>
+              <MaterialCommunityIcons name="film" size={24} color={theme.colors.primary} />
+              <Text style={styles.title}>Watchily</Text>
+            </View>
             <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
           </View>
 
@@ -224,19 +247,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 32,
   },
-  hero: {},
+  hero: {
+    alignItems: "center",
+  },
   heroTitle: {
     fontSize: 28,
     fontWeight: "bold",
     color: theme.colors.foreground,
     lineHeight: 34,
     letterSpacing: -0.5,
+    textAlign: "center",
+    alignSelf: "stretch",
   },
-  heroSubtitle: {
-    marginTop: 16,
-    fontSize: 16,
-    color: theme.colors.mutedForeground,
-    lineHeight: 24,
+  heroPlatforms: {
+    marginTop: 20,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 12,
+  },
+  heroPlatformIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.md,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   card: {
     maxWidth: 400,
@@ -250,6 +286,11 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   header: {
+    alignItems: "center",
+    gap: 8,
+  },
+  titleRow: {
+    flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },

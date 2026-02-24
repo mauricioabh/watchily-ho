@@ -1,18 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <title>Watchily</title>
-  <script>
-    var base = "https://watchily-ho.vercel.app";
-    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      base = "https://watchily-ho.vercel.app";
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+      min-height: 100vh;
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
     }
-    window.location.replace(base + "/tv");
-  </script>
+    h1 { font-size: 48px; color: #e5b00b; margin-bottom: 32px; }
+    p { font-size: 28px; line-height: 1.6; margin-bottom: 16px; color: #e5e5e5; }
+    a { color: #60a5fa; font-size: 24px; }
+  </style>
 </head>
 <body>
-  <p style="color:#fff;font-family:sans-serif;padding:2rem;">Redirigiendo a Watchily...</p>
+  <h1>Watchily</h1>
+  <p>Usa la app en tu m&oacute;vil o en el navegador para explorar pel&iacute;culas y series.</p>
+  <p><a href="https://watchily-ho.vercel.app/tv-standalone">Ver contenido en la TV</a></p>
 </body>
 </html>

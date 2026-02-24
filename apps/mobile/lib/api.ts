@@ -14,21 +14,31 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return {};
 }
 
+const FETCH_TIMEOUT_MS = 20_000;
+
 export async function fetchApi<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
   const authHeaders = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders,
+        ...options?.headers,
+      },
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export const api = {
