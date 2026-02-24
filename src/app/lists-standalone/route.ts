@@ -14,14 +14,15 @@ function escapeHtml(s: string): string {
 }
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.redirect(`${BASE}/login?device=tv`, 302);
-  }
+    if (!user) {
+      return NextResponse.redirect(`${BASE}/login-standalone`, 302);
+    }
 
-  let { data: lists } = await supabase
+    let { data: lists } = await supabase
     .from("lists")
     .select("id, name, is_public, created_at")
     .eq("user_id", user.id)
@@ -39,7 +40,7 @@ export async function GET() {
 
   const listCards = (lists ?? []).map(
     (list) => `
-    <a href="${BASE}/lists/${list.id}?device=tv" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
+    <a href="${BASE}/lists-standalone/${list.id}" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
       <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;min-height:80px;">
         <p style="font-size:18px;font-weight:600;margin:0 0 4px 0;">${escapeHtml(list.name)}</p>
         <span style="font-size:14px;color:#888;">${countByList[list.id] ?? 0} títulos</span>
@@ -55,7 +56,7 @@ export async function GET() {
   <title>Watchily - Mis listas</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
+    body{background:#0d0d12;color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
     h1{font-size:42px;margin-bottom:24px;color:#e5b00b}
     nav{margin-bottom:32px;display:flex;gap:12px;flex-wrap:wrap}
     nav a,nav button{display:inline-block;padding:12px 20px;border-radius:8px;font-size:16px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none}
@@ -74,7 +75,7 @@ export async function GET() {
     <a href="${BASE}/lists-standalone" tabindex="0" class="focusable">Listas</a>
     <a href="${BASE}/lists-all-standalone" tabindex="0" class="focusable">Ver todo</a>
     <form action="${BASE}/auth/signout" method="POST" style="display:inline">
-      <input type="hidden" name="redirect" value="/tv?device=tv" />
+      <input type="hidden" name="redirect" value="/tv-standalone" />
       <button type="submit" tabindex="0" class="focusable">Cerrar sesión</button>
     </form>
   </nav>
@@ -82,7 +83,14 @@ export async function GET() {
 </body>
 </html>`;
 
-  return new NextResponse(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+    return new NextResponse(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  } catch (e) {
+    console.error("lists-standalone error:", e);
+    const fallback = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Watchily</title></head><body style="background:#0d0d12;color:#fff;font-family:sans-serif;padding:48px"><h1>Error</h1><p>No se pudo cargar. <a href="https://watchily-ho.vercel.app/tv-standalone" style="color:#60a5fa">Volver</a></p></body></html>`;
+    return new NextResponse(fallback, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
 }

@@ -24,7 +24,7 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(`${BASE}/login?device=tv`, 302);
+    return NextResponse.redirect(`${BASE}/login-standalone`, 302);
   }
 
   const { data: list } = await supabase

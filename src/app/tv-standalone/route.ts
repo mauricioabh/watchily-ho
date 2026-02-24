@@ -10,6 +10,13 @@ export async function GET() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    if (!user) {
+      return NextResponse.redirect(
+        (process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app") + "/login-standalone",
+        302
+      );
+    }
+
     const { data: providerRows } = user
       ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)
       : { data: [] as { provider_id: string }[] };
@@ -30,7 +37,7 @@ export async function GET() {
     const tiles = combined
       .map(
         (t) => `
-        <a href="${base}/title/${t.id}" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
+        <a href="${base}/title/${t.id}" tabindex="0" style="display:block;text-decoration:none;color:inherit;">
           <div style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
             <div style="aspect-ratio:2/3;background:#2a2a2a;position:relative;">
               ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;color:#666;">${escapeHtml(t.name.slice(0,2))}</div>`}
@@ -66,11 +73,11 @@ export async function GET() {
 <body>
   <h1>Watchily</h1>
   <nav id="nav">
-    <a href="${base}/tv?device=tv" tabindex="0" class="focusable">Inicio</a>
+    <a href="${base}/tv-standalone" tabindex="0" class="focusable">Inicio</a>
     <a href="${base}/search?device=tv" tabindex="0" class="focusable">Buscar</a>
-    <a href="${base}/lists?device=tv" tabindex="0" class="focusable">Listas</a>
-    <a href="${base}/lists/all?device=tv" tabindex="0" class="focusable">Ver todo</a>
-    ${user ? `<form action="${base}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv?device=tv" /><button type="submit" tabindex="0" class="focusable">Cerrar sesión</button></form>` : `<a href="${base}/login?device=tv" tabindex="0" class="focusable">Iniciar sesión</a>`}
+    <a href="${base}/lists-standalone" tabindex="0" class="focusable">Listas</a>
+    <a href="${base}/lists-all-standalone" tabindex="0" class="focusable">Ver todo</a>
+    <form action="${base}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0" class="focusable">Cerrar sesión</button></form>
   </nav>
   <div class="grid" id="grid">${tiles}</div>
 </body>
