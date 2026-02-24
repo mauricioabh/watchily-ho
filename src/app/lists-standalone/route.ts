@@ -18,7 +18,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(`${BASE}/login-standalone`, 302);
+    return NextResponse.redirect(`${BASE}/login?device=tv`, 302);
   }
 
   let { data: lists } = await supabase
@@ -39,7 +39,7 @@ export async function GET() {
 
   const listCards = (lists ?? []).map(
     (list) => `
-    <a href="${BASE}/lists-standalone/${list.id}" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
+    <a href="${BASE}/lists/${list.id}?device=tv" tabindex="0" class="focusable" style="display:block;text-decoration:none;color:inherit;">
       <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;min-height:80px;">
         <p style="font-size:18px;font-weight:600;margin:0 0 4px 0;">${escapeHtml(list.name)}</p>
         <span style="font-size:14px;color:#888;">${countByList[list.id] ?? 0} títulos</span>
@@ -53,7 +53,6 @@ export async function GET() {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <title>Watchily - Mis listas</title>
-  <script src="https://cdn.jsdelivr.net/npm/js-spatial-navigation@1.0.1/spatial_navigation.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
@@ -75,21 +74,11 @@ export async function GET() {
     <a href="${BASE}/lists-standalone" tabindex="0" class="focusable">Listas</a>
     <a href="${BASE}/lists-all-standalone" tabindex="0" class="focusable">Ver todo</a>
     <form action="${BASE}/auth/signout" method="POST" style="display:inline">
-      <input type="hidden" name="redirect" value="/login-standalone" />
+      <input type="hidden" name="redirect" value="/tv?device=tv" />
       <button type="submit" tabindex="0" class="focusable">Cerrar sesión</button>
     </form>
   </nav>
   <div class="grid" id="grid">${listCards || '<p class="empty">Aún no tienes listas. Crea una en tu móvil.</p>'}</div>
-  <script>
-    (function(){
-      if(typeof SpatialNavigation==="undefined"){setTimeout(function(){var f=document.querySelector("a");if(f)f.focus()},100);return}
-      SpatialNavigation.init();
-      SpatialNavigation.add("main",{selector:"#nav a, #nav button, .grid a"});
-      SpatialNavigation.makeFocusable();
-      SpatialNavigation.setDefaultSection("main");
-      SpatialNavigation.focus();
-    })();
-  </script>
 </body>
 </html>`;
 

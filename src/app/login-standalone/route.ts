@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    return NextResponse.redirect(`${BASE}/tv-standalone`, 302);
+    return NextResponse.redirect(`${BASE}/tv?device=tv`, 302);
   }
 
   const errorParam = new URL(request.url).searchParams.get("error");
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   <p>Inicia sesión para ver tus listas y contenido personalizado</p>
   ${errorParam ? `<p class="err">${escapeHtml(errorParam)}</p>` : ""}
   <form method="POST" action="/api/auth/signin-standalone">
-    <input type="hidden" name="redirect" value="/tv-standalone" />
+    <input type="hidden" name="redirect" value="/tv?device=tv" />
     <label for="email">Email</label>
     <input id="email" name="email" type="email" required placeholder="tu@email.com" />
     <label for="password">Contraseña</label>

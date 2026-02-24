@@ -51,7 +51,6 @@ export async function GET() {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <title>Watchily</title>
-  <script src="https://cdn.jsdelivr.net/npm/js-spatial-navigation@1.0.1/spatial_navigation.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
@@ -67,23 +66,13 @@ export async function GET() {
 <body>
   <h1>Watchily</h1>
   <nav id="nav">
-    <a href="${base}/tv-standalone" tabindex="0" class="focusable">Inicio</a>
+    <a href="${base}/tv?device=tv" tabindex="0" class="focusable">Inicio</a>
     <a href="${base}/search?device=tv" tabindex="0" class="focusable">Buscar</a>
-    <a href="${base}/lists-standalone" tabindex="0" class="focusable">Listas</a>
-    <a href="${base}/lists-all-standalone" tabindex="0" class="focusable">Ver todo</a>
-    ${user ? `<form action="${base}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0" class="focusable">Cerrar sesión</button></form>` : `<a href="${base}/login-standalone" tabindex="0" class="focusable">Iniciar sesión</a>`}
+    <a href="${base}/lists?device=tv" tabindex="0" class="focusable">Listas</a>
+    <a href="${base}/lists/all?device=tv" tabindex="0" class="focusable">Ver todo</a>
+    ${user ? `<form action="${base}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv?device=tv" /><button type="submit" tabindex="0" class="focusable">Cerrar sesión</button></form>` : `<a href="${base}/login?device=tv" tabindex="0" class="focusable">Iniciar sesión</a>`}
   </nav>
   <div class="grid" id="grid">${tiles}</div>
-  <script>
-    (function(){
-      if(typeof SpatialNavigation==="undefined"){setTimeout(function(){var f=document.querySelector("a");if(f)f.focus()},100);return}
-      SpatialNavigation.init();
-      SpatialNavigation.add("main",{selector:"#nav a, #nav button, .grid a",defaultElement:"#nav a"});
-      SpatialNavigation.makeFocusable();
-      SpatialNavigation.setDefaultSection("main");
-      SpatialNavigation.focus();
-    })();
-  </script>
 </body>
 </html>`;
 

@@ -24,7 +24,7 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(`${BASE}/login-standalone`, 302);
+    return NextResponse.redirect(`${BASE}/login?device=tv`, 302);
   }
 
   const { data: list } = await supabase
@@ -81,7 +81,6 @@ export async function GET(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <title>Watchily - ${escapeHtml(list.name)}</title>
-  <script src="https://cdn.jsdelivr.net/npm/js-spatial-navigation@1.0.1/spatial_navigation.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px}
@@ -98,19 +97,10 @@ export async function GET(
   <h1>${escapeHtml(list.name)}</h1>
   <p class="sub">${filtered.length} títulos</p>
   <nav id="nav">
-    <a href="${BASE}/tv-standalone" tabindex="0">Inicio</a>
-    <a href="${BASE}/lists-standalone" tabindex="0">← Mis listas</a>
+    <a href="${BASE}/tv?device=tv" tabindex="0">Inicio</a>
+    <a href="${BASE}/lists?device=tv" tabindex="0">← Mis listas</a>
   </nav>
   <div class="grid" id="grid">${tiles || "<p style='color:#888'>No hay títulos en esta lista.</p>"}</div>
-  <script>
-    (function(){
-      if(typeof SpatialNavigation==="undefined"){setTimeout(function(){var f=document.querySelector("a");if(f)f.focus()},100);return}
-      SpatialNavigation.init();
-      SpatialNavigation.add("main",{selector:"#nav a, .grid a"});
-      SpatialNavigation.makeFocusable();
-      SpatialNavigation.focus();
-    })();
-  </script>
 </body>
 </html>`;
 
