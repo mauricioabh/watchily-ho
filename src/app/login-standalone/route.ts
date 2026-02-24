@@ -24,53 +24,32 @@ export async function GET(request: Request) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <title>Watchily - Iniciar sesión</title>
-  <script src="https://cdn.jsdelivr.net/npm/js-spatial-navigation@1.0.1/spatial_navigation.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:40px;display:flex;align-items:center;justify-content:center}
-    .card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:40px;max-width:420px;width:100%}
-    h1{font-size:36px;color:#e5b00b;margin-bottom:8px}
-    .sub{margin-bottom:24px;color:#888;font-size:18px}
-    form{display:flex;flex-direction:column;gap:16px}
-    label{font-size:14px;color:#aaa}
-    input{background:#1a1a1a;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:14px 16px;font-size:18px;color:#fff}
-    input:focus{outline:3px solid #e5b00b;outline-offset:2px}
-    button,a.btn{display:inline-block;padding:14px 24px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;border:none}
-    .primary{background:#6366f1;color:#fff}
-    .secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
-    a:focus,button:focus{outline:3px solid #e5b00b;outline-offset:4px}
-    .msg{font-size:14px;padding:8px 0}
-    .err{color:#f87171}
-    .ok{color:#4ade80}
+    body{background:#0d0d12;color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:48px}
+    h1{font-size:42px;color:#e5b00b;margin-bottom:16px}
+    p{margin-bottom:16px;color:#aaa;font-size:20px}
+    form{max-width:400px;margin-top:24px}
+    label{display:block;font-size:16px;color:#888;margin-bottom:12px}
+    input{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;font-size:18px;color:#fff;width:100%;margin-bottom:16px}
+    button{background:#6366f1;color:#fff;border:none;padding:16px 24px;font-size:18px;font-weight:600;border-radius:8px;cursor:pointer;width:100%}
+    .err{color:#f87171;margin-bottom:16px}
+    a{color:#60a5fa;font-size:18px}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Watchily</h1>
-    <p class="sub">Inicia sesión para ver tus listas y contenido personalizado</p>
-    ${errorParam ? `<p class="msg err">${escapeHtml(errorParam)}</p>` : ""}
-    <form method="POST" action="/api/auth/signin-standalone">
-      <input type="hidden" name="redirect" value="/tv-standalone" />
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" required placeholder="tu@email.com" tabindex="0" />
-      <label for="password">Contraseña</label>
-      <input id="password" name="password" type="password" required tabindex="0" />
-      <button type="submit" class="primary" tabindex="0">Entrar</button>
-    </form>
-    <p style="margin-top:20px;text-align:center;color:#666;font-size:14px">
-      O inicia sesión en tu m&oacute;vil en<br/>
-      <a href="${BASE}/login" style="color:#60a5fa" tabindex="0">watchily-ho.vercel.app/login</a>
-    </p>
-  </div>
-  <script>
-    (function(){
-      if(typeof SpatialNavigation==="undefined")return;
-      SpatialNavigation.init();
-      SpatialNavigation.add("main",{selector:"input, button, a"});
-      SpatialNavigation.makeFocusable();
-      SpatialNavigation.focus();
-    })();
-  </script>
+  <h1>Watchily</h1>
+  <p>Inicia sesión para ver tus listas y contenido personalizado</p>
+  ${errorParam ? `<p class="err">${escapeHtml(errorParam)}</p>` : ""}
+  <form method="POST" action="/api/auth/signin-standalone">
+    <input type="hidden" name="redirect" value="/tv-standalone" />
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" required placeholder="tu@email.com" />
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" required />
+    <button type="submit">Entrar</button>
+  </form>
+  <p style="margin-top:32px">O inicia sesión en tu m&oacute;vil en <a href="${BASE}/login">watchily-ho.vercel.app/login</a></p>
 </body>
 </html>`;
 

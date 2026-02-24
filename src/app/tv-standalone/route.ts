@@ -10,16 +10,9 @@ export async function GET() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.redirect(
-        (process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app") + "/login-standalone",
-        302
-      );
-    }
-
     const { data: providerRows } = user
       ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)
-      : { data: [] };
+      : { data: [] as { provider_id: string }[] };
 
     const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
     const sourceIds = userProviderIds
@@ -78,10 +71,7 @@ export async function GET() {
     <a href="${base}/search?device=tv" tabindex="0" class="focusable">Buscar</a>
     <a href="${base}/lists-standalone" tabindex="0" class="focusable">Listas</a>
     <a href="${base}/lists-all-standalone" tabindex="0" class="focusable">Ver todo</a>
-    <form action="${base}/auth/signout" method="POST" style="display:inline">
-      <input type="hidden" name="redirect" value="/login-standalone" />
-      <button type="submit" tabindex="0" class="focusable">Cerrar sesión</button>
-    </form>
+    ${user ? `<form action="${base}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0" class="focusable">Cerrar sesión</button></form>` : `<a href="${base}/login-standalone" tabindex="0" class="focusable">Iniciar sesión</a>`}
   </nav>
   <div class="grid" id="grid">${tiles}</div>
   <script>
