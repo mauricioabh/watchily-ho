@@ -25,10 +25,7 @@ export async function PATCH(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const supabase = await createClientForRequest();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

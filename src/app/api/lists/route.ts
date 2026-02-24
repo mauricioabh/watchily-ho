@@ -18,7 +18,7 @@ export async function GET() {
       .select("id, name, is_public, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    data = fallback.data ?? [];
+    data = (fallback.data ?? []) as typeof data;
     error = fallback.error;
   }
   if (error) return Response.json({ error: error.message }, { status: 500 });
