@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
@@ -16,7 +16,8 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const q = request.nextUrl.searchParams.get("q")?.trim().toLowerCase() ?? "";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -54,7 +55,10 @@ export async function GET() {
     if (t) titles.push(t);
   }
   const validTitles = titles.filter((t): t is NonNullable<typeof t> => t != null);
-  const filtered = filterTitlesByUserProviders(validTitles, userProviderIds);
+  let filtered = filterTitlesByUserProviders(validTitles, userProviderIds);
+  if (q) {
+    filtered = filtered.filter((t) => t.name.toLowerCase().includes(q));
+  }
 
   const tileHtml = (t: typeof filtered[0]) => {
     const platform = t.sources?.[0]?.providerName ?? "";
@@ -93,11 +97,15 @@ export async function GET() {
   ${tvNavHtml(BASE, "vertodo", "vertodo")}
   <main class="page">
   <h1 style="font-size:36px;color:#e5b00b;margin-bottom:24px">Ver todo</h1>
-  <div class="grid" id="grid">${tiles}</div>
+  <form method="GET" action="${BASE}/lists-all-standalone" class="filter-wrap" style="margin-bottom:24px;display:flex;gap:24px;align-items:center">
+    <input type="text" name="q" value="${escapeHtml(q)}" placeholder="Filtrar por nombre..." tabindex="0" style="padding:18px 22px;font-size:26px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;min-width:350px" />
+    <button type="submit" style="padding:18px 28px;font-size:22px;font-weight:600;border-radius:12px;border:none;background:#6366f1;color:#fff;cursor:pointer">Filtrar</button>
+  </form>
+  <div class="grid" id="grid">${tiles || "<p style='color:#888;font-size:24px'>No hay títulos que coincidan.</p>"}</div>
   </main>
   <script>
     (function(){
-      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .tile-link');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .filter-wrap input, .filter-wrap button, .tile-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       document.getElementById('firstFocus')?.focus();
       document.addEventListener('keydown',function(e){
@@ -105,15 +113,17 @@ export async function GET() {
         if(idx<0){document.getElementById('firstFocus')?.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1,navCount=6,cols=5;
+        var next=-1,navCount=6,filterCount=2,cols=4;
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){
           if(idx<navCount)next=navCount+(idx%cols);
+          else if(idx<navCount+filterCount)next=navCount+filterCount;
           else next=idx+cols;
         }else if(e.key==='ArrowUp'){
-          if(idx>=navCount)next=(idx-navCount)%cols;
-          else next=idx-cols;
+          if(idx>=navCount+filterCount)next=navCount+filterCount-1;
+          else if(idx>=navCount)next=idx-1;
+          else next=Math.max(0,idx-cols);
         }
         if(next>=0&&next<f.length)f[next].focus();
       },true);

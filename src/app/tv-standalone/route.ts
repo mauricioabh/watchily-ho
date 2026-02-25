@@ -83,7 +83,7 @@ export async function GET() {
         if(idx<0){focusInicio();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1,navCount=6,cols=5;
+        var next=-1,navCount=6,cols=4;
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){

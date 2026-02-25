@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
     .page{padding:32px 48px 48px}
     ${tvNavCss}
-    .search-wrap{margin-bottom:32px;display:flex;gap:16px;align-items:center}
+    .search-wrap{margin-bottom:32px;display:flex;gap:32px;align-items:center}
     .search-wrap input{padding:20px 24px;font-size:28px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;min-width:400px}
     .search-wrap input:focus{outline:3px solid #e5b00b;outline-offset:2px}
     .search-wrap button{padding:20px 32px;font-size:24px;font-weight:600;border-radius:12px;border:none;background:#6366f1;color:#fff;cursor:pointer}
@@ -115,17 +115,23 @@ export async function GET(request: NextRequest) {
       var searchInput=document.getElementById('searchInput');
       function idxOf(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       function focusSearch(){if(searchInput)searchInput.focus()}
-      focusSearch();
+      setTimeout(focusSearch,1200);
       document.addEventListener('keydown',function(e){
         var idx=idxOf(document.activeElement);
         if(idx<0){focusSearch();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1,cols=5;
+        var next=-1,navCount=6,searchCount=2,cols=4;
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
-        else if(e.key==='ArrowDown')next=idx+cols;
-        else if(e.key==='ArrowUp')next=idx-cols;
+        else if(e.key==='ArrowDown'){
+          if(idx<navCount+searchCount)next=navCount+searchCount;
+          else next=idx+cols;
+        }else if(e.key==='ArrowUp'){
+          if(idx>=navCount+searchCount)next=6+Math.min((idx-navCount-searchCount)%cols,1);
+          else if(idx>=navCount)next=idx-navCount;
+          else next=Math.max(0,idx-cols);
+        }
         if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();

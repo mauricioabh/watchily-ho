@@ -49,14 +49,14 @@ export async function GET() {
     </a>`
   ).join("");
 
-  const newListCard = `<a href="${BASE}/lists" tabindex="0" class="list-card-link list-card-new">
+  const newListCard = `<a href="${BASE}/lists-standalone/create" tabindex="0" class="list-card-link list-card-new">
     <div class="list-card">
       <p class="list-name">+ Nueva lista</p>
-      <span class="list-count">Crear en web o móvil</span>
+      <span class="list-count">Crear lista</span>
     </div>
   </a>`;
 
-  const gridContent = listCards ? listCards + newListCard : newListCard + '<p class="empty">Aún no tienes listas. Crea una en la web o móvil.</p>';
+  const gridContent = listCards ? listCards + newListCard : newListCard + '<p class="empty">Aún no tienes listas. Pulsa en + Nueva lista para crear una.</p>';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -90,10 +90,11 @@ export async function GET() {
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .list-card-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      document.getElementById('firstFocus')?.focus();
+      var firstEl=document.getElementById('firstFocus')||f[0];
+      if(firstEl)firstEl.focus();
       document.addEventListener('keydown',function(e){
         var idx=i(document.activeElement);
-        if(idx<0){document.getElementById('firstFocus')?.focus();e.preventDefault();return;}
+        if(idx<0){if(firstEl)firstEl.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,cols=3;
