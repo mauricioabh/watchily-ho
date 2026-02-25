@@ -211,8 +211,15 @@ export async function GET(
             try{webOSDev.launch({id:webOSDev.APP.BROWSER,params:{target:url},onSuccess:function(){},onFailure:function(){window.location.href=url}})}catch(e){window.location.href=url}
           }else{try{window.location.href=url}catch(e){window.open(url)}}
         }
-        if(appId&&typeof webOS!=='undefined'&&webOS.service){
-          try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:appId},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+        function doLaunch(id){
+          if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
+            try{webOSDev.launch({id:id,params:{},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+          }else if(typeof webOS!=='undefined'&&webOS.service){
+            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:id},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+          }else{goToUrl()}
+        }
+        if(appId){
+          doLaunch(appId)
         }else{goToUrl()}
       }
       document.addEventListener('click',function(e){
