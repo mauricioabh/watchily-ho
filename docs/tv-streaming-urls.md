@@ -40,10 +40,11 @@ if (typeof webOS !== 'undefined' && webOS.service) {
 
 Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el sistema puede ofrecer "Abrir en la app", pero depende del fabricante.
 
-### Implementación sugerida
+### Implementación actual
 
 1. En el detalle del título, al pulsar un enlace de streaming:
-2. Si `webOS?.service` existe → llamar `launch` con el ID de la app.
-3. Si no existe o falla → abrir la URL web como fallback.
+2. **Disney+**: se abre la URL web directamente (evita pantalla negra que causa `launch` en algunas TVs).
+3. **Netflix, HBO Max**: si `webOS?.service` existe → llamar `launch` con el ID de la app.
+4. Si no existe o falla → navegar a la URL web (`location.href`) en el mismo webview (mejor que `window.open` en TV).
 
 Para pasar el título concreto a Netflix/Disney+ haría falta documentación oficial de deep links, que no está disponible de forma pública.
