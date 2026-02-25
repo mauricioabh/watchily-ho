@@ -87,11 +87,11 @@ export async function GET() {
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){
-          if(idx<navCount)next=navCount+(idx%cols);
+          if(idx<navCount)next=navCount;
           else next=idx+cols;
         }else if(e.key==='ArrowUp'){
-          if(idx>=navCount)next=(idx-navCount)%cols;
-          else next=idx-cols;
+          if(idx>=navCount)next=idx>=navCount+cols?idx-cols:navCount-1;
+          else next=Math.max(0,idx-cols);
         }
         if(next>=0&&next<focusables.length)focusables[next].focus();
       },true);

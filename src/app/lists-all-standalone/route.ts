@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){
-          if(idx<navCount)next=navCount+(idx%cols);
+          if(idx<navCount)next=navCount;
           else if(idx<navCount+filterCount)next=navCount+filterCount;
           else next=idx+cols;
         }else if(e.key==='ArrowUp'){

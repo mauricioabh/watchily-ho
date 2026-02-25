@@ -125,7 +125,8 @@ export async function GET(request: NextRequest) {
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){
-          if(idx<navCount+searchCount)next=navCount+searchCount;
+          if(idx<navCount)next=navCount;
+          else if(idx<navCount+searchCount)next=navCount+searchCount;
           else next=idx+cols;
         }else if(e.key==='ArrowUp'){
           if(idx>=navCount+searchCount)next=6+Math.min((idx-navCount-searchCount)%cols,1);

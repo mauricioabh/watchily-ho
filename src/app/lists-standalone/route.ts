@@ -97,11 +97,16 @@ export async function GET() {
         if(idx<0){if(firstEl)firstEl.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1,cols=3;
+        var next=-1,navCount=6,cols=3;
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
-        else if(e.key==='ArrowDown')next=idx+cols;
-        else if(e.key==='ArrowUp')next=idx-cols;
+        else if(e.key==='ArrowDown'){
+          if(idx<navCount)next=navCount;
+          else next=idx+cols;
+        }else if(e.key==='ArrowUp'){
+          if(idx>=navCount)next=idx>=navCount+cols?idx-cols:navCount-1;
+          else next=Math.max(0,idx-cols);
+        }
         if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();
