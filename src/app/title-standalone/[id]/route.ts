@@ -6,26 +6,40 @@ import { tvNavHtml, tvNavCss, tvLogoutScript } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(`${BASE}/login-standalone`, 302);
   }
 
-  const { data: profile } = await supabase.from("profiles").select("country_code").eq("id", user.id).single();
-  const { data: providerRows } = await supabase.from("user_providers").select("provider_id").eq("user_id", user.id);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("country_code")
+    .eq("id", user.id)
+    .single();
+  const { data: providerRows } = await supabase
+    .from("user_providers")
+    .select("provider_id")
+    .eq("user_id", user.id);
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
   const country = profile?.country_code ?? "MX";
 
@@ -33,7 +47,7 @@ export async function GET(
   if (!title) {
     return new NextResponse(
       `<!DOCTYPE html><html><head><meta charset="utf-8"><title>No encontrado</title></head><body style="background:#0a0a0a;color:#fff;font-family:sans-serif;padding:48px"><h1>No encontrado</h1><p><a href="${BASE}/tv-standalone" style="color:#60a5fa">Volver al inicio</a></p></body></html>`,
-      { headers: { "Content-Type": "text/html; charset=utf-8" } }
+      { headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
   }
 
@@ -51,7 +65,13 @@ export async function GET(
   const paidSources = uniqueSources.filter((s) => s.type !== "sub");
 
   const typeLabel = (s: { type: string }) =>
-    s.type === "sub" ? "Incluido" : s.type === "rent" ? "Alquiler" : s.type === "buy" ? "Compra" : "Gratis";
+    s.type === "sub"
+      ? "Incluido"
+      : s.type === "rent"
+        ? "Alquiler"
+        : s.type === "buy"
+          ? "Compra"
+          : "Gratis";
 
   const webOSAppIds: Record<string, string> = {
     netflix: "netflix",
@@ -62,25 +82,38 @@ export async function GET(
   };
   const sourceCards = (sources: typeof uniqueSources) =>
     sources
-      .map(
-        (s) => {
-          const url = s.url ?? "#";
-          const provider = (s.providerName ?? "").toLowerCase().replace(/\s+/g, " ");
-          const appId = webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
-          return `
+      .map((s) => {
+        const url = s.url ?? "#";
+        const provider = (s.providerName ?? "")
+          .toLowerCase()
+          .replace(/\s+/g, " ");
+        const appId =
+          webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
+        return `
     <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
       <span class="source-name">${escapeHtml(s.providerName)}</span>
       <span class="source-type">${typeLabel(s)}${s.quality ? ` · ${s.quality}` : ""}${s.price != null ? ` · $${s.price}` : ""}</span>
     </a>`;
-        }
-      )
+      })
       .join("");
 
   const scores: string[] = [];
-  if (t.imdbRating != null) scores.push(`<div class="score"><span class="score-label">IMDb</span><span class="score-value" style="color:#f5c518">${t.imdbRating.toFixed(1)}</span></div>`);
-  if (t.userRating != null) scores.push(`<div class="score"><span class="score-label">Usuario</span><span class="score-value" style="color:#60a5fa">${t.userRating.toFixed(1)}</span></div>`);
-  if (t.criticScore != null) scores.push(`<div class="score"><span class="score-label">Crítica</span><span class="score-value">${t.criticScore}%</span></div>`);
-  if (t.rottenTomatoesRating != null) scores.push(`<div class="score"><span class="score-label">RT</span><span class="score-value">${t.rottenTomatoesRating}%</span></div>`);
+  if (t.imdbRating != null)
+    scores.push(
+      `<div class="score"><span class="score-label">IMDb</span><span class="score-value" style="color:#f5c518">${t.imdbRating.toFixed(1)}</span></div>`,
+    );
+  if (t.userRating != null)
+    scores.push(
+      `<div class="score"><span class="score-label">Usuario</span><span class="score-value" style="color:#60a5fa">${t.userRating.toFixed(1)}</span></div>`,
+    );
+  if (t.criticScore != null)
+    scores.push(
+      `<div class="score"><span class="score-label">Crítica</span><span class="score-value">${t.criticScore}%</span></div>`,
+    );
+  if (t.rottenTomatoesRating != null)
+    scores.push(
+      `<div class="score"><span class="score-label">RT</span><span class="score-value">${t.rottenTomatoesRating}%</span></div>`,
+    );
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -124,7 +157,7 @@ export async function GET(
   <main class="page">
   <div class="hero">
     <div class="poster-wrap">
-      ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" />` : `<div class="poster-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
+      ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" />` : `<div class="poster-placeholder">${escapeHtml(t.name.slice(0, 2))}</div>`}
     </div>
     <div class="info">
       <h2>${escapeHtml(t.name)}</h2>
@@ -174,13 +207,21 @@ export async function GET(
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6;
-      var vertodoBtn=document.getElementById('firstFocus');
-      function focusVertodo(){if(vertodoBtn)vertodoBtn.focus();else f[0]?.focus()}
+      function getVertodoBtn(){
+        var el=document.getElementById('firstFocus');
+        if(el)return el;
+        return document.querySelector('a[href*="lists-all-standalone"]');
+      }
+      function focusVertodo(){
+        var btn=getVertodoBtn();
+        if(btn){btn.focus();return true;}
+        if(f[0]){f[0].focus();return true;}
+        return false;
+      }
+      function scheduleFocus(){var d=[0,100,200,400,600,800,1000,1500,2000,2500,3500,5000];d.forEach(function(ms){setTimeout(focusVertodo,ms)})}
       focusVertodo();
-      setTimeout(focusVertodo,600);
-      setTimeout(focusVertodo,800);
-      setTimeout(focusVertodo,1200);
-      setTimeout(focusVertodo,1800);
+      scheduleFocus();
+      if(document.readyState!=='complete')window.addEventListener('load',scheduleFocus);
       document.addEventListener('keydown',function(e){
         var isActivate=e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28;
         if(isActivate){

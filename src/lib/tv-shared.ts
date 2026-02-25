@@ -4,11 +4,24 @@
 
 export function tvNavHtml(
   base: string,
-  active: "inicio" | "buscar" | "listas" | "vertodo" | "config" | "none" = "none",
-  firstFocusId?: "inicio" | "buscar" | "listas" | "vertodo"
+  active:
+    | "inicio"
+    | "buscar"
+    | "listas"
+    | "vertodo"
+    | "config"
+    | "none" = "none",
+  firstFocusId?: "inicio" | "buscar" | "listas" | "vertodo",
 ) {
-  const a = (href: string, label: string, icon: string, isActive: boolean, id?: string) =>
-    `<a href="${href}" tabindex="0" class="nav-link ${isActive ? "nav-active" : ""}" ${id ? `id="${id}"` : ""}>${icon} ${label}</a>`;
+  const a = (
+    href: string,
+    label: string,
+    icon: string,
+    isActive: boolean,
+    id?: string,
+    autofocusAttr?: boolean,
+  ) =>
+    `<a href="${href}" tabindex="0" class="nav-link ${isActive ? "nav-active" : ""}" ${id ? `id="${id}"` : ""}${autofocusAttr ? " autofocus" : ""}>${icon} ${label}</a>`;
   const iconOnly = (href: string, icon: string, title: string) =>
     `<a href="${href}" tabindex="0" class="nav-link nav-icon" title="${title}">${icon}</a>`;
 
@@ -19,7 +32,7 @@ export function tvNavHtml(
       ${a(`${base}/tv-standalone`, "Inicio", "⌂", active === "inicio", firstFocusId === "inicio" ? "firstFocus" : undefined)}
       ${a(`${base}/search-standalone`, "Buscar", "🔍", active === "buscar", firstFocusId === "buscar" ? "firstFocus" : undefined)}
       ${a(`${base}/lists-standalone`, "Listas", "📋", active === "listas", firstFocusId === "listas" ? "firstFocus" : undefined)}
-      ${a(`${base}/lists-all-standalone`, "Ver todo", "📺", active === "vertodo", firstFocusId === "vertodo" ? "firstFocus" : undefined)}
+      ${a(`${base}/lists-all-standalone`, "Ver todo", "📺", active === "vertodo", firstFocusId === "vertodo" ? "firstFocus" : undefined, firstFocusId === "vertodo")}
       ${iconOnly(`${base}/settings-standalone`, "⚙", "Configuración")}
       <form id="logoutForm" action="${base}/auth/signout" method="POST" style="display:inline">
         <input type="hidden" name="redirect" value="/tv-standalone" />
