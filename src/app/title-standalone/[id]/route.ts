@@ -80,8 +80,6 @@ export async function GET(
     "hbo max": "com.hbo.hbomax",
     hbomax: "com.hbo.hbomax",
   };
-  // Disney+ launch puede causar pantalla negra en algunas TVs; preferir URL directa
-  const preferUrlOverLaunch = ["disney+", "disney plus"];
   const sourceCards = (sources: typeof uniqueSources) =>
     sources
       .map((s) => {
@@ -91,9 +89,8 @@ export async function GET(
           .replace(/\s+/g, " ");
         const appId =
           webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
-        const useUrlFirst = preferUrlOverLaunch.includes(provider) || preferUrlOverLaunch.includes(provider.replace(" ", ""));
         return `
-    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${useUrlFirst ? "" : (appId ?? "")}">
+    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
       <span class="source-name">${escapeHtml(s.providerName)}</span>
       <span class="source-type">${typeLabel(s)}${s.quality ? ` · ${s.quality}` : ""}${s.price != null ? ` · $${s.price}` : ""}</span>
     </a>`;
@@ -123,6 +120,7 @@ export async function GET(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
+  <script src="https://cdn.jsdelivr.net/npm/webostvjs@1.2.12/webOSTV.js"></script>
   <title>Watchily - ${escapeHtml(t.name)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -208,7 +206,11 @@ export async function GET(
       if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
 
       function openStreaming(url,appId){
-        function goToUrl(){try{window.location.href=url}catch(e){window.open(url)}}
+        function goToUrl(){
+          if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.APP&&webOSDev.APP.BROWSER){
+            try{webOSDev.launch({id:webOSDev.APP.BROWSER,params:{target:url},onSuccess:function(){},onFailure:function(){window.location.href=url}})}catch(e){window.location.href=url}
+          }else{try{window.location.href=url}catch(e){window.open(url)}}
+        }
         if(appId&&typeof webOS!=='undefined'&&webOS.service){
           try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:appId},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
         }else{goToUrl()}
