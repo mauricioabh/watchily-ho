@@ -81,25 +81,25 @@ export async function GET(
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
     .page{padding:32px 48px 48px}
     ${tvNavCss}
-    .hero{display:flex;gap:48px;margin-bottom:48px}
-    .poster-wrap{flex-shrink:0;width:320px;aspect-ratio:2/3;border-radius:14px;overflow:hidden;background:#1f1f23}
+    .hero{display:flex;gap:36px;margin-bottom:36px}
+    .poster-wrap{flex-shrink:0;width:240px;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:#1f1f23}
     .poster-wrap img{width:100%;height:100%;object-fit:cover}
-    .poster-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:56px;font-weight:700;color:#555}
+    .poster-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:42px;font-weight:700;color:#555}
     .info{flex:1;min-width:0}
-    .info h2{font-size:48px;margin-bottom:16px;line-height:1.2}
-    .meta{font-size:24px;color:#888;margin-bottom:24px}
-    .meta span{margin-right:16px}
-    .overview{font-size:28px;line-height:1.6;max-width:800px;margin-bottom:32px;color:#ccc}
-    .scores{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:32px}
-    .score{display:flex;flex-direction:column;align-items:center;padding:20px 28px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05)}
-    .score-label{font-size:18px;color:#888}
-    .score-value{font-size:32px;font-weight:700;margin-top:6px}
+    .info h2{font-size:34px;margin-bottom:12px;line-height:1.2}
+    .meta{font-size:20px;color:#888;margin-bottom:18px}
+    .meta span{margin-right:14px}
+    .overview{font-size:22px;line-height:1.5;max-width:700px;margin-bottom:24px;color:#ccc}
+    .scores{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:24px}
+    .score{display:flex;flex-direction:column;align-items:center;padding:14px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05)}
+    .score-label{font-size:16px;color:#888}
+    .score-value{font-size:24px;font-weight:700;margin-top:4px}
     .actions{margin-bottom:32px;display:flex;gap:16px;flex-wrap:wrap}
     .btn-bookmark,.trailer-link{display:inline-flex;align-items:center;gap:8px;padding:18px 28px;border-radius:10px;font-size:24px;text-decoration:none;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff}
     .btn-bookmark{color:#e5b00b}
     .btn-bookmark:hover,.btn-bookmark:focus,.trailer-link:hover,.trailer-link:focus{background:rgba(99,102,241,0.4);outline:3px solid #e5b00b;outline-offset:2px}
-    section{margin-bottom:40px}
-    section h3{font-size:32px;margin-bottom:20px;color:#e5b00b}
+    section{margin-bottom:28px}
+    section h3{font-size:26px;margin-bottom:14px;color:#e5b00b}
     .sources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
     .source-link{display:block;padding:24px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;text-decoration:none;transition:all 0.2s;font-size:20px}
     .source-link:hover,.source-link:focus{background:rgba(99,102,241,0.3);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
@@ -139,17 +139,18 @@ export async function GET(
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
+      var navCount=6;
       f[0]?.focus();
       document.addEventListener('keydown',function(e){
         var idx=i(document.activeElement);
         if(idx<0){f[0]?.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1,cols=4;
+        var next=-1;
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
-        else if(e.key==='ArrowDown')next=idx+cols;
-        else if(e.key==='ArrowUp')next=idx-cols;
+        else if(e.key==='ArrowDown')next=idx<navCount?navCount:idx+1;
+        else if(e.key==='ArrowUp')next=idx>0?idx-1:0;
         if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();

@@ -59,15 +59,24 @@ export async function GET(request: NextRequest) {
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, #name, .form-wrap button, .back a');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      setTimeout(function(){document.getElementById('name')?.focus()},800);
+      var firstEl=f[0],nameInput=document.getElementById('name');
+      firstEl?.focus();
+      setTimeout(function(){nameInput?.focus()},1000);
       document.addEventListener('keydown',function(e){
         var idx=i(document.activeElement);
-        if(idx<0){f[0]?.focus();e.preventDefault();return;}
+        if(idx<0){firstEl?.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1;
-        if(e.key==='ArrowRight'||e.key==='ArrowDown')next=idx+1;
-        else if(e.key==='ArrowLeft'||e.key==='ArrowUp')next=idx-1;
+        var next=-1,navCount=6;
+        if(e.key==='ArrowRight')next=idx+1;
+        else if(e.key==='ArrowLeft')next=idx-1;
+        else if(e.key==='ArrowDown'){
+          if(idx<navCount)next=navCount;
+          else next=idx+1;
+        }else if(e.key==='ArrowUp'){
+          if(idx>navCount)next=idx-1;
+          else next=Math.max(0,idx-1);
+        }
         if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();

@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
   <main class="page">
   <h1 style="font-size:36px;color:#e5b00b;margin-bottom:24px">Ver todo</h1>
   <form method="GET" action="${BASE}/lists-all-standalone" class="filter-wrap" style="margin-bottom:24px;display:flex;gap:24px;align-items:center">
-    <input type="text" name="q" value="${escapeHtml(q)}" placeholder="Filtrar por nombre..." tabindex="0" style="padding:18px 22px;font-size:26px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;min-width:350px" />
+    <input type="text" name="q" value="${escapeHtml(q)}" placeholder="Filtrar por nombre..." tabindex="0" id="filterInput" style="padding:18px 22px;font-size:26px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;min-width:350px" />
     <button type="submit" style="padding:18px 28px;font-size:22px;font-weight:600;border-radius:12px;border:none;background:#6366f1;color:#fff;cursor:pointer">Filtrar</button>
   </form>
   <div class="grid" id="grid">${tiles || "<p style='color:#888;font-size:24px'>No hay títulos que coincidan.</p>"}</div>
@@ -107,7 +107,9 @@ export async function GET(request: NextRequest) {
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .filter-wrap input, .filter-wrap button, .tile-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      document.getElementById('firstFocus')?.focus();
+      var filterInput=document.getElementById('filterInput');
+      f[0]?.focus();
+      setTimeout(function(){filterInput?.focus()},1200);
       document.addEventListener('keydown',function(e){
         var idx=i(document.activeElement);
         if(idx<0){document.getElementById('firstFocus')?.focus();e.preventDefault();return;}

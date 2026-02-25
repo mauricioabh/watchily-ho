@@ -40,12 +40,12 @@ export const tvNavCss = `
 `;
 
 export const tvTileCss = `
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,220px));gap:24px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,280px));gap:28px}
 .tile-link{outline:none;text-decoration:none;color:inherit}
 .tile-link:focus{outline:none}
 .tile-link:focus .tile{transform:scale(1.03);border-color:#e5b00b;box-shadow:0 0 0 3px #e5b00b}
 .tile{background:rgba(26,26,30,0.95);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s}
-.tile-poster{height:200px;background:#1f1f23;position:relative;overflow:hidden}
+.tile-poster{height:260px;background:#1f1f23;position:relative;overflow:hidden}
 .tile-poster img{width:100%;height:100%;object-fit:cover}
 .tile-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;font-weight:700;color:#555}
 .tile-badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,0.8);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
