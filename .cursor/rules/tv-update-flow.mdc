@@ -1,12 +1,12 @@
 ---
-description: Flujo completo para actualizar la app TV y probar en dispositivo
+description: Flujo obligatorio tras cada cambio: build, commit, push, deploy, tv:package, tv:install
 globs: 
 alwaysApply: true
 ---
 
 # TV - Flujo de actualización para probar en la TV
 
-Cuando hagas cambios que afecten la app TV, ejecuta **todos** estos pasos:
+**Cada vez que hagas un cambio en el código**, ejecuta **todos** estos pasos en orden:
 
 ## 1. Build
 ```bash
@@ -27,7 +27,7 @@ vercel ls
 ```
 Esperar hasta que el primer deployment muestre **● Ready**.
 
-## 4. Reconstruir IPK (si cambiaste lg-tv-hosted o para reinstalar)
+## 4. Reconstruir IPK
 ```bash
 npm run tv:package
 ```
@@ -44,5 +44,13 @@ O con dispositivo: `ares-install com.watchily.web_1.0.0_all.ipk -d <nombre-tv>`
 ## Obligatorio
 **El agente NUNCA debe decir "ya puedes probar en la TV" hasta haber ejecutado TODOS los pasos.** No dar por terminada la tarea hasta completar build, commit, push, vercel ls (● Ready), tv:package y tv:install. Esperar a que cada comando termine antes de pasar al siguiente (p. ej. el build puede tardar 1–2 min).
 
-## Resumen
-**Build (esperar fin) → Commit → Push → vercel ls (● Ready) → npm run tv:package → npm run tv:install** (ejecutar todo, incluida la instalación)
+## Resumen – ejecutar en este orden
+1. `npm run build` (esperar a que termine)
+2. `git add .`
+3. `git commit -m "..."`
+4. `git push origin main`
+5. `vercel ls` (esperar hasta ● Ready)
+6. `npm run tv:package`
+7. `npm run tv:install`
+
+**No dar por terminada la tarea hasta completar los 7 pasos.**

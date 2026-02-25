@@ -203,10 +203,15 @@ export async function GET(
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1;
+        var firstSource=null;
+        for(var s=navCount;s<f.length;s++)if(f[s].classList&&f[s].classList.contains('source-link')){firstSource=f[s];break;}
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
-        else if(e.key==='ArrowDown')next=idx<navCount?navCount:idx+1;
-        else if(e.key==='ArrowUp')next=idx>0?idx-1:0;
+        else if(e.key==='ArrowDown'){
+          if(idx<navCount)next=navCount;
+          else if(idx===navCount)next=firstSource?i(firstSource):idx+1;
+          else next=idx+1;
+        }else if(e.key==='ArrowUp')next=idx>0?idx-1:0;
         if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();
