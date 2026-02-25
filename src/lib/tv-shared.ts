@@ -71,8 +71,8 @@ export const tvLogoutModalCheckKeydown =
 
 export const tvLogoutModalCss = `
 .logout-modal{display:none;visibility:hidden;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
-.logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
-.logout-msg{font-size:28px;margin-bottom:32px;color:#fff}
+.logout-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
+.logout-msg{font-size:28px;margin-bottom:32px;color:#fff;text-align:center;width:100%}
 .logout-btns{display:flex;gap:24px;justify-content:center}
 .logout-btns button{padding:18px 36px;font-size:24px;font-weight:600;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(99,102,241,0.5);color:#fff;cursor:pointer}
 .logout-btns button:focus{outline:3px solid #e5b00b;outline-offset:2px}
@@ -108,8 +108,10 @@ export function tvLogoutScript(): string {
   if(confirm){confirm.addEventListener('click',function(){if(form)form.submit();});confirm.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){if(form)form.submit();e.preventDefault();}});}
   document.addEventListener('keydown',function(e){
     if(modal.style.display!=='flex')return;
-    if(e.key==='Escape'){hideModal();e.preventDefault();}
-    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){var f=document.activeElement;if(f===cancel&&confirm)confirm.focus();else if(f===confirm&&cancel)cancel.focus();e.preventDefault();}
+    var kc=e.keyCode;
+    if(e.key==='Escape'||kc===461||kc===8){hideModal();e.preventDefault();return;}
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'||kc===38||kc===40){hideModal();e.preventDefault();return;}
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'||kc===37||kc===39){var f=document.activeElement;if(f===cancel&&confirm)confirm.focus();else if(f===confirm&&cancel)cancel.focus();e.preventDefault();}
   });
 })();
 `;
@@ -127,8 +129,8 @@ export const tvNavCss = `
 .nav-active{background:rgba(99,102,241,0.5);border-color:#6366f1}
 .nav-icon{padding:14px 18px;font-size:24px}
 .logout-modal{display:none;visibility:hidden;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
-.logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
-.logout-msg{font-size:28px;margin-bottom:32px;color:#fff}
+.logout-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
+.logout-msg{font-size:28px;margin-bottom:32px;color:#fff;text-align:center;width:100%}
 .logout-btns{display:flex;gap:24px;justify-content:center}
 .logout-btns button{padding:18px 36px;font-size:24px;font-weight:600;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(99,102,241,0.5);color:#fff;cursor:pointer}
 .logout-btns button:focus{outline:3px solid #e5b00b;outline-offset:2px}

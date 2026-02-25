@@ -94,6 +94,12 @@ Cuando el modal de logout está abierto (`#logoutModal` con `display:flex`), **n
 - **En focusFirst/setTimeout**: al inicio de la función, `var _lm=document.getElementById('logoutModal');if(_lm&&_lm.style.display==='flex')return;`
 - **En keydown cuando idx<0**: antes de llamar focusFirst, comprobar si el modal está visible; si lo está, `e.preventDefault();return;` sin llamar focusFirst
 
+**Comportamiento del modal (tvLogoutScript)**:
+- Centrado en pantalla; texto "¿Cerrar sesión?" centrado
+- Foco inicial en "No"
+- **Solo Left/Right**: navegación entre No y Sí cerrar
+- **Back/Escape/Up/Down**: cierran el modal (keyCode 461 Back, 8 Backspace, Escape, ArrowUp, ArrowDown)
+
 ### Atributo autofocus
 
 Para páginas de detalle, añadir `autofocus` al enlace de foco inicial en `tv-shared.ts` cuando `firstFocusId` coincida.
