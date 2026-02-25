@@ -1,0 +1,45 @@
+---
+description: Flujo completo para actualizar la app TV y probar en dispositivo
+globs: 
+alwaysApply: true
+---
+
+# TV - Flujo de actualización para probar en la TV
+
+Cuando hagas cambios que afecten la app TV, ejecuta **todos** estos pasos:
+
+## 1. Build
+```bash
+npm run build
+```
+Corregir errores antes de continuar.
+
+## 2. Commit y push
+```bash
+git add .
+git commit -m "..."
+git push origin main
+```
+
+## 3. Verificar deploy
+```bash
+vercel ls
+```
+Esperar hasta que el primer deployment muestre **● Ready**.
+
+## 4. Reconstruir IPK (si cambiaste lg-tv-hosted o para reinstalar)
+```bash
+npm run tv:package
+```
+Genera `com.watchily.web_1.0.0_all.ipk` en la raíz del proyecto.
+
+## 5. Instalar en la TV
+```bash
+npm run tv:install
+```
+O con dispositivo específico: `ares-install com.watchily.web_1.0.0_all.ipk -d <nombre-tv>`
+
+Para listar dispositivos: `ares-setup-device` o `ares-install --list`
+
+## Resumen
+**Build → Commit → Push → vercel ls (Ready) → npm run tv:package → npm run tv:install**
