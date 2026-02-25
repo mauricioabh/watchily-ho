@@ -181,78 +181,67 @@ export async function GET(
   ${uniqueSources.length === 0 ? `<p style="color:#888;font-size:24px">No hay fuentes de streaming disponibles para esta región.</p>` : ""}
   </main>
   <script>
+    /* Flujo control remoto: .cursor/skills/tv-remote-control-flow */
     (function(){
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
+      function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
+      var navCount=6;
+      var firstSource=null,firstSourceIdx=-1;
+      for(var s=navCount;s<f.length;s++)if(f[s].classList&&f[s].classList.contains('source-link')){firstSource=f[s];firstSourceIdx=i(firstSource);break;}
+      var sourceCols=3;
+
+      function getFirstFocus(){
+        var el=document.getElementById('firstFocus');
+        if(el)return el;
+        return document.querySelector('a[href*="lists-all-standalone"]')||f[0];
+      }
+      function focusFirst(){var btn=getFirstFocus();if(btn)btn.focus()}
+      [0,100,400,800,1500,3000,5000].forEach(function(ms){setTimeout(focusFirst,ms)});
+      if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
+
       function openStreaming(url,appId){
         if(appId&&typeof webOS!=='undefined'&&webOS.service){
-          try{
-            webOS.service.request('luna://com.webos.applicationManager',{
-              method:'launch',
-              parameters:{id:appId},
-              onSuccess:function(){},
-              onFailure:function(){window.open(url);}
-            });
-          }catch(e){window.open(url);}
-        }else{window.open(url);}
+          try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:appId},onSuccess:function(){},onFailure:function(){window.open(url)}})}catch(e){window.open(url)}
+        }else{window.open(url)}
       }
       document.addEventListener('click',function(e){
         var el=e.target?.closest?.('.source-link');
         if(!el||!el.href||el.href==='#')return;
-        var url=el.getAttribute('data-url')||el.href;
-        var appId=el.getAttribute('data-app-id');
-        if(url&&url!=='#'){
-          e.preventDefault();
-          openStreaming(url,appId||'');
-        }
+        var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id');
+        if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId||'')}
       },true);
-      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
-      function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      var navCount=6;
-      function getVertodoBtn(){
-        var el=document.getElementById('firstFocus');
-        if(el)return el;
-        return document.querySelector('a[href*="lists-all-standalone"]');
-      }
-      function focusVertodo(){
-        var btn=getVertodoBtn();
-        if(btn){btn.focus();return true;}
-        if(f[0]){f[0].focus();return true;}
-        return false;
-      }
-      function scheduleFocus(){var d=[0,100,200,400,600,800,1000,1500,2000,2500,3500,5000];d.forEach(function(ms){setTimeout(focusVertodo,ms)})}
-      focusVertodo();
-      scheduleFocus();
-      if(document.readyState!=='complete')window.addEventListener('load',scheduleFocus);
+
       document.addEventListener('keydown',function(e){
-        var isActivate=e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28;
-        if(isActivate){
-          var el=document.activeElement;
-          var srcLink=el?.closest?.('.source-link');
+        if(e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28){
+          var el=document.activeElement,srcLink=el?.closest?.('.source-link');
           if(srcLink){
-            var url=srcLink.getAttribute('data-url')||srcLink.href;
-            var appId=srcLink.getAttribute('data-app-id')||'';
-            if(url&&url!=='#'){
-              e.preventDefault();
-              openStreaming(url,appId);
-              return;
-            }
+            var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'';
+            if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId);return}
           }
-          if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
+          if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
         }
         var idx=i(document.activeElement);
-        if(idx<0){focusVertodo();e.preventDefault();return;}
+        if(idx<0){focusFirst();e.preventDefault();return}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1;
-        var firstSource=null;
-        for(var s=navCount;s<f.length;s++)if(f[s].classList&&f[s].classList.contains('source-link')){firstSource=f[s];break;}
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){
           if(idx<navCount)next=navCount;
-          else if(idx===navCount)next=firstSource?i(firstSource):idx+1;
-          else next=idx+1;
-        }else if(e.key==='ArrowUp')next=idx>0?idx-1:0;
+          else if(idx===navCount)next=firstSourceIdx>=0?firstSourceIdx:idx+1;
+          else if(idx>=firstSourceIdx&&firstSourceIdx>=0){
+            var inGrid=idx+sourceCols;
+            next=inGrid<f.length?inGrid:idx;
+          }else next=idx+1;
+        }else if(e.key==='ArrowUp'){
+          if(idx>=firstSourceIdx&&firstSourceIdx>=0){
+            if(idx>=firstSourceIdx+sourceCols)next=idx-sourceCols;
+            else next=navCount;
+          }else if(idx>navCount)next=idx-1;
+          else next=idx>0?idx-1:0;
+        }
         if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();
