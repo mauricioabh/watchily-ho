@@ -109,9 +109,11 @@ export async function GET(request: NextRequest) {
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6,filterCount=2,firstTileIdx=navCount+filterCount;
       var firstTile=f[firstTileIdx];
-      function focusFirst(){firstTile?firstTile.focus():f[0]?.focus()}
+      function focusFirst(){var el=firstTile||f[0];if(el)el.focus()}
       f[0]?.focus();
+      setTimeout(focusFirst,800);
       setTimeout(focusFirst,1500);
+      setTimeout(focusFirst,2200);
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '){
           var el=document.activeElement;

@@ -8,10 +8,13 @@ alwaysApply: false
 
 Al crear o modificar páginas TV standalone (HTML estático para webOS), aplicar siempre:
 
-## Foco inicial
-- **Páginas con formulario/input principal** (Buscar, Ver todo, Crear lista): usar `setTimeout(..., 1000–1200)` para dar foco al input tras cargar (el teclado en pantalla aparece antes que la página).
-- **Páginas con contenido principal** (Inicio, Listas): foco en primer elemento del nav o primer tile/lista.
-- Siempre dar foco explícito a un elemento al cargar; sin foco el usuario no puede navegar con el control.
+## Foco inicial (OBLIGATORIO en TODAS las páginas)
+- **Sin foco inicial la página no es usable con el control remoto.** webOS puede no dar foco automáticamente.
+- Usar **múltiples setTimeout** (ej: 800, 1200, 1800 ms) para reintentar el foco; la TV puede tardar en estar lista.
+- **Páginas con tiles** (Ver todo, Inicio, Buscar): foco en primer tile tras delay.
+- **Páginas con formulario** (Buscar, Crear lista): foco en input tras delay.
+- **Páginas con contenido** (Detalle título): foco en primer botón/enlace del contenido (ej. Añadir a lista) tras delay.
+- Siempre: `f[0]?.focus()` al cargar + `setTimeout(focusFirst, 800)` + `setTimeout(focusFirst, 1200)` + `setTimeout(focusFirst, 1800)`.
 
 ## Navegación con flechas
 - **ArrowDown desde nav** (índices 0–5): ir al **primer elemento del contenido** (input, filtro, primera lista, primer tile), no al siguiente ítem del nav.

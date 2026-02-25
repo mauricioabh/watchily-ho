@@ -139,8 +139,12 @@ export async function GET(
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      var navCount=6;
+      var navCount=6,firstContent=f[navCount];
+      function focusFirst(){var el=firstContent||f[0];if(el)el.focus()}
       f[0]?.focus();
+      setTimeout(focusFirst,800);
+      setTimeout(focusFirst,1200);
+      setTimeout(focusFirst,1800);
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '){
           var el=document.activeElement;
@@ -148,7 +152,7 @@ export async function GET(
           return;
         }
         var idx=i(document.activeElement);
-        if(idx<0){f[0]?.focus();e.preventDefault();return;}
+        if(idx<0){focusFirst();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1;
