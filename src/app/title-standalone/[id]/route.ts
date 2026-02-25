@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { tvNavHtml, tvNavCss, tvLogoutScript } from "@/lib/tv-shared";
+import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -199,6 +199,7 @@ export async function GET(
         return document.querySelector('a[href*="lists-all-standalone"]')||f[0];
       }
       function focusFirst(){
+        ${tvLogoutModalCheck}
         var active=document.activeElement;
         if(active&&active!==document.body){var idx=i(active);if(idx>=0)return}
         var btn=getFirstFocus();if(btn)btn.focus();
@@ -230,7 +231,7 @@ export async function GET(
           return;
         }
         var idx=i(document.activeElement);
-        if(idx<0){focusFirst();e.preventDefault();return}
+        if(idx<0){${tvLogoutModalCheckKeydown}focusFirst();e.preventDefault();return}
         var k=e.key||(e.keyCode===40?'ArrowDown':e.keyCode===38?'ArrowUp':e.keyCode===37?'ArrowLeft':e.keyCode===39?'ArrowRight':'');
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k))return;
         e.preventDefault();

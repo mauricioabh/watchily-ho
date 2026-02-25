@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { searchTitles, getTitleDetails } from "@/lib/streaming/unified";
 import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { getPopularTitles } from "@/lib/streaming/unified";
-import { tvNavHtml, tvNavCss, tvTileCss, tvLogoutScript } from "@/lib/tv-shared";
+import { tvNavHtml, tvNavCss, tvTileCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, #searchInput, .search-wrap button, .tile-link');
       var searchInput=document.getElementById('searchInput');
       function idxOf(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      function focusSearch(){if(searchInput)searchInput.focus()}
+      function focusSearch(){${tvLogoutModalCheck}if(searchInput)searchInput.focus()}
       setTimeout(focusSearch,1200);
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '){
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
           return;
         }
         var idx=idxOf(document.activeElement);
-        if(idx<0){focusSearch();e.preventDefault();return;}
+        if(idx<0){${tvLogoutModalCheckKeydown}focusSearch();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,navCount=6,searchCount=2,cols=4;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { tvNavHtml, tvNavCss, tvLogoutScript } from "@/lib/tv-shared";
+import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +94,7 @@ export async function GET() {
       if(firstEl)firstEl.focus();
       document.addEventListener('keydown',function(e){
         var idx=i(document.activeElement);
-        if(idx<0){if(firstEl)firstEl.focus();e.preventDefault();return;}
+        if(idx<0){${tvLogoutModalCheckKeydown}if(firstEl)firstEl.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,navCount=6,cols=3;

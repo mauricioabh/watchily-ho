@@ -87,6 +87,13 @@ function focusFirst(){
 
 **Importante**: No sobrescribir el foco si el usuario ya navegó. Si `activeElement` está en nuestra lista (`idx >= 0`), no llamar `focus()` para evitar que los `setTimeout` (3000, 5000 ms) devuelvan el foco al elemento inicial.
 
+### Modal de cerrar sesión
+
+Cuando el modal de logout está abierto (`#logoutModal` con `display:flex`), **no ejecutar focusFirst ni reasignar foco**. Los botones del modal (No, Sí cerrar) no están en la lista de elementos focusables de la página; si `idx<0` o si un `setTimeout` dispara focusFirst, se robaría el foco del modal. Usar `tvLogoutModalCheck` y `tvLogoutModalCheckKeydown` de `tv-shared.ts`:
+
+- **En focusFirst/setTimeout**: al inicio de la función, `var _lm=document.getElementById('logoutModal');if(_lm&&_lm.style.display==='flex')return;`
+- **En keydown cuando idx<0**: antes de llamar focusFirst, comprobar si el modal está visible; si lo está, `e.preventDefault();return;` sin llamar focusFirst
+
 ### Atributo autofocus
 
 Para páginas de detalle, añadir `autofocus` al enlace de foco inicial en `tv-shared.ts` cuando `firstFocusId` coincida.
@@ -179,6 +186,7 @@ if(srcLink){
 ## 7. Checklist de implementación
 
 - [ ] Foco inicial con múltiples setTimeout (≥5 reintentos)
+- [ ] focusFirst y keydown idx<0 respetan modal de logout (tvLogoutModalCheck / tvLogoutModalCheckKeydown)
 - [ ] Fallback si el elemento preferido no existe
 - [ ] Handler para Enter, Space y keyCode 13, 28
 - [ ] ArrowDown desde nav va al primer contenido (no al siguiente nav)

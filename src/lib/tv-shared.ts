@@ -62,6 +62,13 @@ export const tvLogoutModalHtml = `
     </div>
   </div>`;
 
+/** Snippet JS: si el modal de logout está abierto, no ejecutar (evita que focusFirst/setTimeout roben foco) */
+export const tvLogoutModalCheck =
+  "var _lm=document.getElementById('logoutModal');if(_lm&&_lm.style.display==='flex')return;";
+/** Variante para keydown: si modal abierto, preventDefault y return (evita robar foco al pulsar tecla) */
+export const tvLogoutModalCheckKeydown =
+  "var _lm=document.getElementById('logoutModal');if(_lm&&_lm.style.display==='flex'){e.preventDefault();return;}";
+
 export const tvLogoutModalCss = `
 .logout-modal{display:none;visibility:hidden;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
 .logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}

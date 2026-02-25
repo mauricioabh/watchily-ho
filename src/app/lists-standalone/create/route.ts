@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { tvNavHtml, tvNavCss, tvLogoutScript } from "@/lib/tv-shared";
+import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, #name, .form-wrap button, .back a');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var nameInput=document.getElementById('name');
-      function focusInput(){nameInput&&nameInput.focus()}
+      function focusInput(){${tvLogoutModalCheck}nameInput&&nameInput.focus()}
       setTimeout(focusInput,800);
       setTimeout(focusInput,1800);
       setTimeout(focusInput,2800);
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           return;
         }
         var idx=i(document.activeElement);
-        if(idx<0){focusInput();e.preventDefault();return;}
+        if(idx<0){${tvLogoutModalCheckKeydown}focusInput();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,navCount=6;
