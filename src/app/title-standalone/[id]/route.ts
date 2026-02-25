@@ -211,15 +211,18 @@ export async function GET(
             try{webOSDev.launch({id:webOSDev.APP.BROWSER,params:{target:url},onSuccess:function(){},onFailure:function(){window.location.href=url}})}catch(e){window.location.href=url}
           }else{try{window.location.href=url}catch(e){window.open(url)}}
         }
-        function doLaunch(id){
+        function doLaunch(id,contentUrl){
+          var p=contentUrl&&contentUrl!=='#'?{url:contentUrl,target:contentUrl,contentUrl:contentUrl}:{};
+          function launchWithoutParams(){doLaunch(id,'')}
           if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-            try{webOSDev.launch({id:id,params:{},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+            try{webOSDev.launch({id:id,params:p,onSuccess:function(){},onFailure:Object.keys(p).length?launchWithoutParams:goToUrl})}catch(e){Object.keys(p).length?launchWithoutParams():goToUrl()}
           }else if(typeof webOS!=='undefined'&&webOS.service){
-            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:id},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+            var launchParams=Object.keys(p).length?{id:id,params:p}:{id:id};
+            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:launchParams,onSuccess:function(){},onFailure:Object.keys(p).length?function(){launchWithoutParams()}:goToUrl})}catch(e){Object.keys(p).length?launchWithoutParams():goToUrl()}
           }else{goToUrl()}
         }
         if(appId){
-          doLaunch(appId)
+          doLaunch(appId,url)
         }else{goToUrl()}
       }
       document.addEventListener('click',function(e){
