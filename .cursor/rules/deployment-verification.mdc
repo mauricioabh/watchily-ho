@@ -37,4 +37,4 @@ alwaysApply: true
 
 ## Regla
 
-**Antes de push: `npm run build` sin errores. Después de push: SIEMPRE `vercel ls` y confirmar que el último deployment está ● Ready antes de dar por terminada la tarea.**
+**Antes de push: `npm run build` sin errores (esperar a que termine). Después de push: SIEMPRE `vercel ls` y confirmar que el último deployment está ● Ready antes de dar por terminada la tarea.** No indicar al usuario que puede probar hasta haber completado todos los pasos del flujo (incl. tv:package y tv:install si aplica).

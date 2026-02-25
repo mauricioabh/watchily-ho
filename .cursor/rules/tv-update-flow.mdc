@@ -41,5 +41,8 @@ O con dispositivo: `ares-install com.watchily.web_1.0.0_all.ipk -d <nombre-tv>`
 
 **El agente debe ejecutar `npm run tv:install` tras `tv:package`** para que el usuario pueda probar en la TV sin pasos manuales.
 
+## Obligatorio
+**El agente NUNCA debe decir "ya puedes probar en la TV" hasta haber ejecutado TODOS los pasos.** No dar por terminada la tarea hasta completar build, commit, push, vercel ls (● Ready), tv:package y tv:install. Esperar a que cada comando termine antes de pasar al siguiente (p. ej. el build puede tardar 1–2 min).
+
 ## Resumen
-**Build → Commit → Push → vercel ls (Ready) → npm run tv:package → npm run tv:install** (ejecutar todo, incluida la instalación)
+**Build (esperar fin) → Commit → Push → vercel ls (● Ready) → npm run tv:package → npm run tv:install** (ejecutar todo, incluida la instalación)

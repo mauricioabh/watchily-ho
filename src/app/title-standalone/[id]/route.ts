@@ -93,8 +93,8 @@ export async function GET(
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
     .page{padding:32px 48px 48px}
     ${tvNavCss}
-    .hero{display:flex;gap:80px;margin-bottom:36px}
-    .poster-wrap{flex-shrink:0;width:240px;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:#1f1f23}
+    .hero{display:flex;gap:120px;margin-bottom:36px}
+    .poster-wrap{flex-shrink:0;width:240px;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:#1f1f23;margin-right:24px}
     .poster-wrap img{width:100%;height:100%;object-fit:cover}
     .poster-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:42px;font-weight:700;color:#555}
     .info{flex:1;min-width:0}
@@ -120,7 +120,7 @@ export async function GET(
   </style>
 </head>
 <body>
-  ${tvNavHtml(BASE, "none")}
+  ${tvNavHtml(BASE, "none", "vertodo")}
   <main class="page">
   <div class="hero">
     <div class="poster-wrap">
@@ -173,20 +173,33 @@ export async function GET(
       },true);
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      var navCount=6,firstContent=f[navCount];
-      function focusFirst(){var el=firstContent||f[0];if(el)el.focus()}
-      f[0]?.focus();
-      setTimeout(focusFirst,800);
-      setTimeout(focusFirst,1200);
-      setTimeout(focusFirst,1800);
+      var navCount=6;
+      var vertodoBtn=document.getElementById('firstFocus');
+      function focusVertodo(){if(vertodoBtn)vertodoBtn.focus();else f[0]?.focus()}
+      focusVertodo();
+      setTimeout(focusVertodo,600);
+      setTimeout(focusVertodo,800);
+      setTimeout(focusVertodo,1200);
+      setTimeout(focusVertodo,1800);
       document.addEventListener('keydown',function(e){
-        if(e.key==='Enter'||e.key===' '){
+        var isActivate=e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28;
+        if(isActivate){
           var el=document.activeElement;
+          var srcLink=el?.closest?.('.source-link');
+          if(srcLink){
+            var url=srcLink.getAttribute('data-url')||srcLink.href;
+            var appId=srcLink.getAttribute('data-app-id')||'';
+            if(url&&url!=='#'){
+              e.preventDefault();
+              openStreaming(url,appId);
+              return;
+            }
+          }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
           return;
         }
         var idx=i(document.activeElement);
-        if(idx<0){focusFirst();e.preventDefault();return;}
+        if(idx<0){focusVertodo();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1;
