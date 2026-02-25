@@ -42,9 +42,8 @@ Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el si
 
 ### Implementación actual
 
-1. **Disney+**: abrir la URL directa al título en el navegador del sistema (`webOSDev.APP.BROWSER` con `target: url`). La app no documenta params para ir al título; el navegador carga la página del contenido.
-2. **Netflix, HBO Max**: llamar `launch` con el ID de la app, pasando `params: {target, url}` por si aceptan la URL.
-3. Si falla → intentar navegador del sistema con la URL.
-4. Si webOSDev no existe o falla → navegar con `location.href`.
+1. Llamar `webOSDev.launch` (o `webOS.service.request`) con el ID de la app (Netflix, Disney+, HBO Max).
+2. Si falla → intentar navegador del sistema con la URL.
+3. Si webOSDev no existe o falla → navegar con `location.href`.
 
-Para Netflix no hay documentación pública de deep links; Disney+ usa el navegador para ir directo al título.
+**Nota:** Abrir Disney+ en el navegador para ir al título causa pantalla negra. Netflix/Disney+ no documentan params para abrir un título concreto.
