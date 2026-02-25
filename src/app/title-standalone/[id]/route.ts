@@ -205,7 +205,7 @@ export async function GET(
         }else{window.open(url)}
       }
       document.addEventListener('click',function(e){
-        var el=e.target?.closest?.('.source-link');
+        var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
         var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id');
         if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId||'')}
@@ -213,7 +213,7 @@ export async function GET(
 
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28){
-          var el=document.activeElement,srcLink=el?.closest?.('.source-link');
+          var el=document.activeElement,srcLink=el&&el.closest&&el.closest('.source-link');
           if(srcLink){
             var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'';
             if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId);return}

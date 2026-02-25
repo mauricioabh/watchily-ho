@@ -159,7 +159,12 @@ if(srcLink){
 
 ---
 
-## 5. Elementos focusables
+## 5. Compatibilidad webOS
+
+- **Evitar optional chaining (`?.`)** en scripts inline: webOS puede usar Chrome 68. Usar `el&&el.prop` en su lugar.
+- Usar fallback por `keyCode` para flechas (38,40,37,39) por si `e.key` no viene.
+
+## 6. Elementos focusables
 
 - Todo enlace/botón: `tabindex="0"`
 - Incluir en el selector: nav, inputs, botones, tiles, `.source-link`
@@ -167,7 +172,7 @@ if(srcLink){
 
 ---
 
-## 6. Checklist de implementación
+## 7. Checklist de implementación
 
 - [ ] Foco inicial con múltiples setTimeout (≥5 reintentos)
 - [ ] Fallback si el elemento preferido no existe
@@ -177,6 +182,7 @@ if(srcLink){
 - [ ] Lógica de flechas coherente con el layout (lineal vs grid)
 - [ ] Enlaces especiales (streaming) manejados explícitamente
 - [ ] `e.preventDefault()` en keydown para evitar scroll o comportamiento por defecto
+- [ ] Sin optional chaining (`?.`) en scripts inline (webOS Chrome 68)
 
 ---
 

@@ -48,7 +48,9 @@ if(e.key==='ArrowDown'){
 | ArrowRight | ArrowRight | 39 |
 | Back | - | 461 |
 
-**Importante**: webOS puede no enviar `e.key`; usar fallback por `keyCode`:
+**Importante**: 
+- webOS puede no enviar `e.key`; usar fallback por `keyCode`.
+- Evitar optional chaining (`?.`) en scripts inline: webOS puede usar Chrome 68 que no lo soporta. Usar `el&&el.closest&&el.closest('.x')` en su lugar.
 ```js
 var k=e.key||(e.keyCode===40?'ArrowDown':e.keyCode===38?'ArrowUp':e.keyCode===37?'ArrowLeft':e.keyCode===39?'ArrowRight':'');
 ```

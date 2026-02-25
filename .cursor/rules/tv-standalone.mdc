@@ -30,6 +30,9 @@ var navCount = 6;
 // Up desde primera fila contenido -> navCount-1
 ```
 
+## Compatibilidad webOS
+- Evitar optional chaining (`?.`) en scripts inline: webOS puede usar Chrome 68. Usar `el&&el.prop` en su lugar.
+
 ## Elementos focusables
 - Todo enlace/botón debe tener `tabindex="0"`.
 - Incluir en el selector todos los elementos interactivos: nav, inputs, botones, tiles, listas.
