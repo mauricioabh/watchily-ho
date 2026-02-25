@@ -7,26 +7,43 @@ Los enlaces a Netflix, Disney+, HBO Max, etc. en el detalle de películas son **
 - **En navegador de escritorio/móvil**: se abre la web del proveedor en una nueva pestaña.
 - **En webOS (TV)**: el navegador de la TV abre esa URL. Normalmente **no** abre la app nativa de Netflix/Disney+; se queda en el navegador.
 
-## ¿Se puede abrir la app nativa?
+---
 
-Sí, pero requiere APIs específicas de webOS que **no están disponibles** desde una web normal cargada por URL. Solo funcionan en:
+## Cómo abrir la app oficial de streaming (Netflix, Disney+, etc.)
 
-1. **Apps web empaquetadas como IPK** (instaladas en la TV) que declaran permisos y usan `webOS.service.request()`.
-2. **Apps nativas** que llaman a `luna://com.webos.applicationManager/launch` con el ID de la app (ej: `netflix`, `com.disney.disneyplus-prod`).
+### Opción 1: API de webOS (solo en app empaquetada como IPK)
 
-### IDs de apps en webOS
+Si la app está instalada como **IPK** (hosted web app), el webview puede tener acceso a `webOS.service.request()`. Se puede intentar lanzar la app nativa así:
 
+```javascript
+// Ejemplo: abrir Netflix
+if (typeof webOS !== 'undefined' && webOS.service) {
+  webOS.service.request('luna://com.webos.applicationManager', {
+    method: 'launch',
+    parameters: { id: 'netflix' },
+    onSuccess: function() { /* app abierta */ },
+    onFailure: function(err) { /* fallback: abrir URL web */ window.open(url); }
+  });
+} else {
+  window.open(url); // fallback: URL web
+}
+```
+
+**IDs de apps en webOS:**
 - Netflix: `netflix`
 - Disney+: `com.disney.disneyplus-prod`
-- HBO Max: varía por región
+- HBO Max: varía por región (ej: `com.hbo.hbomax`)
 
-### Limitación
+**Limitación:** Netflix/Disney+ aceptan el `launch` pero **no documentan parámetros** para abrir un título concreto. El `launch` solo abre la app; no hay deep link público para "ir a esta película". Cada plataforma tendría que exponer sus propios parámetros.
 
-Nuestra app TV se sirve desde Vercel y se carga en el navegador webOS. En ese contexto **no tenemos acceso** a `webOS.service.request()` ni al Application Manager. Para usar deep linking a apps nativas habría que:
+### Opción 2: URLs web (actual)
 
-1. Empaquetar la app como IPK webOS con los permisos adecuados.
-2. O usar una app nativa como intermediaria.
+Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el sistema puede ofrecer "Abrir en la app", pero depende del fabricante.
 
-## Recomendación
+### Implementación sugerida
 
-Mantener las URLs web actuales. En muchas TVs, al abrir una URL de Netflix/Disney+ el sistema puede ofrecer "Abrir en la app" si está instalada, pero depende del fabricante y la versión. No es algo que podamos controlar desde la web.
+1. En el detalle del título, al pulsar un enlace de streaming:
+2. Si `webOS?.service` existe → llamar `launch` con el ID de la app.
+3. Si no existe o falla → abrir la URL web como fallback.
+
+Para pasar el título concreto a Netflix/Disney+ haría falta documentación oficial de deep links, que no está disponible de forma pública.

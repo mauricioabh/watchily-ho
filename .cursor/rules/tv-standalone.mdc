@@ -44,5 +44,11 @@ if(e.key==='Enter'||e.key===' '){
 }
 ```
 
-## Deploy
+## Deploy y actualización en TV
 Tras cambios en TV: `npm run build`, commit, push, `vercel ls` hasta ver ● Ready.
+
+**Actualizar la app en la TV**: El contenido se sirve desde Vercel; al abrir la app la TV carga la URL y obtiene la última versión. Si cambiaste `lg-tv-hosted/` (index.html, appinfo.json), hay que **reconstruir el IPK y reinstalarlo** en la TV:
+```bash
+ares-package lg-tv-hosted
+ares-install com.watchily.web_1.0.0_all.ipk -d <TV>
+```

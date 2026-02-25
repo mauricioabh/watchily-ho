@@ -53,14 +53,26 @@ export async function GET(
   const typeLabel = (s: { type: string }) =>
     s.type === "sub" ? "Incluido" : s.type === "rent" ? "Alquiler" : s.type === "buy" ? "Compra" : "Gratis";
 
+  const webOSAppIds: Record<string, string> = {
+    netflix: "netflix",
+    "disney+": "com.disney.disneyplus-prod",
+    "disney plus": "com.disney.disneyplus-prod",
+    "hbo max": "com.hbo.hbomax",
+    hbomax: "com.hbo.hbomax",
+  };
   const sourceCards = (sources: typeof uniqueSources) =>
     sources
       .map(
-        (s) => `
-    <a href="${s.url ?? "#"}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link">
+        (s) => {
+          const url = s.url ?? "#";
+          const provider = (s.providerName ?? "").toLowerCase().replace(/\s+/g, " ");
+          const appId = webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
+          return `
+    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
       <span class="source-name">${escapeHtml(s.providerName)}</span>
       <span class="source-type">${typeLabel(s)}${s.quality ? ` · ${s.quality}` : ""}${s.price != null ? ` · $${s.price}` : ""}</span>
-    </a>`
+    </a>`;
+        }
       )
       .join("");
 
@@ -137,6 +149,28 @@ export async function GET(
   </main>
   <script>
     (function(){
+      function openStreaming(url,appId){
+        if(appId&&typeof webOS!=='undefined'&&webOS.service){
+          try{
+            webOS.service.request('luna://com.webos.applicationManager',{
+              method:'launch',
+              parameters:{id:appId},
+              onSuccess:function(){},
+              onFailure:function(){window.open(url);}
+            });
+          }catch(e){window.open(url);}
+        }else{window.open(url);}
+      }
+      document.addEventListener('click',function(e){
+        var el=e.target?.closest?.('.source-link');
+        if(!el||!el.href||el.href==='#')return;
+        var url=el.getAttribute('data-url')||el.href;
+        var appId=el.getAttribute('data-app-id');
+        if(url&&url!=='#'){
+          e.preventDefault();
+          openStreaming(url,appId||'');
+        }
+      },true);
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6,firstContent=f[navCount];
