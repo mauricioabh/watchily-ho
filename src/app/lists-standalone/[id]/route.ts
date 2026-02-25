@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { tvLogoutScript, tvLogoutModalHtml, tvLogoutModalCss } from "@/lib/tv-shared";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
@@ -101,6 +102,7 @@ export async function GET(
     .tile-info{padding:16px}
     .tile-title{font-size:18px;font-weight:600;margin:0 0 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .tile-year{font-size:14px;color:#888}
+    ${tvLogoutModalCss}
   </style>
 </head>
 <body>
@@ -115,6 +117,7 @@ export async function GET(
     <form action="${BASE}/auth/signout" method="POST" style="display:inline"><input type="hidden" name="redirect" value="/tv-standalone" /><button type="submit" tabindex="0" style="padding:16px 24px;border-radius:10px;font-size:22px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer">Cerrar sesión</button></form>
   </nav>
   <div class="grid" id="grid">${tiles || "<p style='color:#888;font-size:22px'>No hay títulos en esta lista.</p>"}</div>
+  ${tvLogoutModalHtml}
   <script>
     (function(){
       var f=document.querySelectorAll('nav a, nav button, .tile-link');
@@ -139,6 +142,7 @@ export async function GET(
       });
     })();
   </script>
+  <script>${tvLogoutScript()}</script>
 </body>
 </html>`;
 

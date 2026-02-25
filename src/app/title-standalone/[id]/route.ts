@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { tvNavHtml, tvNavCss } from "@/lib/tv-shared";
+import { tvNavHtml, tvNavCss, tvLogoutScript } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +160,7 @@ export async function GET(
       },true);
     })();
   </script>
+  <script>${tvLogoutScript()}</script>
 </body>
 </html>`;
 

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { searchTitles, getTitleDetails } from "@/lib/streaming/unified";
 import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { getPopularTitles } from "@/lib/streaming/unified";
-import { tvNavHtml, tvNavCss, tvTileCss } from "@/lib/tv-shared";
+import { tvNavHtml, tvNavCss, tvTileCss, tvLogoutScript } from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -142,6 +142,7 @@ export async function GET(request: NextRequest) {
       },true);
     })();
   </script>
+  <script>${tvLogoutScript()}</script>
 </body>
 </html>`;
 

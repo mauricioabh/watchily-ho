@@ -19,14 +19,68 @@ export function tvNavHtml(
       ${a(`${base}/tv-standalone`, "Inicio", "⌂", active === "inicio", firstFocusId === "inicio" ? "firstFocus" : undefined)}
       ${a(`${base}/search-standalone`, "Buscar", "🔍", active === "buscar", firstFocusId === "buscar" ? "firstFocus" : undefined)}
       ${a(`${base}/lists-standalone`, "Listas", "📋", active === "listas", firstFocusId === "listas" ? "firstFocus" : undefined)}
-      ${a(`${base}/lists-all-standalone`, "Ver todo", "⊞", active === "vertodo", firstFocusId === "vertodo" ? "firstFocus" : undefined)}
+      ${a(`${base}/lists-all-standalone`, "Ver todo", "📺", active === "vertodo", firstFocusId === "vertodo" ? "firstFocus" : undefined)}
       ${iconOnly(`${base}/settings-standalone`, "⚙", "Configuración")}
-      <form action="${base}/auth/signout" method="POST" style="display:inline">
+      <form id="logoutForm" action="${base}/auth/signout" method="POST" style="display:inline">
         <input type="hidden" name="redirect" value="/tv-standalone" />
-        <button type="submit" tabindex="0" class="nav-link nav-icon" title="Cerrar sesión">⏻</button>
+        <button type="button" id="logoutBtn" tabindex="0" class="nav-link nav-icon" title="Cerrar sesión">Salir</button>
       </form>
     </nav>
-  </header>`;
+  </header>
+  <div id="logoutModal" class="logout-modal" aria-hidden="true">
+    <div class="logout-overlay">
+      <p class="logout-msg">¿Cerrar sesión?</p>
+      <div class="logout-btns">
+        <button type="button" id="logoutCancel" tabindex="0">No</button>
+        <button type="button" id="logoutConfirm" tabindex="0">Sí, cerrar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+export const tvLogoutModalHtml = `
+  <div id="logoutModal" class="logout-modal" aria-hidden="true">
+    <div class="logout-overlay">
+      <p class="logout-msg">¿Cerrar sesión?</p>
+      <div class="logout-btns">
+        <button type="button" id="logoutCancel" tabindex="0">No</button>
+        <button type="button" id="logoutConfirm" tabindex="0">Sí, cerrar</button>
+      </div>
+    </div>
+  </div>`;
+
+export const tvLogoutModalCss = `
+.logout-modal{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+.logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
+.logout-msg{font-size:28px;margin-bottom:32px;color:#fff}
+.logout-btns{display:flex;gap:24px;justify-content:center}
+.logout-btns button{padding:18px 36px;font-size:24px;font-weight:600;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(99,102,241,0.5);color:#fff;cursor:pointer}
+.logout-btns button:focus{outline:3px solid #e5b00b;outline-offset:2px}
+`;
+
+export function tvLogoutScript(): string {
+  return `
+(function(){
+  var modal=document.getElementById('logoutModal');
+  var btn=document.getElementById('logoutBtn');
+  var form=document.getElementById('logoutForm');
+  var cancel=document.getElementById('logoutCancel');
+  var confirm=document.getElementById('logoutConfirm');
+  if(!btn||!modal)return;
+  function showModal(){modal.style.display='flex';modal.setAttribute('aria-hidden','false');setTimeout(function(){cancel?.focus()},50);}
+  function hideModal(){modal.style.display='none';modal.setAttribute('aria-hidden','true');btn?.focus();}
+  btn.addEventListener('click',showModal);
+  cancel?.addEventListener('click',hideModal);
+  cancel?.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){hideModal();e.preventDefault();}});
+  confirm?.addEventListener('click',function(){form?.submit();});
+  confirm?.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){form?.submit();e.preventDefault();}});
+  document.addEventListener('keydown',function(e){
+    if(modal.style.display!=='flex')return;
+    if(e.key==='Escape'){hideModal();e.preventDefault();}
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){var f=document.activeElement;if(f===cancel)confirm?.focus();else if(f===confirm)cancel?.focus();e.preventDefault();}
+  });
+})();
+`;
 }
 
 export const tvNavCss = `
@@ -37,6 +91,12 @@ export const tvNavCss = `
 .nav-link:hover,.nav-link:focus{background:rgba(99,102,241,0.35);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
 .nav-active{background:rgba(99,102,241,0.5);border-color:#6366f1}
 .nav-icon{padding:14px 18px;font-size:24px}
+.logout-modal{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+.logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
+.logout-msg{font-size:28px;margin-bottom:32px;color:#fff}
+.logout-btns{display:flex;gap:24px;justify-content:center}
+.logout-btns button{padding:18px 36px;font-size:24px;font-weight:600;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(99,102,241,0.5);color:#fff;cursor:pointer}
+.logout-btns button:focus{outline:3px solid #e5b00b;outline-offset:2px}
 `;
 
 export const tvTileCss = `
