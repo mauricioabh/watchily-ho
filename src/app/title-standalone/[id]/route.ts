@@ -223,19 +223,20 @@ export async function GET(
         }
         var idx=i(document.activeElement);
         if(idx<0){focusFirst();e.preventDefault();return}
-        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
+        var k=e.key||(e.keyCode===40?'ArrowDown':e.keyCode===38?'ArrowUp':e.keyCode===37?'ArrowLeft':e.keyCode===39?'ArrowRight':'');
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k))return;
         e.preventDefault();
         var next=-1;
-        if(e.key==='ArrowRight')next=idx+1;
-        else if(e.key==='ArrowLeft')next=idx-1;
-        else if(e.key==='ArrowDown'){
+        if(k==='ArrowRight')next=idx+1;
+        else if(k==='ArrowLeft')next=idx-1;
+        else if(k==='ArrowDown'){
           if(idx<navCount)next=navCount;
           else if(idx===navCount)next=firstSourceIdx>=0?firstSourceIdx:idx+1;
           else if(idx>=firstSourceIdx&&firstSourceIdx>=0){
             var inGrid=idx+sourceCols;
             next=inGrid<f.length?inGrid:idx;
           }else next=idx+1;
-        }else if(e.key==='ArrowUp'){
+        }else if(k==='ArrowUp'){
           if(idx>=firstSourceIdx&&firstSourceIdx>=0){
             if(idx>=firstSourceIdx+sourceCols)next=idx-sourceCols;
             else next=navCount;

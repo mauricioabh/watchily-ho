@@ -42,7 +42,16 @@ if(e.key==='ArrowDown'){
 | OK/Enter | Enter | 13 |
 | Done (algunos mandos) | - | 28 |
 | Space |   | 32 |
+| ArrowUp | ArrowUp | 38 |
+| ArrowDown | ArrowDown | 40 |
+| ArrowLeft | ArrowLeft | 37 |
+| ArrowRight | ArrowRight | 39 |
 | Back | - | 461 |
+
+**Importante**: webOS puede no enviar `e.key`; usar fallback por `keyCode`:
+```js
+var k=e.key||(e.keyCode===40?'ArrowDown':e.keyCode===38?'ArrowUp':e.keyCode===37?'ArrowLeft':e.keyCode===39?'ArrowRight':'');
+```
 
 ---
 
