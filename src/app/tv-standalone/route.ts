@@ -79,6 +79,11 @@ export async function GET() {
       function focusInicio(){if(inicio)inicio.focus()}
       focusInicio();
       document.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){
+          var el=document.activeElement;
+          if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
+          return;
+        }
         var idx=idxOf(document.activeElement);
         if(idx<0){focusInicio();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;

@@ -31,5 +31,15 @@ var navCount = 6;
 - Todo enlace/botón debe tener `tabindex="0"`.
 - Incluir en el selector todos los elementos interactivos: nav, inputs, botones, tiles, listas.
 
+## Tecla OK/Enter
+- webOS puede no activar enlaces con Enter por defecto. Añadir handler explícito:
+```js
+if(e.key==='Enter'||e.key===' '){
+  var el=document.activeElement;
+  if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
+  return;
+}
+```
+
 ## Deploy
 Tras cambios en TV: `npm run build`, commit, push, `vercel ls` hasta ver ● Ready.

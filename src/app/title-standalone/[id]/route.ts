@@ -142,6 +142,11 @@ export async function GET(
       var navCount=6;
       f[0]?.focus();
       document.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){
+          var el=document.activeElement;
+          if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
+          return;
+        }
         var idx=i(document.activeElement);
         if(idx<0){f[0]?.focus();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;

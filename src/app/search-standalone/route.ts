@@ -117,6 +117,11 @@ export async function GET(request: NextRequest) {
       function focusSearch(){if(searchInput)searchInput.focus()}
       setTimeout(focusSearch,1200);
       document.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){
+          var el=document.activeElement;
+          if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
+          return;
+        }
         var idx=idxOf(document.activeElement);
         if(idx<0){focusSearch();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;

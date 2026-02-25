@@ -107,15 +107,22 @@ export async function GET(request: NextRequest) {
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .filter-wrap input, .filter-wrap button, .tile-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
-      var filterInput=document.getElementById('filterInput');
+      var navCount=6,filterCount=2,firstTileIdx=navCount+filterCount;
+      var firstTile=f[firstTileIdx];
+      function focusFirst(){firstTile?firstTile.focus():f[0]?.focus()}
       f[0]?.focus();
-      setTimeout(function(){filterInput?.focus()},1200);
+      setTimeout(focusFirst,1500);
       document.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){
+          var el=document.activeElement;
+          if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault();}
+          return;
+        }
         var idx=i(document.activeElement);
-        if(idx<0){document.getElementById('firstFocus')?.focus();e.preventDefault();return;}
+        if(idx<0){focusFirst();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
-        var next=-1,navCount=6,filterCount=2,cols=4;
+        var next=-1,cols=4;
         if(e.key==='ArrowRight')next=idx+1;
         else if(e.key==='ArrowLeft')next=idx-1;
         else if(e.key==='ArrowDown'){
