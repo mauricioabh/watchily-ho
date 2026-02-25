@@ -63,7 +63,7 @@ export const tvLogoutModalHtml = `
   </div>`;
 
 export const tvLogoutModalCss = `
-.logout-modal{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+.logout-modal{display:none;visibility:hidden;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
 .logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
 .logout-msg{font-size:28px;margin-bottom:32px;color:#fff}
 .logout-btns{display:flex;gap:24px;justify-content:center}
@@ -80,19 +80,29 @@ export function tvLogoutScript(): string {
   var cancel=document.getElementById('logoutCancel');
   var confirm=document.getElementById('logoutConfirm');
   if(!btn||!modal)return;
-  function showModal(){modal.style.display='flex';modal.setAttribute('aria-hidden','false');setTimeout(function(){cancel?.focus()},50);}
-  function hideModal(){modal.style.display='none';modal.setAttribute('aria-hidden','true');btn?.focus();}
+  function showModal(){
+    modal.style.display='flex';
+    modal.style.visibility='visible';
+    modal.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+    setTimeout(function(){if(cancel)cancel.focus();},50);
+  }
+  function hideModal(){
+    modal.style.display='none';
+    modal.style.visibility='';
+    modal.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+    if(btn)btn.focus();
+  }
   function onLogoutActivate(e){e.preventDefault();showModal();}
   btn.addEventListener('click',onLogoutActivate);
   btn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){onLogoutActivate(e);}});
-  cancel?.addEventListener('click',hideModal);
-  cancel?.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){hideModal();e.preventDefault();}});
-  confirm?.addEventListener('click',function(){form?.submit();});
-  confirm?.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){form?.submit();e.preventDefault();}});
+  if(cancel){cancel.addEventListener('click',hideModal);cancel.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){hideModal();e.preventDefault();}});}
+  if(confirm){confirm.addEventListener('click',function(){if(form)form.submit();});confirm.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){if(form)form.submit();e.preventDefault();}});}
   document.addEventListener('keydown',function(e){
     if(modal.style.display!=='flex')return;
     if(e.key==='Escape'){hideModal();e.preventDefault();}
-    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){var f=document.activeElement;if(f===cancel)confirm?.focus();else if(f===confirm)cancel?.focus();e.preventDefault();}
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){var f=document.activeElement;if(f===cancel&&confirm)confirm.focus();else if(f===confirm&&cancel)cancel.focus();e.preventDefault();}
   });
 })();
 `;
@@ -109,7 +119,7 @@ export const tvNavCss = `
 .nav-link:hover,.nav-link:focus{background:rgba(99,102,241,0.35);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
 .nav-active{background:rgba(99,102,241,0.5);border-color:#6366f1}
 .nav-icon{padding:14px 18px;font-size:24px}
-.logout-modal{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+.logout-modal{display:none;visibility:hidden;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
 .logout-overlay{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
 .logout-msg{font-size:28px;margin-bottom:32px;color:#fff}
 .logout-btns{display:flex;gap:24px;justify-content:center}

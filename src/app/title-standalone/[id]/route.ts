@@ -195,7 +195,11 @@ export async function GET(
         if(el)return el;
         return document.querySelector('a[href*="lists-all-standalone"]')||f[0];
       }
-      function focusFirst(){var btn=getFirstFocus();if(btn)btn.focus()}
+      function focusFirst(){
+        var active=document.activeElement;
+        if(active&&active!==document.body){var idx=i(active);if(idx>=0)return}
+        var btn=getFirstFocus();if(btn)btn.focus();
+      }
       [0,100,400,800,1500,3000,5000].forEach(function(ms){setTimeout(focusFirst,ms)});
       if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
 

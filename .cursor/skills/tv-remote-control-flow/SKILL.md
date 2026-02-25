@@ -78,10 +78,14 @@ function getFirstFocus(){
   return document.querySelector('a[href*="lists-all-standalone"]') || f[0];
 }
 function focusFirst(){
+  var active = document.activeElement;
+  if(active && active !== document.body){ var idx = i(active); if(idx >= 0) return; }
   var btn = getFirstFocus();
   if(btn) btn.focus();
 }
 ```
+
+**Importante**: No sobrescribir el foco si el usuario ya navegó. Si `activeElement` está en nuestra lista (`idx >= 0`), no llamar `focus()` para evitar que los `setTimeout` (3000, 5000 ms) devuelvan el foco al elemento inicial.
 
 ### Atributo autofocus
 
