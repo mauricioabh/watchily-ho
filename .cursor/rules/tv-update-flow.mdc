@@ -33,13 +33,13 @@ npm run tv:package
 ```
 Genera `com.watchily.web_1.0.0_all.ipk` en la raíz del proyecto.
 
-## 5. Instalar en la TV
+## 5. Instalar en la TV (el agente DEBE ejecutarlo, no pedir al usuario)
 ```bash
 npm run tv:install
 ```
-O con dispositivo específico: `ares-install com.watchily.web_1.0.0_all.ipk -d <nombre-tv>`
+O con dispositivo: `ares-install com.watchily.web_1.0.0_all.ipk -d <nombre-tv>`
 
-Para listar dispositivos: `ares-setup-device` o `ares-install --list`
+**El agente debe ejecutar `npm run tv:install` tras `tv:package`** para que el usuario pueda probar en la TV sin pasos manuales.
 
 ## Resumen
-**Build → Commit → Push → vercel ls (Ready) → npm run tv:package → npm run tv:install**
+**Build → Commit → Push → vercel ls (Ready) → npm run tv:package → npm run tv:install** (ejecutar todo, incluida la instalación)

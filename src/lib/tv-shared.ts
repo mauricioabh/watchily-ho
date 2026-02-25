@@ -84,10 +84,10 @@ export function tvLogoutScript(): string {
 }
 
 export const tvNavCss = `
-.tv-header{position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(11,17,32,0.98) 0%,rgba(8,12,24,0.95) 100%);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:24px 48px;display:flex;align-items:center;gap:48px;flex-wrap:wrap}
+.tv-header{position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(11,17,32,0.98) 0%,rgba(8,12,24,0.95) 100%);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:28px 48px;display:flex;align-items:center;gap:72px;flex-wrap:wrap}
 .tv-logo{font-size:36px;font-weight:700;color:#e5b00b;margin:0;display:flex;align-items:center;gap:12px}
 .tv-logo-icon{font-size:40px;line-height:1}
-.tv-nav{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.tv-nav{display:flex;align-items:center;gap:36px;flex-wrap:wrap}
 .nav-link{display:inline-flex;align-items:center;gap:8px;padding:14px 20px;border-radius:10px;font-size:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#fff;text-decoration:none;transition:all 0.2s}
 .nav-link:hover,.nav-link:focus{background:rgba(99,102,241,0.35);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
 .nav-active{background:rgba(99,102,241,0.5);border-color:#6366f1}
