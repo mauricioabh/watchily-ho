@@ -6,17 +6,47 @@
   <meta http-equiv="refresh" content="0;url=https://watchily-ho.vercel.app/tv" />
   <title>Watchily</title>
   <style>
-    *{margin:0;padding:0}
-    body{background:#0d0d12;color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:48px;font-size:28px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-    h1{font-size:48px;color:#e5b00b;margin-bottom:24px}
-    p{color:#888}
-    a{color:#60a5fa;font-size:28px;margin-top:24px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:Arial,sans-serif;
+      background-color:#05070d;
+      background-image:
+        radial-gradient(ellipse 90% 55% at 50% -5%, rgba(56,120,255,0.38) 0%, transparent 70%),
+        radial-gradient(ellipse 55% 45% at -5% 15%, rgba(130,60,220,0.22) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 105% 10%, rgba(20,160,220,0.18) 0%, transparent 60%),
+        linear-gradient(180deg, #0b1120 0%, #080c18 30%, #060810 65%, #05070d 100%);
+      background-attachment:fixed;
+    }
+    .logo{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:24px;
+    }
+    .logo-icon{
+      font-size:120px;
+      line-height:1;
+      filter:drop-shadow(0 4px 24px rgba(229,176,11,0.3));
+    }
+    .logo-text{
+      font-size:72px;
+      font-weight:700;
+      color:#e5b00b;
+      letter-spacing:-1px;
+      text-shadow:0 4px 24px rgba(229,176,11,0.25);
+    }
   </style>
 </head>
 <body>
-  <h1>Watchily</h1>
-  <p>Abriendo...</p>
-  <a href="https://watchily-ho.vercel.app/tv">Si no se abre, pulsa aquí</a>
+  <div class="logo">
+    <span class="logo-icon" aria-hidden="true">🎬</span>
+    <span class="logo-text">Watchily</span>
+  </div>
   <script>window.location.href="https://watchily-ho.vercel.app/tv";</script>
 </body>
 </html>
