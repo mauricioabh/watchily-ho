@@ -80,6 +80,8 @@ export async function GET(
     "hbo max": "com.hbo.hbomax",
     hbomax: "com.hbo.hbomax",
   };
+  // Disney+: abrir URL en navegador para ir directo al título (la app no acepta params públicos)
+  const useBrowserForContent = ["disney+", "disney plus"];
   const sourceCards = (sources: typeof uniqueSources) =>
     sources
       .map((s) => {
@@ -89,8 +91,9 @@ export async function GET(
           .replace(/\s+/g, " ");
         const appId =
           webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
+        const useBrowser = useBrowserForContent.includes(provider) || useBrowserForContent.includes(provider.replace(" ", ""));
         return `
-    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
+    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${useBrowser ? "" : (appId ?? "")}" data-use-browser="${useBrowser ? "1" : "0"}">
       <span class="source-name">${escapeHtml(s.providerName)}</span>
       <span class="source-type">${typeLabel(s)}${s.quality ? ` · ${s.quality}` : ""}${s.price != null ? ` · $${s.price}` : ""}</span>
     </a>`;
@@ -211,30 +214,32 @@ export async function GET(
             try{webOSDev.launch({id:webOSDev.APP.BROWSER,params:{target:url},onSuccess:function(){},onFailure:function(){window.location.href=url}})}catch(e){window.location.href=url}
           }else{try{window.location.href=url}catch(e){window.open(url)}}
         }
-        function doLaunch(id){
+        function doLaunch(id,contentUrl){
+          var p=contentUrl?{target:contentUrl,url:contentUrl}:{};
+          var launchParams=p&&Object.keys(p).length?{id:id,params:p}:{id:id};
           if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-            try{webOSDev.launch({id:id,params:{},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+            try{webOSDev.launch({id:id,params:p,onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
           }else if(typeof webOS!=='undefined'&&webOS.service){
-            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:id},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:launchParams,onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
           }else{goToUrl()}
         }
         if(appId){
-          doLaunch(appId)
+          doLaunch(appId,url)
         }else{goToUrl()}
       }
       document.addEventListener('click',function(e){
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
-        var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id');
-        if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId||'')}
+        var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id'),useBrowser=el.getAttribute('data-use-browser')==='1';
+        if(url&&url!=='#'){e.preventDefault();openStreaming(url,useBrowser?'':appId||'')}
       },true);
 
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28){
           var el=document.activeElement,srcLink=el&&el.closest&&el.closest('.source-link');
           if(srcLink){
-            var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'';
-            if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId);return}
+            var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'',useBrowser=srcLink.getAttribute('data-use-browser')==='1';
+            if(url&&url!=='#'){e.preventDefault();openStreaming(url,useBrowser?'':appId);return}
           }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
