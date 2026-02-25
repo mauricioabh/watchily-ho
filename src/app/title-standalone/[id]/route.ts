@@ -93,7 +93,7 @@ export async function GET(
     body{background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);color:#fff;font-family:Arial,sans-serif;min-height:100vh;padding:0}
     .page{padding:32px 48px 48px}
     ${tvNavCss}
-    .hero{display:flex;gap:56px;margin-bottom:36px}
+    .hero{display:flex;gap:80px;margin-bottom:36px}
     .poster-wrap{flex-shrink:0;width:240px;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:#1f1f23}
     .poster-wrap img{width:100%;height:100%;object-fit:cover}
     .poster-placeholder{display:flex;align-items:center;justify-content:center;height:100%;font-size:42px;font-weight:700;color:#555}

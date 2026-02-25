@@ -56,6 +56,7 @@ export async function GET(
     .list-row{display:flex;align-items:center;justify-content:space-between;padding:24px;margin-bottom:16px;background:rgba(26,26,30,0.95);border-radius:12px;border:1px solid rgba(255,255,255,0.12)}
     .list-name{font-size:28px;font-weight:600}
     .list-row button,.list-row a{padding:12px 24px;border-radius:8px;font-size:20px;cursor:pointer;border:none;text-decoration:none;display:inline-block}
+    .list-row button:focus{outline:3px solid #e5b00b;outline-offset:2px}
     .btn-add{background:#6366f1;color:#fff}
     .btn-remove{background:#ef4444;color:#fff}
     .btn-back{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
@@ -77,6 +78,37 @@ export async function GET(
   </div>
   ${listRows.length === 0 ? "<p class='create-hint'>No tienes listas. <a href='" + BASE + "/lists'>Crea una en la web</a></p>" : ""}
   <p class="create-hint">Para crear listas nuevas, usa la <a href="${BASE}/lists">web</a> o la app móvil.</p>
+  <script>
+    (function(){
+      var f=document.querySelectorAll('nav a, nav button, .list-row button');
+      var inicioIdx=1;
+      function focusInicio(){var el=f[inicioIdx];if(el)el.focus()}
+      f[inicioIdx]?.focus();
+      setTimeout(focusInicio,800);
+      setTimeout(focusInicio,1200);
+      setTimeout(focusInicio,1800);
+      document.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){
+          var el=document.activeElement;
+          if(el&&(el.tagName==='A'||el.tagName==='BUTTON')){
+            if(el.tagName==='A'&&el.href){el.click();}
+            else if(el.tagName==='BUTTON'){el.click();}
+            e.preventDefault();
+          }
+          return;
+        }
+        var idx=-1;
+        for(var j=0;j<f.length;j++)if(f[j]===document.activeElement){idx=j;break}
+        if(idx<0){focusInicio();e.preventDefault();return;}
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
+        e.preventDefault();
+        var next=-1;
+        if(e.key==='ArrowDown'||e.key==='ArrowRight')next=idx+1;
+        else if(e.key==='ArrowUp'||e.key==='ArrowLeft')next=idx-1;
+        if(next>=0&&next<f.length)f[next].focus();
+      },true);
+    })();
+  </script>
 </body>
 </html>`;
 

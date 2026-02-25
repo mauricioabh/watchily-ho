@@ -108,12 +108,11 @@ export async function GET(request: NextRequest) {
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .filter-wrap input, .filter-wrap button, .tile-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6,filterCount=2,firstTileIdx=navCount+filterCount;
+      var vertodoBtn=document.getElementById('firstFocus');
       var firstTile=f[firstTileIdx];
-      function focusFirst(){var el=firstTile||f[0];if(el)el.focus()}
-      f[0]?.focus();
-      setTimeout(focusFirst,800);
-      setTimeout(focusFirst,1500);
-      setTimeout(focusFirst,2200);
+      function focusVertodo(){if(vertodoBtn)vertodoBtn.focus()}
+      focusVertodo();
+      setTimeout(focusVertodo,600);
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '){
           var el=document.activeElement;
@@ -121,7 +120,7 @@ export async function GET(request: NextRequest) {
           return;
         }
         var idx=i(document.activeElement);
-        if(idx<0){focusFirst();e.preventDefault();return;}
+        if(idx<0){focusVertodo();e.preventDefault();return;}
         if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
         e.preventDefault();
         var next=-1,cols=4;
