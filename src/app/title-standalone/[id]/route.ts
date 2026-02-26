@@ -205,28 +205,12 @@ export async function GET(
       if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
 
       function openStreaming(url,appId){
-        function goToUrl(){
-          if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.APP&&webOSDev.APP.BROWSER){
-            try{webOSDev.launch({id:webOSDev.APP.BROWSER,params:{target:url},onSuccess:function(){},onFailure:function(){window.location.href=url}})}catch(e){window.location.href=url}
-          }else{try{window.location.href=url}catch(e){window.open(url)}}
-        }
-        function doLaunch(id,contentUrl){
-          var p={};
-          if(contentUrl&&contentUrl!=='#'){
-            p={url:contentUrl,target:contentUrl,contentUrl:contentUrl};
-            var m=contentUrl.match(/disneyplus\.com\/video\/([a-f0-9-]{36})/i)||contentUrl.match(/\/([a-f0-9-]{36})(?:\?|$)/i);
-            if(m)p.contentId=m[1];
-          }
-          function launchWithoutParams(){doLaunch(id,'')}
-          if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-            try{webOSDev.launch({id:id,params:p,onSuccess:function(){},onFailure:Object.keys(p).length?launchWithoutParams:goToUrl})}catch(e){Object.keys(p).length?launchWithoutParams():goToUrl()}
-          }else if(typeof webOS!=='undefined'&&webOS.service){
-            var launchParams=Object.keys(p).length?{id:id,params:p}:{id:id};
-            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:launchParams,onSuccess:function(){},onFailure:Object.keys(p).length?function(){launchWithoutParams()}:goToUrl})}catch(e){Object.keys(p).length?launchWithoutParams():goToUrl()}
-          }else{goToUrl()}
-        }
-        if(appId){
-          doLaunch(appId,url)
+        function goToUrl(){try{window.location.href=url}catch(e){window.open(url)}}
+        if(!appId){goToUrl();return}
+        if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
+          try{webOSDev.launch({id:appId,params:{},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
+        }else if(typeof webOS!=='undefined'&&webOS.service){
+          try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:appId},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
         }else{goToUrl()}
       }
       document.addEventListener('click',function(e){
@@ -268,7 +252,7 @@ export async function GET(
           }else if(idx>navCount)next=idx-1;
           else next=idx>0?idx-1:0;
         }
-        if(next>=0&&next<f.length){var n=f[next];if(n&&n.focus)n.focus()}
+        if(next>=0&&next<f.length)f[next].focus();
       },true);
     })();
   </script>
