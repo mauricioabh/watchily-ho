@@ -120,6 +120,7 @@ export async function GET(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
+  <script src="https://cdn.jsdelivr.net/npm/webostvjs@1.2.4/webOSTV.js"></script>
   <title>Watchily - ${escapeHtml(t.name)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -204,14 +205,26 @@ export async function GET(
       [0,100,400,800,1500,3000,5000].forEach(function(ms){setTimeout(focusFirst,ms)});
       if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
 
+      function extractContentId(url){
+        if(!url||typeof url!=='string')return null;
+        var m=url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/video\\/([^/?]+)/i)||url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/(?:movies?|series)\\/[^/]+\\/([^/?]+)/i)||url.match(/\\/([a-f0-9-]{36})(?:[?/]|$)/i);
+        return m?m[1]:null;
+      }
       function openStreaming(url,appId){
-        function goToUrl(){try{window.location.href=url}catch(e){window.open(url)}}
-        if(!appId){goToUrl();return}
-        if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-          try{webOSDev.launch({id:appId,params:{},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
-        }else if(typeof webOS!=='undefined'&&webOS.service){
-          try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:appId},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
-        }else{goToUrl()}
+        if(!appId){return}
+        var contentId=extractContentId(url);
+        var isDisney=appId==='com.disney.disneyplus-prod';
+        var launchParams=isDisney&&contentId?{contentId:contentId,query:'target=player&id='+contentId}:{};
+        function launchWithParams(params){
+          var p={id:appId};
+          if(Object.keys(params).length)p.params=params;
+          if(typeof webOS!=='undefined'&&webOS.service){
+            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
+          }else if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
+            webOSDev.launch({id:appId,params:params,onSuccess:function(){},onFailure:function(){if(Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
+          }
+        }
+        try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
       }
       document.addEventListener('click',function(e){
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');

@@ -42,7 +42,8 @@ Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el si
 
 ### Implementación actual
 
-1. Llamar `webOSDev.launch` o `webOS.service.request` con el ID de la app (Disney+, Netflix, HBO Max), sin params.
-2. Si falla → `location.href` a la URL.
-
-**Limitación:** Cualquier param (MediaType, ContentID, url, etc.) al lanzar Disney+ causa pantalla negra en webOS. Disney+ no documenta deep links para LG TV.
+1. Incluir `webOSTV.js` (CDN) para tener `webOS.service`.
+2. Usar Luna API `luna://com.webos.applicationManager` con `method: launch` — **nunca** `window.location.href` (causa pantalla negra por CORS/embedding).
+3. Para Disney+: extraer `contentId` de la URL (ej. `/video/xxx` o `/movies/.../7x8234`) y pasar `params: { contentId, query: "target=player&id="+contentId }`.
+4. Si falla con params → reintentar launch sin params.
+5. Permiso `application.launcher` en appinfo.json.
