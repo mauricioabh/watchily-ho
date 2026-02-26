@@ -1,6 +1,7 @@
 /**
  * Shared HTML/CSS for TV standalone pages
  */
+import { TV_APP_VERSION } from "./app-version";
 
 export function tvNavHtml(
   base: string,
@@ -37,6 +38,7 @@ export function tvNavHtml(
       <form id="logoutForm" action="${base}/auth/signout" method="POST" style="display:inline">
         <input type="hidden" name="redirect" value="/tv-standalone" />
         <button type="button" id="logoutBtn" tabindex="0" class="nav-link" title="Cerrar sesión">Cerrar sesión</button>
+        <span class="tv-version" aria-hidden="true">v${TV_APP_VERSION}</span>
       </form>
     </nav>
   </header>
@@ -128,6 +130,7 @@ export const tvNavCss = `
 .nav-link:hover,.nav-link:focus{background:rgba(99,102,241,0.35);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
 .nav-active{background:rgba(99,102,241,0.5);border-color:#6366f1}
 .nav-icon{padding:14px 18px;font-size:24px}
+.tv-version{margin-left:12px;font-size:16px;color:rgba(255,255,255,0.45);font-weight:400;vertical-align:middle}
 .logout-modal{display:none;visibility:hidden;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
 .logout-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:linear-gradient(180deg,#0b1120 0%,#080c18 100%);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:48px;min-width:400px}
 .logout-msg{font-size:28px;margin-bottom:32px;color:#fff;text-align:center;width:100%}

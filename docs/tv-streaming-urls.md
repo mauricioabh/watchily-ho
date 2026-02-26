@@ -48,6 +48,6 @@ Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el si
    - `entity-{GUID}` (formato Watchmode: `/browse/entity-xxx`)
    - `/video/` o `/movies/`/`/series/`
    - Cualquier GUID de 36 caracteres.
-4. Params: `{ contentId, query: "contentId="+contentId+"&action=play&target=player" }`.
+4. Params para webOS 6.5: `contentTarget` (URL completa), `params: { action: 'view', target: 'player' }`, `query` con contentId. `action: 'view'` evita bloqueo en selector de perfiles.
 5. Si falla con params → reintentar launch sin params.
 6. Permisos: `application.launcher`, `com.webos.applicationManager.launch`, `com.webos.service.applicationmanager`.

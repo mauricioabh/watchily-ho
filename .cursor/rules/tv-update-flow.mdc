@@ -21,11 +21,11 @@ git commit -m "..."
 git push origin main
 ```
 
-## 3. Verificar deploy
+## 3. Verificar deploy (BLOQUEANTE)
 ```bash
 vercel ls
 ```
-Esperar hasta que el primer deployment muestre **● Ready**.
+**Esperar hasta que el primer deployment muestre ● Ready.** Si muestra ● Building: NO continuar. Ejecutar `vercel ls` de nuevo cada ~30s hasta ver ● Ready. Solo entonces pasar al paso 4.
 
 ## 4. Reconstruir IPK
 ```bash
@@ -42,7 +42,7 @@ O con dispositivo: `ares-install com.watchily.web_1.0.0_all.ipk -d <nombre-tv>`
 **El agente SIEMPRE ejecuta `npm run tv:install` tras `tv:package`.** NUNCA preguntar "¿quieres que instale?" — ejecutarlo automáticamente. El usuario debe poder probar en la TV sin pasos manuales.
 
 ## Obligatorio
-**El agente NUNCA debe decir "ya puedes probar en la TV" hasta haber ejecutado TODOS los pasos.** No dar por terminada la tarea hasta completar build, commit, push, vercel ls (● Ready), tv:package y tv:install. Esperar a que cada comando termine antes de pasar al siguiente (p. ej. el build puede tardar 1–2 min).
+**Prioridad: que el usuario pruebe en la TV sin contratiempos.** El agente NUNCA dice "ya puedes probar" hasta haber ejecutado TODOS los pasos y confirmado ● Ready. No ejecutar tv:package ni tv:install si el deploy sigue en ● Building — el contenido se sirve desde Vercel y el usuario vería una versión antigua. Esperar a que cada comando termine antes del siguiente.
 
 ## Resumen – ejecutar en este orden
 1. `npm run build` (esperar a que termine)
