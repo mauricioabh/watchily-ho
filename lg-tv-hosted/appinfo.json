@@ -8,16 +8,10 @@
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
   "resolution": "1920x1080",
-  "requiredPermissions": [
-    "time",
-    "activity"
-  ],
+  "requiredPermissions": ["time", "activity", "networkconnection.query"],
   "bgColor": "#0a0a0a",
   "iconColor": "#e5b00b",
   "v2": {
-    "requiredPermissions": [
-      "time",
-      "activity"
-    ]
+    "requiredPermissions": ["time", "activity", "networkconnection.query"]
   }
 }
