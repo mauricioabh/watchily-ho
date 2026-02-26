@@ -120,7 +120,6 @@ export async function GET(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
-  <script src="https://cdn.jsdelivr.net/npm/webostvjs@1.2.12/webOSTV.js"></script>
   <title>Watchily - ${escapeHtml(t.name)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -269,7 +268,7 @@ export async function GET(
           }else if(idx>navCount)next=idx-1;
           else next=idx>0?idx-1:0;
         }
-        if(next>=0&&next<f.length)f[next].focus();
+        if(next>=0&&next<f.length){var n=f[next];if(n&&n.focus)n.focus()}
       },true);
     })();
   </script>
