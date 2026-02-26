@@ -287,19 +287,11 @@ export async function GET(
         log('SDK Version: '+(typeof window!=='undefined'&&window.webOS?window.webOS.libVersion||'sin libVersion':'No detectado'));
         var cid='872c196b-4f9e-4375-bc87-393273e913a0';
         var ct='https://www.disneyplus.com/browse/entity-'+cid;
+        var q='contentId='+cid+'&action=view&target=player';
         if(typeof webOS==='undefined'||!webOS.service){log('ERROR: webOS.service no disponible');return}
-        var responded=false;
-        function tryMethodB(){
-          if(responded)return;
-          log('Método A no respondió. Intentando Método B (id en params)...');
-          var pB={id:'com.disney.disneyplus-prod',params:{id:cid,action:'view',target:'player',contentTarget:ct}};
-          log('Enviando Método B: '+JSON.stringify(pB));
-          webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:pB,onSuccess:function(r){log('ÉXITO (Método B): '+JSON.stringify(r));},onFailure:function(err){log('ERROR (Método B): '+JSON.stringify(err));}});
-        }
-        var pA={id:'com.disney.disneyplus-prod',uri:ct};
-        log('Método A (URI nativo): '+JSON.stringify(pA));
-        var to=setTimeout(tryMethodB,3000);
-        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:pA,onSuccess:function(r){responded=true;clearTimeout(to);log('ÉXITO (Método A): '+JSON.stringify(r));},onFailure:function(err){responded=true;clearTimeout(to);log('ERROR (Método A): '+JSON.stringify(err));}});
+        var p={id:'com.disney.disneyplus-prod',uri:ct,contentTarget:ct,query:q,params:{id:cid,contentId:cid,contentTarget:ct,query:q,action:'view',target:'player'}};
+        log('Enviando objeto completo: '+JSON.stringify(p));
+        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(r){log('ÉXITO: '+JSON.stringify(r));},onFailure:function(err){log('ERROR: '+JSON.stringify(err));}});
       };
       var dbgBtn=document.getElementById('debugAvatarBtn');
       if(dbgBtn){dbgBtn.addEventListener('click',window.debugDisneyAvatar);dbgBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();window.debugDisneyAvatar();}});}
