@@ -80,6 +80,12 @@ export async function GET(
     "hbo max": "com.hbo.hbomax",
     hbomax: "com.hbo.hbomax",
   };
+  const isDisney = (p: string) => /disney/i.test(p);
+  const extractContentId = (u: string) => {
+    const m = u.match(/disneyplus\.com\/video\/([a-f0-9-]{36})/i) ?? u.match(/\/([a-f0-9-]{36})(?:\?|$)/i);
+    return m ? m[1] : "";
+  };
+  const mediaType = t.type === "series" ? "series" : "movie";
   const sourceCards = (sources: typeof uniqueSources) =>
     sources
       .map((s) => {
@@ -89,8 +95,9 @@ export async function GET(
           .replace(/\s+/g, " ");
         const appId =
           webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
+        const contentId = isDisney(provider) ? extractContentId(url) : "";
         return `
-    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
+    <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}" data-content-id="${escapeHtml(contentId)}" data-media-type="${mediaType}">
       <span class="source-name">${escapeHtml(s.providerName)}</span>
       <span class="source-type">${typeLabel(s)}${s.quality ? ` · ${s.quality}` : ""}${s.price != null ? ` · $${s.price}` : ""}</span>
     </a>`;
@@ -204,28 +211,36 @@ export async function GET(
       [0,100,400,800,1500,3000,5000].forEach(function(ms){setTimeout(focusFirst,ms)});
       if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
 
-      function openStreaming(url,appId){
+      function openStreaming(url,appId,contentId,mediaType){
         function goToUrl(){try{window.location.href=url}catch(e){window.open(url)}}
         if(!appId){goToUrl();return}
-        if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-          try{webOSDev.launch({id:appId,params:{},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
-        }else if(typeof webOS!=='undefined'&&webOS.service){
-          try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:appId},onSuccess:function(){},onFailure:goToUrl})}catch(e){goToUrl()}
-        }else{goToUrl()}
+        var isDisney=appId.indexOf('disney')>=0;
+        var p={};
+        if(isDisney&&contentId){p.MediaType=mediaType||'movie';p.ContentID=contentId}
+        function launch(useParams){
+          var params=useParams?p:{};
+          var launchParams=useParams&&Object.keys(p).length?{id:appId,params:p}:{id:appId};
+          if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
+            try{webOSDev.launch({id:appId,params:params,onSuccess:function(){},onFailure:useParams?function(){launch(false)}:goToUrl})}catch(e){useParams?launch(false):goToUrl()}
+          }else if(typeof webOS!=='undefined'&&webOS.service){
+            try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:launchParams,onSuccess:function(){},onFailure:useParams?function(){launch(false)}:goToUrl})}catch(e){useParams?launch(false):goToUrl()}
+          }else{goToUrl()}
+        }
+        launch(Object.keys(p).length>0)
       }
       document.addEventListener('click',function(e){
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
-        var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id');
-        if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId||'')}
+        var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id')||'',cid=el.getAttribute('data-content-id')||'',mt=el.getAttribute('data-media-type')||'movie';
+        if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId,cid,mt)}
       },true);
 
       document.addEventListener('keydown',function(e){
         if(e.key==='Enter'||e.key===' '||e.keyCode===13||e.keyCode===28){
           var el=document.activeElement,srcLink=el&&el.closest&&el.closest('.source-link');
           if(srcLink){
-            var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'';
-            if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId);return}
+            var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'',cid=srcLink.getAttribute('data-content-id')||'',mt=srcLink.getAttribute('data-media-type')||'movie';
+            if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId,cid,mt);return}
           }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
