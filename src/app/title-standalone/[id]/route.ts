@@ -151,13 +151,15 @@ export async function GET(
     .source-link:hover,.source-link:focus{background:rgba(99,102,241,0.3);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
     .source-name{display:block;font-size:22px;font-weight:600;margin-bottom:6px}
     .source-type{font-size:18px;color:#888}
-    #debug-console{position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.9);color:#00ff00;font-family:monospace;font-size:14px;z-index:9999;padding:10px;pointer-events:none;max-height:200px;overflow-y:auto}
+    #debug-console{position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.9);color:#00ff00;font-family:monospace;font-size:14px;z-index:9999;padding:10px;max-height:220px;overflow-y:auto;display:flex;flex-direction:column}
+    #debug-console .debug-log{pointer-events:none;flex:1;overflow-y:auto}
+    #debug-console .debug-clear{pointer-events:auto;align-self:flex-end;padding:6px 12px;font-size:12px;background:#333;color:#0f0;border:1px solid #0f0;cursor:pointer;margin-top:4px}
     .debug-avatar-btn{padding:20px 32px;font-size:22px;border-radius:10px;border:2px solid #ff0;background:rgba(255,255,0,0.2);color:#ff0;cursor:pointer;font-weight:700}
     .debug-avatar-btn:hover,.debug-avatar-btn:focus{background:rgba(255,255,0,0.4);outline:3px solid #e5b00b;outline-offset:2px}
   </style>
 </head>
 <body>
-  <div id="debug-console"></div>
+  <div id="debug-console"><div class="debug-log"></div><button type="button" class="debug-clear" id="debugClearBtn">Limpiar debug</button></div>
   ${tvNavHtml(BASE, "none", "vertodo")}
   <main class="page">
   <div class="hero">
@@ -188,10 +190,28 @@ export async function GET(
   </main>
   <script>
     /* Flujo control remoto: .cursor/skills/tv-remote-control-flow */
-    window.logToScreen=function(msg){
-      var el=document.getElementById('debug-console');
-      if(el){el.innerHTML+='<div>'+String(msg).replace(/</g,'&lt;')+'</div>';el.scrollTop=el.scrollHeight}
-    };
+    (function(){
+      var DEBUG_KEY='watchily_debug_log';
+      var MAX_MSGS=80;
+      function loadLog(){try{var s=localStorage.getItem(DEBUG_KEY);return s?JSON.parse(s):[]}catch(e){return []}}
+      function saveLog(arr){try{localStorage.setItem(DEBUG_KEY,JSON.stringify(arr.slice(-MAX_MSGS)))}catch(e){}}
+      window.logToScreen=function(msg){
+        var arr=loadLog();
+        arr.push(new Date().toLocaleTimeString('es-MX')+' | '+String(msg));
+        saveLog(arr);
+        var logEl=document.querySelector('#debug-console .debug-log');
+        if(logEl){logEl.innerHTML=arr.map(function(m){return '<div>'+m.replace(/</g,'&lt;')+'</div>'}).join('');logEl.scrollTop=logEl.scrollHeight}
+      };
+      function renderStoredLog(){
+        var arr=loadLog();
+        var logEl=document.querySelector('#debug-console .debug-log');
+        if(logEl&&arr.length){logEl.innerHTML=arr.map(function(m){return '<div>'+m.replace(/</g,'&lt;')+'</div>'}).join('');logEl.scrollTop=logEl.scrollHeight}
+      }
+      renderStoredLog();
+      document.addEventListener('DOMContentLoaded',renderStoredLog);
+      var clearBtn=document.getElementById('debugClearBtn');
+      if(clearBtn)clearBtn.addEventListener('click',function(){saveLog([]);renderStoredLog();});
+    })();
     (function(){
       var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .debug-avatar-btn, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
@@ -261,7 +281,10 @@ export async function GET(
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
       }
       window.debugDisneyAvatar=function(){
-        var p={id:'com.disney.disneyplus-prod',contentTarget:'https://www.disneyplus.com/browse/entity-872c196b-4f9e-4375-bc87-393273e913a0',params:{contentId:'872c196b-4f9e-4375-bc87-393273e913a0',action:'view',target:'player',contentTarget:'https://www.disneyplus.com/browse/entity-872c196b-4f9e-4375-bc87-393273e913a0'}};
+        var cid='872c196b-4f9e-4375-bc87-393273e913a0';
+        var ct='https://www.disneyplus.com/browse/entity-'+cid;
+        var q='contentId='+cid+'&action=view&target=player';
+        var p={id:'com.disney.disneyplus-prod',contentTarget:ct,query:q,params:{contentId:cid,action:'view',target:'player',contentTarget:ct,query:q}};
         if(typeof window.logToScreen==='function')window.logToScreen('Enviando JSON: '+JSON.stringify(p));
         if(typeof webOS==='undefined'||!webOS.service){window.logToScreen('ERROR: webOS.service no disponible');return}
         webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){window.logToScreen('ÉXITO: App lanzada');},onFailure:function(err){window.logToScreen('ERROR: '+JSON.stringify(err));}});
