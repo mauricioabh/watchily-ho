@@ -121,6 +121,7 @@ export async function GET(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920, height=1080" />
   <script src="https://cdn.jsdelivr.net/npm/webostvjs@1.2.4/webOSTV.js"></script>
+  <!-- webOSTV.js sin defer/async para que esté disponible antes del resto del script -->
   <title>Watchily - ${escapeHtml(t.name)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -281,13 +282,23 @@ export async function GET(
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
       }
       window.debugDisneyAvatar=function(){
+        var log=window.logToScreen;
+        if(typeof log!=='function')log=function(m){};
+        log('SDK Version: '+(typeof window!=='undefined'&&window.webOS?window.webOS.libVersion||'sin libVersion':'No detectado'));
         var cid='872c196b-4f9e-4375-bc87-393273e913a0';
         var ct='https://www.disneyplus.com/browse/entity-'+cid;
         var q='contentId='+cid+'&action=view&target=player';
         var p={id:'com.disney.disneyplus-prod',contentTarget:ct,query:q,params:{contentId:cid,action:'view',target:'player',contentTarget:ct,query:q}};
-        if(typeof window.logToScreen==='function')window.logToScreen('Enviando JSON: '+JSON.stringify(p));
-        if(typeof webOS==='undefined'||!webOS.service){window.logToScreen('ERROR: webOS.service no disponible');return}
-        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){window.logToScreen('ÉXITO: App lanzada');},onFailure:function(err){window.logToScreen('ERROR: '+JSON.stringify(err));}});
+        log('Enviando JSON: '+JSON.stringify(p));
+        if(typeof webOS==='undefined'||!webOS.service){log('ERROR: webOS.service no disponible');return}
+        var responded=false;
+        function tryOpen(){
+          if(responded)return;
+          log('Timeout: launch no respondió. Intentando método open...');
+          webOS.service.request('luna://com.webos.applicationManager',{method:'open',parameters:p,onSuccess:function(r){log('ÉXITO (open): '+JSON.stringify(r));},onFailure:function(err){log('ERROR (open): '+JSON.stringify(err));}});
+        }
+        var to=setTimeout(tryOpen,3000);
+        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(r){responded=true;clearTimeout(to);log('ÉXITO (launch): '+JSON.stringify(r));},onFailure:function(err){responded=true;clearTimeout(to);log('ERROR (launch): '+JSON.stringify(err));}});
       };
       var dbgBtn=document.getElementById('debugAvatarBtn');
       if(dbgBtn){dbgBtn.addEventListener('click',window.debugDisneyAvatar);dbgBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();window.debugDisneyAvatar();}});}
