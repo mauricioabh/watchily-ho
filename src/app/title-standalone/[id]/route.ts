@@ -230,15 +230,21 @@ export async function GET(
         function launchWithParams(params){
           var p={id:appId};
           if(params&&Object.keys(params).length){
-            if(params.contentTarget)p.contentTarget=params.contentTarget;
-            if(params.params)p.params=params.params;
-            if(params.query)p.query=params.query;
+            p.contentTarget=params.contentTarget;
+            p.query=params.query;
+            p.params={
+              action:params.params&&params.params.action,
+              target:params.params&&params.params.target,
+              contentId:params.params&&params.params.contentId,
+              contentTarget:params.contentTarget,
+              query:params.query
+            };
           }
           if(typeof webOS!=='undefined'&&webOS.service){
             if(typeof console!=='undefined'&&console.log)console.log('webOS launch params:',JSON.stringify(p));
             webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
           }else if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-            var devParams=params&&params.params?params.params:{};
+            var devParams=p.params||(params&&params.params?params.params:{});
             if(typeof console!=='undefined'&&console.log)console.log('webOSDev launch params:',JSON.stringify({id:appId,params:devParams}));
             webOSDev.launch({id:appId,params:devParams,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
           }

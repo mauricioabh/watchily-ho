@@ -9,7 +9,7 @@
     "lint": "eslint",
     "deploy": "vercel",
     "tv:package": "ares-package lg-tv-hosted",
-    "tv:install": "ares-install com.watchily.web_1.0.0_all.ipk"
+    "tv:install": "ares-install com.watchily.web_1.0.1_all.ipk"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
