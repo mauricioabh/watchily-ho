@@ -155,8 +155,8 @@ export async function GET(
     #debug-console{position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.9);color:#00ff00;font-family:monospace;font-size:14px;z-index:9999;padding:10px;max-height:220px;overflow-y:auto;display:flex;flex-direction:column}
     #debug-console .debug-log{pointer-events:none;flex:1;overflow-y:auto}
     #debug-console .debug-clear{pointer-events:auto;align-self:flex-end;padding:6px 12px;font-size:12px;background:#333;color:#0f0;border:1px solid #0f0;cursor:pointer;margin-top:4px}
-    .debug-avatar-btn{padding:20px 32px;font-size:22px;border-radius:10px;border:2px solid #ff0;background:rgba(255,255,0,0.2);color:#ff0;cursor:pointer;font-weight:700}
-    .debug-avatar-btn:hover,.debug-avatar-btn:focus{background:rgba(255,255,0,0.4);outline:3px solid #e5b00b;outline-offset:2px}
+    .debug-launch-btn{cursor:pointer;border:none;border-radius:8px}
+    .debug-launch-btn:hover,.debug-launch-btn:focus{outline:3px solid #e5b00b;outline-offset:2px}
   </style>
 </head>
 <body>
@@ -181,7 +181,7 @@ export async function GET(
       <div class="actions">
         <a href="${BASE}/title-standalone/${t.id}/add-to-list" tabindex="0" class="btn-bookmark">⊕ Añadir a lista</a>
         ${t.trailer ? `<a href="${escapeHtml(t.trailer)}" target="_blank" rel="noopener noreferrer" class="trailer-link" tabindex="0">▶ Ver tráiler</a>` : ""}
-        <button type="button" class="debug-avatar-btn" tabindex="0" id="debugAvatarBtn">DEBUG: PROBAR AVATAR</button>
+        <button type="button" class="debug-launch-btn" tabindex="0" id="debugLaunchBtn" style="position:fixed;top:50px;right:50px;z-index:9999;padding:20px;background:#ff0000;color:#ffffff;font-size:20px">PROBAR LANZAMIENTO DIRECTO</button>
       </div>
     </div>
   </div>
@@ -214,7 +214,7 @@ export async function GET(
       if(clearBtn)clearBtn.addEventListener('click',function(){saveLog([]);renderStoredLog();});
     })();
     (function(){
-      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .debug-avatar-btn, .source-link');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .debug-launch-btn, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6;
       var firstSource=null,firstSourceIdx=-1;
@@ -281,20 +281,17 @@ export async function GET(
         }
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
       }
-      window.debugDisneyAvatar=function(){
-        var log=window.logToScreen;
-        if(typeof log!=='function')log=function(m){};
-        log('SDK Version: '+(typeof window!=='undefined'&&window.webOS?window.webOS.libVersion||'sin libVersion':'No detectado'));
-        var cid='872c196b-4f9e-4375-bc87-393273e913a0';
-        var ct='https://www.disneyplus.com/browse/entity-'+cid;
-        var q='contentId='+cid+'&action=view&target=player';
-        if(typeof webOS==='undefined'||!webOS.service){log('ERROR: webOS.service no disponible');return}
-        var p={id:'com.disney.disneyplus-prod',uri:ct,contentTarget:ct,query:q,params:{id:cid,contentId:cid,contentTarget:ct,query:q,action:'view',target:'player'}};
-        log('Enviando objeto completo: '+JSON.stringify(p));
-        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(r){log('ÉXITO: '+JSON.stringify(r));},onFailure:function(err){log('ERROR: '+JSON.stringify(err));}});
+      window.debugLaunchDisney=function(){
+        var appId='com.disney.disneyplus-prod';
+        var movieGuid='7a9e623a-18b6-4078-8311-66774619a93c';
+        var payload={id:appId,contentTarget:'https://www.disneyplus.com/browse/entity-'+movieGuid,params:{contentId:movieGuid,action:'view'}};
+        console.log('Enviando Payload:',payload);
+        alert('Enviando Payload: '+JSON.stringify(payload));
+        if(typeof webOS==='undefined'||!webOS.service){alert('webOS no disponible');return}
+        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:payload,onComplete:function(res){alert('Respuesta Luna: '+JSON.stringify(res));}});
       };
-      var dbgBtn=document.getElementById('debugAvatarBtn');
-      if(dbgBtn){dbgBtn.addEventListener('click',window.debugDisneyAvatar);dbgBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();window.debugDisneyAvatar();}});}
+      var dbgBtn=document.getElementById('debugLaunchBtn');
+      if(dbgBtn){dbgBtn.addEventListener('click',window.debugLaunchDisney);dbgBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();window.debugLaunchDisney();}});}
       document.addEventListener('click',function(e){
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
