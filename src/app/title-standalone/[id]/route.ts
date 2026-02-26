@@ -212,7 +212,12 @@ export async function GET(
           }else{try{window.location.href=url}catch(e){window.open(url)}}
         }
         function doLaunch(id,contentUrl){
-          var p=contentUrl&&contentUrl!=='#'?{url:contentUrl,target:contentUrl,contentUrl:contentUrl}:{};
+          var p={};
+          if(contentUrl&&contentUrl!=='#'){
+            p={url:contentUrl,target:contentUrl,contentUrl:contentUrl};
+            var m=contentUrl.match(/disneyplus\.com\/video\/([a-f0-9-]{36})/i)||contentUrl.match(/\/([a-f0-9-]{36})(?:\?|$)/i);
+            if(m)p.contentId=m[1];
+          }
           function launchWithoutParams(){doLaunch(id,'')}
           if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
             try{webOSDev.launch({id:id,params:p,onSuccess:function(){},onFailure:Object.keys(p).length?launchWithoutParams:goToUrl})}catch(e){Object.keys(p).length?launchWithoutParams():goToUrl()}
