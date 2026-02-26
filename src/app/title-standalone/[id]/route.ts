@@ -151,9 +151,13 @@ export async function GET(
     .source-link:hover,.source-link:focus{background:rgba(99,102,241,0.3);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
     .source-name{display:block;font-size:22px;font-weight:600;margin-bottom:6px}
     .source-type{font-size:18px;color:#888}
+    #debug-console{position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.9);color:#00ff00;font-family:monospace;font-size:14px;z-index:9999;padding:10px;pointer-events:none;max-height:200px;overflow-y:auto}
+    .debug-avatar-btn{padding:20px 32px;font-size:22px;border-radius:10px;border:2px solid #ff0;background:rgba(255,255,0,0.2);color:#ff0;cursor:pointer;font-weight:700}
+    .debug-avatar-btn:hover,.debug-avatar-btn:focus{background:rgba(255,255,0,0.4);outline:3px solid #e5b00b;outline-offset:2px}
   </style>
 </head>
 <body>
+  <div id="debug-console"></div>
   ${tvNavHtml(BASE, "none", "vertodo")}
   <main class="page">
   <div class="hero">
@@ -174,6 +178,7 @@ export async function GET(
       <div class="actions">
         <a href="${BASE}/title-standalone/${t.id}/add-to-list" tabindex="0" class="btn-bookmark">⊕ Añadir a lista</a>
         ${t.trailer ? `<a href="${escapeHtml(t.trailer)}" target="_blank" rel="noopener noreferrer" class="trailer-link" tabindex="0">▶ Ver tráiler</a>` : ""}
+        <button type="button" class="debug-avatar-btn" tabindex="0" id="debugAvatarBtn">DEBUG: PROBAR AVATAR</button>
       </div>
     </div>
   </div>
@@ -183,8 +188,12 @@ export async function GET(
   </main>
   <script>
     /* Flujo control remoto: .cursor/skills/tv-remote-control-flow */
+    window.logToScreen=function(msg){
+      var el=document.getElementById('debug-console');
+      if(el){el.innerHTML+='<div>'+String(msg).replace(/</g,'&lt;')+'</div>';el.scrollTop=el.scrollHeight}
+    };
     (function(){
-      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .debug-avatar-btn, .source-link');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6;
       var firstSource=null,firstSourceIdx=-1;
@@ -251,6 +260,14 @@ export async function GET(
         }
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
       }
+      window.debugDisneyAvatar=function(){
+        var p={id:'com.disney.disneyplus-prod',contentTarget:'https://www.disneyplus.com/browse/entity-872c196b-4f9e-4375-bc87-393273e913a0',params:{contentId:'872c196b-4f9e-4375-bc87-393273e913a0',action:'view',target:'player',contentTarget:'https://www.disneyplus.com/browse/entity-872c196b-4f9e-4375-bc87-393273e913a0'}};
+        if(typeof window.logToScreen==='function')window.logToScreen('Enviando JSON: '+JSON.stringify(p));
+        if(typeof webOS==='undefined'||!webOS.service){window.logToScreen('ERROR: webOS.service no disponible');return}
+        webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){window.logToScreen('ÉXITO: App lanzada');},onFailure:function(err){window.logToScreen('ERROR: '+JSON.stringify(err));}});
+      };
+      var dbgBtn=document.getElementById('debugAvatarBtn');
+      if(dbgBtn){dbgBtn.addEventListener('click',window.debugDisneyAvatar);dbgBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();window.debugDisneyAvatar();}});}
       document.addEventListener('click',function(e){
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
