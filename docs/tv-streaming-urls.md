@@ -44,6 +44,10 @@ Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el si
 
 1. Incluir `webOSTV.js` (CDN) para tener `webOS.service`.
 2. Usar Luna API `luna://com.webos.applicationManager` con `method: launch` — **nunca** `window.location.href` (causa pantalla negra por CORS/embedding).
-3. Para Disney+: extraer `contentId` de la URL (ej. `/video/xxx` o `/movies/.../7x8234`) y pasar `params: { contentId, query: "target=player&id="+contentId }`.
-4. Si falla con params → reintentar launch sin params.
-5. Permiso `application.launcher` en appinfo.json.
+3. Para Disney+: extraer `contentId` con regex que prioriza:
+   - `entity-{GUID}` (formato Watchmode: `/browse/entity-xxx`)
+   - `/video/` o `/movies/`/`/series/`
+   - Cualquier GUID de 36 caracteres.
+4. Params: `{ contentId, query: "contentId="+contentId+"&action=play&target=player" }`.
+5. Si falla con params → reintentar launch sin params.
+6. Permisos: `application.launcher`, `com.webos.applicationManager.launch`, `com.webos.service.applicationmanager`.

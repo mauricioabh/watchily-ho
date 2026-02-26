@@ -207,21 +207,40 @@ export async function GET(
 
       function extractContentId(url){
         if(!url||typeof url!=='string')return null;
-        var m=url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/video\\/([^/?]+)/i)||url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/(?:movies?|series)\\/[^/]+\\/([^/?]+)/i)||url.match(/\\/([a-f0-9-]{36})(?:[?/]|$)/i);
-        return m?m[1]:null;
+        var entityMatch=url.match(/entity-([a-f0-9-]{36})/i);
+        if(entityMatch)return entityMatch[1];
+        var standardMatch=url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/(?:video|movies?|series)\\/(?:[^/]+\\/)?([^/?]+)/i);
+        if(standardMatch)return standardMatch[1];
+        var guidMatch=url.match(/([a-f0-9-]{36})/i);
+        return guidMatch?guidMatch[1]:null;
       }
       function openStreaming(url,appId){
         if(!appId){return}
         var contentId=extractContentId(url);
         var isDisney=appId==='com.disney.disneyplus-prod';
-        var launchParams=isDisney&&contentId?{contentId:contentId,query:'target=player&id='+contentId}:{};
+        var launchParams={};
+        if(isDisney&&contentId){
+          var contentTarget='https://www.disneyplus.com/browse/entity-'+contentId;
+          launchParams={
+            contentTarget:contentTarget,
+            params:{action:'view',target:'player',contentId:contentId},
+            query:'contentId='+contentId+'&action=view&target=player'
+          };
+        }
         function launchWithParams(params){
           var p={id:appId};
-          if(Object.keys(params).length)p.params=params;
+          if(params&&Object.keys(params).length){
+            if(params.contentTarget)p.contentTarget=params.contentTarget;
+            if(params.params)p.params=params.params;
+            if(params.query)p.query=params.query;
+          }
           if(typeof webOS!=='undefined'&&webOS.service){
-            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
+            if(typeof console!=='undefined'&&console.log)console.log('webOS launch params:',JSON.stringify(p));
+            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
           }else if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-            webOSDev.launch({id:appId,params:params,onSuccess:function(){},onFailure:function(){if(Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
+            var devParams=params&&params.params?params.params:{};
+            if(typeof console!=='undefined'&&console.log)console.log('webOSDev launch params:',JSON.stringify({id:appId,params:devParams}));
+            webOSDev.launch({id:appId,params:devParams,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
           }
         }
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
