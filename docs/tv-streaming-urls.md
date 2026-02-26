@@ -42,7 +42,7 @@ Mantener las URLs web. En algunas TVs, al abrir una URL de Netflix/Disney+ el si
 
 ### Implementación actual
 
-1. **Disney+**: si la URL contiene GUID (ej. disneyplus.com/video/xxx), pasar `params: { MediaType: "movie"|"series", ContentID: guid }` (formato Roku, puede ser compatible en webOS).
-2. Si falla con params → reintentar launch sin params.
-3. Si falla → `location.href` a la URL.
-4. **Netflix, HBO Max**: launch con id, sin params (no documentan deep links).
+1. Llamar `webOSDev.launch` o `webOS.service.request` con el ID de la app (Disney+, Netflix, HBO Max), sin params.
+2. Si falla → `location.href` a la URL.
+
+**Limitación:** Cualquier param (MediaType, ContentID, url, etc.) al lanzar Disney+ causa pantalla negra en webOS. Disney+ no documenta deep links para LG TV.
