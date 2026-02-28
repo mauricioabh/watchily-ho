@@ -249,8 +249,10 @@ export async function GET(
         if(!url||typeof url!=='string')return null;
         var entityMatch=url.match(/entity-([a-f0-9-]{36})/i);
         if(entityMatch)return entityMatch[1];
-        var crunchyMatch=url.match(/crunchyroll\\.com\\/watch\\/([A-Za-z0-9]+)/i);
+        var crunchyMatch=url.match(/crunchyroll[^/]*\\/watch\\/([A-Za-z0-9]+)/i);
         if(crunchyMatch)return crunchyMatch[1];
+        var crunchySeries=url.match(/crunchyroll[^/]*\\/series\\/[^/]+\\/([A-Za-z0-9]{8,})/i);
+        if(crunchySeries)return crunchySeries[1];
         var crunchyMedia=url.match(/[?&]mediaId=([A-Za-z0-9]+)/i);
         if(crunchyMedia)return crunchyMedia[1];
         var standardMatch=url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/(?:video|movies?|series)\\/(?:[^/]+\\/)?([^/?]+)/i);
@@ -258,30 +260,33 @@ export async function GET(
         var guidMatch=url.match(/([a-f0-9-]{36})/i);
         return guidMatch?guidMatch[1]:null;
       }
-      function launchPartnerApp(platform,contentId){
+      function launchPartnerApp(platform,contentId,fallbackUrl){
         var appId='',params={};
         if(platform==='crunchyroll'){
           appId='com.crunchyroll.crmay';
-          params={contentId:contentId,mediaId:contentId};
+          if(contentId)params={contentId:contentId,mediaId:contentId};
         }else if(platform==='max'){
           appId='com.hbo.hbomax';
-          params={entityId:contentId};
+          if(contentId)params={entityId:contentId};
         }
         if(!appId)return;
-        var payload={id:appId,params:params};
+        var payload=params&&Object.keys(params).length?{id:appId,params:params}:{id:appId};
         if(typeof window.logToScreen==='function')window.logToScreen('Lanzando '+platform+' con ID: '+contentId);
         if(typeof webOS==='undefined'||!webOS.service){if(typeof console!=='undefined'&&console.log)console.log('webOS no disponible');return;}
+        function doOpenInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:fallbackUrl||'https://www.crunchyroll.com'}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else if(typeof window!=='undefined'&&window.open){window.open(fallbackUrl||'https://www.crunchyroll.com','_blank');}}
         webOS.service.request('luna://com.webos.applicationManager',{
           method:'launch',
           parameters:payload,
           onSuccess:function(res){if(typeof console!=='undefined'&&console.log)console.log('App abierta correctamente',res);},
           onFailure:function(err){
             if(typeof console!=='undefined'&&console.error)console.error('Error de lanzamiento, reintentando basico...',err);
+            var fallbackId=platform==='crunchyroll'&&appId==='com.crunchyroll.crmay'?'com.crunchyroll.browser':null;
+            var nextId=fallbackId||appId;
             webOS.service.request('luna://com.webos.applicationManager',{
               method:'launch',
-              parameters:{id:appId},
+              parameters:{id:nextId},
               onSuccess:function(){},
-              onFailure:function(){}
+              onFailure:function(){if(platform==='crunchyroll'&&fallbackUrl)doOpenInBrowser();}
             });
           }
         });
@@ -303,8 +308,7 @@ export async function GET(
         var isCrunchy=appId==='com.crunchyroll.crmay'||appId==='crunchyroll';
         var isMax=appId==='com.hbo.hbomax';
         function openInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else{window.open(url,'_blank');}}
-        if(isCrunchy&&contentId){launchPartnerApp('crunchyroll',contentId);return;}
-        if(isCrunchy){openInBrowser();return;}
+        if(isCrunchy){launchPartnerApp('crunchyroll',contentId||'',url);return;}
         if(isMax&&contentId){launchPartnerApp('max',contentId);return;}
         function launchWithParams(params){
           var p={id:appId};
