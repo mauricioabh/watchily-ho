@@ -86,8 +86,8 @@ export async function GET(
     "prime video": "amazon",
     prime: "amazon",
     amazon: "amazon",
-    crunchyroll: "crunchyroll",
-    "crunchy roll": "crunchyroll",
+    crunchyroll: "com.crunchyroll.webos",
+    "crunchy roll": "com.crunchyroll.webos",
     "paramount+": "com.paramount.paramountplus",
     paramountplus: "com.paramount.paramountplus",
     "apple tv+": "com.apple.appletv",
@@ -104,7 +104,7 @@ export async function GET(
       webOSAppIds[noSpaces] ??
       webOSAppIds[raw.replace(/\s+/g, "")] ??
       (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined) ??
-      (raw.includes("crunchy") ? "crunchyroll" : undefined) ??
+      (raw.includes("crunchy") ? "com.crunchyroll.webos" : undefined) ??
       (raw.includes("paramount") ? "com.paramount.paramountplus" : undefined) ??
       (raw.includes("hbo") || raw.includes("max") ? "com.hbo.hbomax" : undefined) ??
       (raw.includes("disney") ? "com.disney.disneyplus-prod" : undefined) ??
