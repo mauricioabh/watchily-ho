@@ -86,8 +86,8 @@ export async function GET(
     "prime video": "amazon",
     prime: "amazon",
     amazon: "amazon",
-    crunchyroll: "com.crunchyroll.crmay",
-    "crunchy roll": "com.crunchyroll.crmay",
+    crunchyroll: "com.crunchyroll.webos",
+    "crunchy roll": "com.crunchyroll.webos",
     "paramount+": "com.paramount.paramountplus",
     paramountplus: "com.paramount.paramountplus",
     "apple tv+": "com.apple.appletv",
@@ -104,7 +104,7 @@ export async function GET(
       webOSAppIds[noSpaces] ??
       webOSAppIds[raw.replace(/\s+/g, "")] ??
       (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined) ??
-      (raw.includes("crunchy") ? "com.crunchyroll.crmay" : undefined) ??
+      (raw.includes("crunchy") ? "com.crunchyroll.webos" : undefined) ??
       (raw.includes("paramount") ? "com.paramount.paramountplus" : undefined) ??
       (raw.includes("hbo") || raw.includes("max") ? "com.hbo.hbomax" : undefined) ??
       (raw.includes("disney") ? "com.disney.disneyplus-prod" : undefined) ??
@@ -216,8 +216,8 @@ export async function GET(
   <section class="diag-section">
     <h3>Diagnóstico rápido</h3>
     <div class="diag-btns">
-      <button type="button" class="diag-btn" tabindex="0" data-diag="crunchyroll" data-content-id="G6WEN1W36">PROBAR CRUNCHYROLL</button>
-      <button type="button" class="diag-btn" tabindex="0" data-diag="max" data-content-id="08496464-90a1-4384-8843-17793d25868e">PROBAR MAX</button>
+      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.crunchyroll.webos">PROBAR CRUNCHYROLL</button>
+      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.hbo.hbomax">PROBAR MAX</button>
     </div>
   </section>
   </main>
@@ -260,35 +260,13 @@ export async function GET(
         var guidMatch=url.match(/([a-f0-9-]{36})/i);
         return guidMatch?guidMatch[1]:null;
       }
-      function launchPartnerApp(platform,contentId,fallbackUrl){
-        var appId='',params={};
-        if(platform==='crunchyroll'){
-          appId='com.crunchyroll.crmay';
-          if(contentId)params={contentId:contentId,mediaId:contentId};
-        }else if(platform==='max'){
-          appId='com.hbo.hbomax';
-          if(contentId)params={entityId:contentId};
-        }
-        if(!appId)return;
-        var payload=params&&Object.keys(params).length?{id:appId,params:params}:{id:appId};
-        if(typeof window.logToScreen==='function')window.logToScreen('Lanzando '+platform+' con ID: '+contentId);
-        if(typeof webOS==='undefined'||!webOS.service){if(typeof console!=='undefined'&&console.log)console.log('webOS no disponible');return;}
-        function doOpenInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:fallbackUrl||'https://www.crunchyroll.com'}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else if(typeof window!=='undefined'&&window.open){window.open(fallbackUrl||'https://www.crunchyroll.com','_blank');}}
+      function launchApp(appId){
+        if(!appId||typeof webOS==='undefined'||!webOS.service)return;
         webOS.service.request('luna://com.webos.applicationManager',{
           method:'launch',
-          parameters:payload,
-          onSuccess:function(res){if(typeof console!=='undefined'&&console.log)console.log('App abierta correctamente',res);},
-          onFailure:function(err){
-            if(typeof console!=='undefined'&&console.error)console.error('Error de lanzamiento, reintentando basico...',err);
-            var fallbackId=platform==='crunchyroll'&&appId==='com.crunchyroll.crmay'?'com.crunchyroll.browser':null;
-            var nextId=fallbackId||appId;
-            webOS.service.request('luna://com.webos.applicationManager',{
-              method:'launch',
-              parameters:{id:nextId},
-              onSuccess:function(){},
-              onFailure:function(){if(platform==='crunchyroll'&&fallbackUrl)doOpenInBrowser();}
-            });
-          }
+          parameters:{id:appId},
+          onSuccess:function(){},
+          onFailure:function(){}
         });
       }
       function openStreaming(url,appId){
@@ -305,11 +283,7 @@ export async function GET(
             query:'contentId='+contentId+'&action=view&target=player'
           };
         }
-        var isCrunchy=appId==='com.crunchyroll.crmay'||appId==='crunchyroll';
-        var isMax=appId==='com.hbo.hbomax';
         function openInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else{window.open(url,'_blank');}}
-        if(isCrunchy){launchPartnerApp('crunchyroll',contentId||'',url);return;}
-        if(isMax&&contentId){launchPartnerApp('max',contentId);return;}
         function launchWithParams(params){
           var p={id:appId};
           if(params&&Object.keys(params).length){
@@ -341,9 +315,8 @@ export async function GET(
       document.addEventListener('click',function(e){
         var diagBtn=e.target&&e.target.closest&&e.target.closest('.diag-btn');
         if(diagBtn){
-          var platform=diagBtn.getAttribute('data-diag');
-          var contentId=diagBtn.getAttribute('data-content-id');
-          if(platform&&contentId){e.preventDefault();launchPartnerApp(platform,contentId);return;}
+          var diagAppId=diagBtn.getAttribute('data-app-id');
+          if(diagAppId){e.preventDefault();launchApp(diagAppId);return;}
         }
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
@@ -360,9 +333,8 @@ export async function GET(
           }
           var diagBtn=el&&el.closest&&el.closest('.diag-btn');
           if(diagBtn){
-            var platform=diagBtn.getAttribute('data-diag');
-            var contentId=diagBtn.getAttribute('data-content-id');
-            if(platform&&contentId){e.preventDefault();launchPartnerApp(platform,contentId);return}
+            var diagAppId=diagBtn.getAttribute('data-app-id');
+            if(diagAppId){e.preventDefault();launchApp(diagAppId);return}
           }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
