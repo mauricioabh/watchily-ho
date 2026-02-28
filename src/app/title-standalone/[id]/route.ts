@@ -216,8 +216,8 @@ export async function GET(
   <section class="diag-section">
     <h3>Diagnóstico rápido</h3>
     <div class="diag-btns">
-      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.crunchyroll.webos" data-fallback-url="https://www.crunchyroll.com">PROBAR CRUNCHYROLL</button>
-      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.hbo.hbomax" data-fallback-url="https://www.max.com">PROBAR MAX</button>
+      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.crunchyroll.webos">PROBAR CRUNCHYROLL</button>
+      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.hbo.hbomax">PROBAR MAX</button>
     </div>
   </section>
   </main>
@@ -260,16 +260,13 @@ export async function GET(
         var guidMatch=url.match(/([a-f0-9-]{36})/i);
         return guidMatch?guidMatch[1]:null;
       }
-      function openInBrowserWithUrl(targetUrl){
-        if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:targetUrl}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else if(typeof window!=='undefined'&&window.open){window.open(targetUrl,'_blank');}
-      }
-      function launchApp(appId,fallbackUrl){
-        if(!appId||typeof webOS==='undefined'||!webOS.service){if(fallbackUrl)openInBrowserWithUrl(fallbackUrl);return;}
+      function launchApp(appId){
+        if(!appId||typeof webOS==='undefined'||!webOS.service)return;
         webOS.service.request('luna://com.webos.applicationManager',{
           method:'launch',
           parameters:{id:appId},
           onSuccess:function(){},
-          onFailure:function(){if(fallbackUrl)openInBrowserWithUrl(fallbackUrl);}
+          onFailure:function(){}
         });
       }
       function openStreaming(url,appId){
@@ -286,7 +283,6 @@ export async function GET(
             query:'contentId='+contentId+'&action=view&target=player'
           };
         }
-        var isCrunchyOrMax=appId==='com.crunchyroll.webos'||appId==='com.crunchyroll.crmay'||appId==='com.hbo.hbomax';
         function openInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else{window.open(url,'_blank');}}
         function launchWithParams(params){
           var p={id:appId};
@@ -303,11 +299,11 @@ export async function GET(
           }
           if(typeof webOS!=='undefined'&&webOS.service){
             if(typeof console!=='undefined'&&console.log)console.log('webOS launch params:',JSON.stringify(p));
-            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else if(isCrunchyOrMax){openInBrowser();}}});
+            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}}});
           }else if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
             var devParams=p.params||(params&&params.params?params.params:{});
             if(typeof console!=='undefined'&&console.log)console.log('webOSDev launch params:',JSON.stringify({id:appId,params:devParams}));
-            webOSDev.launch({id:appId,params:devParams,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else if(isCrunchyOrMax){openInBrowser();}}});
+            webOSDev.launch({id:appId,params:devParams,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}}});
           }
         }
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams(launchParams)}}
@@ -320,8 +316,7 @@ export async function GET(
         var diagBtn=e.target&&e.target.closest&&e.target.closest('.diag-btn');
         if(diagBtn){
           var diagAppId=diagBtn.getAttribute('data-app-id');
-          var diagFallback=diagBtn.getAttribute('data-fallback-url');
-          if(diagAppId){e.preventDefault();launchApp(diagAppId,diagFallback||'');return;}
+          if(diagAppId){e.preventDefault();launchApp(diagAppId);return;}
         }
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
@@ -339,8 +334,7 @@ export async function GET(
           var diagBtn=el&&el.closest&&el.closest('.diag-btn');
           if(diagBtn){
             var diagAppId=diagBtn.getAttribute('data-app-id');
-            var diagFallback=diagBtn.getAttribute('data-fallback-url');
-            if(diagAppId){e.preventDefault();launchApp(diagAppId,diagFallback||'');return}
+            if(diagAppId){e.preventDefault();launchApp(diagAppId);return}
           }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
