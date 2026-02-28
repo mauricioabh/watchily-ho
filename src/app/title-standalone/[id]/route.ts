@@ -78,16 +78,16 @@ export async function GET(
     "disney+": "com.disney.disneyplus-prod",
     "disney plus": "com.disney.disneyplus-prod",
     disneyplus: "com.disney.disneyplus-prod",
-    "hbo max": "com.hbo.hbomax",
-    hbomax: "com.hbo.hbomax",
-    max: "com.hbo.hbomax",
+    "hbo max": "com.wbd.max",
+    hbomax: "com.wbd.max",
+    max: "com.wbd.max",
     "amazon prime video": "amazon",
     "amazon prime": "amazon",
     "prime video": "amazon",
     prime: "amazon",
     amazon: "amazon",
-    crunchyroll: "com.crunchyroll.webos",
-    "crunchy roll": "com.crunchyroll.webos",
+    crunchyroll: "com.crunchyroll.crmay",
+    "crunchy roll": "com.crunchyroll.crmay",
     "paramount+": "com.paramount.paramountplus",
     paramountplus: "com.paramount.paramountplus",
     "apple tv+": "com.apple.appletv",
@@ -104,9 +104,9 @@ export async function GET(
       webOSAppIds[noSpaces] ??
       webOSAppIds[raw.replace(/\s+/g, "")] ??
       (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined) ??
-      (raw.includes("crunchy") ? "com.crunchyroll.webos" : undefined) ??
+      (raw.includes("crunchy") ? "com.crunchyroll.crmay" : undefined) ??
       (raw.includes("paramount") ? "com.paramount.paramountplus" : undefined) ??
-      (raw.includes("hbo") || raw.includes("max") ? "com.hbo.hbomax" : undefined) ??
+      (raw.includes("hbo") || raw.includes("max") ? "com.wbd.max" : undefined) ??
       (raw.includes("disney") ? "com.disney.disneyplus-prod" : undefined) ??
       (raw.includes("netflix") ? "netflix" : undefined)
     );
@@ -216,8 +216,8 @@ export async function GET(
   <section class="diag-section">
     <h3>Diagnóstico rápido</h3>
     <div class="diag-btns">
-      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.crunchyroll.webos">PROBAR CRUNCHYROLL</button>
-      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.hbo.hbomax">PROBAR MAX</button>
+      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.crunchyroll.crmay" data-fallback-url="https://www.crunchyroll.com">PROBAR CRUNCHYROLL</button>
+      <button type="button" class="diag-btn" tabindex="0" data-app-id="com.wbd.max" data-fallback-url="https://www.max.com">PROBAR MAX</button>
     </div>
   </section>
   </main>
@@ -245,78 +245,34 @@ export async function GET(
       [0,100,400,800,1500,3000,5000].forEach(function(ms){setTimeout(focusFirst,ms)});
       if(document.readyState!=='complete')window.addEventListener('load',function(){[0,100,400].forEach(function(ms){setTimeout(focusFirst,ms)})});
 
-      function extractContentId(url){
-        if(!url||typeof url!=='string')return null;
-        var entityMatch=url.match(/entity-([a-f0-9-]{36})/i);
-        if(entityMatch)return entityMatch[1];
-        var crunchyMatch=url.match(/crunchyroll[^/]*\\/watch\\/([A-Za-z0-9]+)/i);
-        if(crunchyMatch)return crunchyMatch[1];
-        var crunchySeries=url.match(/crunchyroll[^/]*\\/series\\/[^/]+\\/([A-Za-z0-9]{8,})/i);
-        if(crunchySeries)return crunchySeries[1];
-        var crunchyMedia=url.match(/[?&]mediaId=([A-Za-z0-9]+)/i);
-        if(crunchyMedia)return crunchyMedia[1];
-        var standardMatch=url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/(?:video|movies?|series)\\/(?:[^/]+\\/)?([^/?]+)/i);
-        if(standardMatch)return standardMatch[1];
-        var guidMatch=url.match(/([a-f0-9-]{36})/i);
-        return guidMatch?guidMatch[1]:null;
+      function openInBrowserWithUrl(targetUrl){
+        if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:targetUrl}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else if(typeof window!=='undefined'&&window.open){window.open(targetUrl,'_blank');}
       }
-      function launchApp(appId){
-        if(!appId||typeof webOS==='undefined'||!webOS.service)return;
+      function launchApp(appId,fallbackUrl){
+        if(!appId||typeof webOS==='undefined'||!webOS.service){if(fallbackUrl)openInBrowserWithUrl(fallbackUrl);return;}
         webOS.service.request('luna://com.webos.applicationManager',{
           method:'launch',
           parameters:{id:appId},
           onSuccess:function(){},
-          onFailure:function(){}
+          onFailure:function(){if(fallbackUrl)openInBrowserWithUrl(fallbackUrl);}
         });
       }
       function openStreaming(url,appId){
         if(!url||url==='#')return;
         if(appId){
-        var contentId=extractContentId(url);
-        var isDisney=appId==='com.disney.disneyplus-prod';
-        var launchParams={};
-        if(isDisney&&contentId){
-          var contentTarget='https://www.disneyplus.com/browse/entity-'+contentId;
-          launchParams={
-            contentTarget:contentTarget,
-            params:{action:'view',target:'player',contentId:contentId},
-            query:'contentId='+contentId+'&action=view&target=player'
-          };
-        }
-        function openInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else{window.open(url,'_blank');}}
-        function launchWithParams(params){
-          var p={id:appId};
-          if(params&&Object.keys(params).length){
-            p.contentTarget=params.contentTarget;
-            p.query=params.query;
-            p.params={
-              action:params.params&&params.params.action,
-              target:params.params&&params.params.target,
-              contentId:params.params&&params.params.contentId,
-              contentTarget:params.contentTarget,
-              query:params.query
-            };
-          }
-          if(typeof webOS!=='undefined'&&webOS.service){
-            if(typeof console!=='undefined'&&console.log)console.log('webOS launch params:',JSON.stringify(p));
-            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}}});
-          }else if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
-            var devParams=p.params||(params&&params.params?params.params:{});
-            if(typeof console!=='undefined'&&console.log)console.log('webOSDev launch params:',JSON.stringify({id:appId,params:devParams}));
-            webOSDev.launch({id:appId,params:devParams,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}}});
-          }
-        }
-        try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams(launchParams)}}
+          launchApp(appId,url);
         }else if(typeof webOS!=='undefined'&&webOS.service){
           try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}
+        }else if(typeof window!=='undefined'&&window.open){
+          window.open(url,'_blank');
         }
-        if(!appId&&(!webOS||!webOS.service)){window.open(url,'_blank');}
       }
       document.addEventListener('click',function(e){
         var diagBtn=e.target&&e.target.closest&&e.target.closest('.diag-btn');
         if(diagBtn){
           var diagAppId=diagBtn.getAttribute('data-app-id');
-          if(diagAppId){e.preventDefault();launchApp(diagAppId);return;}
+          var diagFallback=diagBtn.getAttribute('data-fallback-url');
+          if(diagAppId){e.preventDefault();launchApp(diagAppId,diagFallback||'');return;}
         }
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
@@ -334,7 +290,8 @@ export async function GET(
           var diagBtn=el&&el.closest&&el.closest('.diag-btn');
           if(diagBtn){
             var diagAppId=diagBtn.getAttribute('data-app-id');
-            if(diagAppId){e.preventDefault();launchApp(diagAppId);return}
+            var diagFallback=diagBtn.getAttribute('data-fallback-url');
+            if(diagAppId){e.preventDefault();launchApp(diagAppId,diagFallback||'');return}
           }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
