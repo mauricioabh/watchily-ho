@@ -86,8 +86,8 @@ export async function GET(
     "prime video": "amazon",
     prime: "amazon",
     amazon: "amazon",
-    crunchyroll: "com.crunchyroll.webos",
-    "crunchy roll": "com.crunchyroll.webos",
+    crunchyroll: "com.crunchyroll.crmay",
+    "crunchy roll": "com.crunchyroll.crmay",
     "paramount+": "com.paramount.paramountplus",
     paramountplus: "com.paramount.paramountplus",
     "apple tv+": "com.apple.appletv",
@@ -104,7 +104,7 @@ export async function GET(
       webOSAppIds[noSpaces] ??
       webOSAppIds[raw.replace(/\s+/g, "")] ??
       (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined) ??
-      (raw.includes("crunchy") ? "com.crunchyroll.webos" : undefined) ??
+      (raw.includes("crunchy") ? "com.crunchyroll.crmay" : undefined) ??
       (raw.includes("paramount") ? "com.paramount.paramountplus" : undefined) ??
       (raw.includes("hbo") || raw.includes("max") ? "com.hbo.hbomax" : undefined) ??
       (raw.includes("disney") ? "com.disney.disneyplus-prod" : undefined) ??
@@ -179,6 +179,11 @@ export async function GET(
     .source-link:hover,.source-link:focus{background:rgba(99,102,241,0.3);border-color:#6366f1;outline:3px solid #e5b00b;outline-offset:2px}
     .source-name{display:block;font-size:22px;font-weight:600;margin-bottom:6px}
     .source-type{font-size:18px;color:#888}
+    .diag-section{margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.1)}
+    .diag-section h3{font-size:20px;color:#888;margin-bottom:12px}
+    .diag-btns{display:flex;gap:12px;flex-wrap:wrap}
+    .diag-btn{padding:14px 24px;border-radius:8px;font-size:18px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-family:inherit}
+    .diag-btn:hover,.diag-btn:focus{background:rgba(99,102,241,0.3);outline:3px solid #e5b00b;outline-offset:2px}
   </style>
 </head>
 <body>
@@ -208,11 +213,18 @@ export async function GET(
   ${subSources.length ? `<section><h3>Disponible con suscripción</h3><div class="sources-grid">${sourceCards(subSources)}</div></section>` : ""}
   ${paidSources.length ? `<section><h3>Alquiler / Compra</h3><div class="sources-grid">${sourceCards(paidSources)}</div></section>` : ""}
   ${uniqueSources.length === 0 ? `<p style="color:#888;font-size:24px">No hay fuentes de streaming disponibles para esta región.</p>` : ""}
+  <section class="diag-section">
+    <h3>Diagnóstico rápido</h3>
+    <div class="diag-btns">
+      <button type="button" class="diag-btn" tabindex="0" data-diag="crunchyroll" data-content-id="G6WEN1W36">PROBAR CRUNCHYROLL</button>
+      <button type="button" class="diag-btn" tabindex="0" data-diag="max" data-content-id="08496464-90a1-4384-8843-17793d25868e">PROBAR MAX</button>
+    </div>
+  </section>
   </main>
   <script>
     /* Flujo control remoto: .cursor/skills/tv-remote-control-flow */
     (function(){
-      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link');
+      var f=document.querySelectorAll('.tv-nav a, .tv-nav button, .btn-bookmark, .trailer-link, .source-link, .diag-btn');
       function i(el){for(var j=0;j<f.length;j++)if(f[j]===el)return j;return -1}
       var navCount=6;
       var firstSource=null,firstSourceIdx=-1;
@@ -237,10 +249,42 @@ export async function GET(
         if(!url||typeof url!=='string')return null;
         var entityMatch=url.match(/entity-([a-f0-9-]{36})/i);
         if(entityMatch)return entityMatch[1];
+        var crunchyMatch=url.match(/crunchyroll\\.com\\/watch\\/([A-Za-z0-9]+)/i);
+        if(crunchyMatch)return crunchyMatch[1];
+        var crunchyMedia=url.match(/[?&]mediaId=([A-Za-z0-9]+)/i);
+        if(crunchyMedia)return crunchyMedia[1];
         var standardMatch=url.match(/(?:disneyplus|go\\.disneyplus)\\.com\\/(?:video|movies?|series)\\/(?:[^/]+\\/)?([^/?]+)/i);
         if(standardMatch)return standardMatch[1];
         var guidMatch=url.match(/([a-f0-9-]{36})/i);
         return guidMatch?guidMatch[1]:null;
+      }
+      function launchPartnerApp(platform,contentId){
+        var appId='',params={};
+        if(platform==='crunchyroll'){
+          appId='com.crunchyroll.crmay';
+          params={contentId:contentId,mediaId:contentId};
+        }else if(platform==='max'){
+          appId='com.hbo.hbomax';
+          params={entityId:contentId};
+        }
+        if(!appId)return;
+        var payload={id:appId,params:params};
+        if(typeof window.logToScreen==='function')window.logToScreen('Lanzando '+platform+' con ID: '+contentId);
+        if(typeof webOS==='undefined'||!webOS.service){if(typeof console!=='undefined'&&console.log)console.log('webOS no disponible');return;}
+        webOS.service.request('luna://com.webos.applicationManager',{
+          method:'launch',
+          parameters:payload,
+          onSuccess:function(res){if(typeof console!=='undefined'&&console.log)console.log('App abierta correctamente',res);},
+          onFailure:function(err){
+            if(typeof console!=='undefined'&&console.error)console.error('Error de lanzamiento, reintentando basico...',err);
+            webOS.service.request('luna://com.webos.applicationManager',{
+              method:'launch',
+              parameters:{id:appId},
+              onSuccess:function(){},
+              onFailure:function(){}
+            });
+          }
+        });
       }
       function openStreaming(url,appId){
         if(!url||url==='#')return;
@@ -256,9 +300,12 @@ export async function GET(
             query:'contentId='+contentId+'&action=view&target=player'
           };
         }
-        var isCrunchy=appId==='com.crunchyroll.webos'||appId==='crunchyroll';
+        var isCrunchy=appId==='com.crunchyroll.crmay'||appId==='crunchyroll';
+        var isMax=appId==='com.hbo.hbomax';
         function openInBrowser(){if(typeof webOS!=='undefined'&&webOS.service){try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}}else{window.open(url,'_blank');}}
+        if(isCrunchy&&contentId){launchPartnerApp('crunchyroll',contentId);return;}
         if(isCrunchy){openInBrowser();return;}
+        if(isMax&&contentId){launchPartnerApp('max',contentId);return;}
         function launchWithParams(params){
           var p={id:appId};
           if(params&&Object.keys(params).length){
@@ -288,6 +335,12 @@ export async function GET(
         if(!appId&&(!webOS||!webOS.service)){window.open(url,'_blank');}
       }
       document.addEventListener('click',function(e){
+        var diagBtn=e.target&&e.target.closest&&e.target.closest('.diag-btn');
+        if(diagBtn){
+          var platform=diagBtn.getAttribute('data-diag');
+          var contentId=diagBtn.getAttribute('data-content-id');
+          if(platform&&contentId){e.preventDefault();launchPartnerApp(platform,contentId);return;}
+        }
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
         if(!el||!el.href||el.href==='#')return;
         var url=el.getAttribute('data-url')||el.href,appId=el.getAttribute('data-app-id');
@@ -300,6 +353,12 @@ export async function GET(
           if(srcLink){
             var url=srcLink.getAttribute('data-url')||srcLink.href,appId=srcLink.getAttribute('data-app-id')||'';
             if(url&&url!=='#'){e.preventDefault();openStreaming(url,appId);return}
+          }
+          var diagBtn=el&&el.closest&&el.closest('.diag-btn');
+          if(diagBtn){
+            var platform=diagBtn.getAttribute('data-diag');
+            var contentId=diagBtn.getAttribute('data-content-id');
+            if(platform&&contentId){e.preventDefault();launchPartnerApp(platform,contentId);return}
           }
           if(el&&el.tagName==='A'&&el.href){el.click();e.preventDefault()}
           return;
