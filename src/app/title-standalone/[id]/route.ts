@@ -256,8 +256,11 @@ export async function GET(
             query:'contentId='+contentId+'&action=view&target=player'
           };
         }
-        function launchWithParams(params){
-          var p={id:appId};
+        var isCrunchy=appId==='com.crunchyroll.webos'||appId==='crunchyroll';
+        var crunchFallback=appId==='com.crunchyroll.webos'?'crunchyroll':'com.crunchyroll.webos';
+        function launchWithParams(params,tryAppId){
+          var aid=tryAppId||appId;
+          var p={id:aid};
           if(params&&Object.keys(params).length){
             p.contentTarget=params.contentTarget;
             p.query=params.query;
@@ -271,14 +274,20 @@ export async function GET(
           }
           if(typeof webOS!=='undefined'&&webOS.service){
             if(typeof console!=='undefined'&&console.log)console.log('webOS launch params:',JSON.stringify(p));
-            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
+            webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:p,onSuccess:function(){},onFailure:function(){
+              if(params&&Object.keys(params).length&&isDisney){launchWithParams(params,appId);}
+              else if(isCrunchy&&aid===appId){launchWithParams(launchParams,crunchFallback);}
+            }});
           }else if(typeof webOSDev!=='undefined'&&webOSDev&&webOSDev.launch){
             var devParams=p.params||(params&&params.params?params.params:{});
-            if(typeof console!=='undefined'&&console.log)console.log('webOSDev launch params:',JSON.stringify({id:appId,params:devParams}));
-            webOSDev.launch({id:appId,params:devParams,onSuccess:function(){},onFailure:function(){if(params&&Object.keys(params).length&&isDisney){launchWithParams({})}else{}}});
+            if(typeof console!=='undefined'&&console.log)console.log('webOSDev launch params:',JSON.stringify({id:aid,params:devParams}));
+            webOSDev.launch({id:aid,params:devParams,onSuccess:function(){},onFailure:function(){
+              if(params&&Object.keys(params).length&&isDisney){launchWithParams(params,appId);}
+              else if(isCrunchy&&aid===appId){launchWithParams(launchParams,crunchFallback);}
+            }});
           }
         }
-        try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
+        try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams(launchParams)}else if(isCrunchy){launchWithParams(launchParams,crunchFallback)}}
         }else if(typeof webOS!=='undefined'&&webOS.service){
           try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}
         }
