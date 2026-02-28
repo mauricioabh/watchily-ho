@@ -77,18 +77,45 @@ export async function GET(
     netflix: "netflix",
     "disney+": "com.disney.disneyplus-prod",
     "disney plus": "com.disney.disneyplus-prod",
+    disneyplus: "com.disney.disneyplus-prod",
     "hbo max": "com.hbo.hbomax",
     hbomax: "com.hbo.hbomax",
+    max: "com.hbo.hbomax",
+    "amazon prime video": "amazon",
+    "amazon prime": "amazon",
+    "prime video": "amazon",
+    prime: "amazon",
+    amazon: "amazon",
+    crunchyroll: "crunchyroll",
+    "crunchy roll": "crunchyroll",
+    "paramount+": "com.paramount.paramountplus",
+    paramountplus: "com.paramount.paramountplus",
+    "apple tv+": "com.apple.appletv",
+    appletv: "com.apple.appletv",
+    "apple tv plus": "com.apple.appletv",
   };
+  function resolveWebOSAppId(providerName: string): string | undefined {
+    const raw = (providerName ?? "").toLowerCase().trim();
+    const normalized = raw.replace(/\s+/g, " ").replace(/[+]/g, "");
+    const noSpaces = raw.replace(/\s+/g, "").replace(/[+]/g, "");
+    return (
+      webOSAppIds[raw] ??
+      webOSAppIds[normalized] ??
+      webOSAppIds[noSpaces] ??
+      webOSAppIds[raw.replace(/\s+/g, "")] ??
+      (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined) ??
+      (raw.includes("crunchy") ? "crunchyroll" : undefined) ??
+      (raw.includes("paramount") ? "com.paramount.paramountplus" : undefined) ??
+      (raw.includes("hbo") || raw.includes("max") ? "com.hbo.hbomax" : undefined) ??
+      (raw.includes("disney") ? "com.disney.disneyplus-prod" : undefined) ??
+      (raw.includes("netflix") ? "netflix" : undefined)
+    );
+  }
   const sourceCards = (sources: typeof uniqueSources) =>
     sources
       .map((s) => {
         const url = s.url ?? "#";
-        const provider = (s.providerName ?? "")
-          .toLowerCase()
-          .replace(/\s+/g, " ");
-        const appId =
-          webOSAppIds[provider] ?? webOSAppIds[provider.replace(" ", "")];
+        const appId = resolveWebOSAppId(s.providerName ?? "");
         return `
     <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
       <span class="source-name">${escapeHtml(s.providerName)}</span>
@@ -216,7 +243,8 @@ export async function GET(
         return guidMatch?guidMatch[1]:null;
       }
       function openStreaming(url,appId){
-        if(!appId){return}
+        if(!url||url==='#')return;
+        if(appId){
         var contentId=extractContentId(url);
         var isDisney=appId==='com.disney.disneyplus-prod';
         var launchParams={};
@@ -251,6 +279,10 @@ export async function GET(
           }
         }
         try{launchWithParams(launchParams)}catch(e){if(isDisney){launchWithParams({})}}
+        }else if(typeof webOS!=='undefined'&&webOS.service){
+          try{webOS.service.request('luna://com.webos.applicationManager',{method:'launch',parameters:{id:'com.webos.app.browser',params:{url:url}},onSuccess:function(){},onFailure:function(){}});}catch(e){}
+        }
+        if(!appId&&(!webOS||!webOS.service)){window.open(url,'_blank');}
       }
       document.addEventListener('click',function(e){
         var el=e.target&&e.target.closest&&e.target.closest('.source-link');
