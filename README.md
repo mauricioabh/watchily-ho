@@ -67,3 +67,8 @@ Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la
 
 - **Hosted Web App**: Carpeta `lg-tv-hosted` con `appinfo.json` e `index.html` que redirige a `https://TU_APP.vercel.app/tv`.
 - **Modo TV** (`/tv`): Layout con safe areas (márgenes 5% y `env(safe-area-inset-*)`). Para navegación con mando a distancia se puede integrar `@noriginmedia/norigin-spatial-navigation` en un cliente que envuelva el contenido de `/tv`.
+
+## Production practices
+
+- **Pre-commit:** Husky runs lint-staged (`eslint --fix`, `prettier --write`) on staged `*.ts` / `*.tsx`.
+- **Observability:** Sentry planned — copy `.env.example` to `.env.local` and set `SENTRY_DSN` after creating the `watchily-ho` project in Sentry.
