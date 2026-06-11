@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { parseJsonBody } from "@/lib/api/validate";
+import { CreateListBodySchema } from "@/lib/openapi/schemas";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -25,7 +27,8 @@ export async function GET() {
   // Normalize: list_items comes as [{ count: N }] from PostgREST when available
   const lists = (data ?? []).map((l: { list_items?: { count: number }[] }) => {
     const { list_items, ...rest } = l as { list_items?: { count: number }[] };
-    const count = Array.isArray(list_items) && list_items[0] ? list_items[0].count : 0;
+    const count =
+      Array.isArray(list_items) && list_items[0] ? list_items[0].count : 0;
     return { ...rest, item_count: count };
   });
   return Response.json({ lists });
@@ -37,10 +40,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = await request.json();
-  const { name, is_public } = body as { name: string; is_public?: boolean };
-  if (!name?.trim()) {
-    return Response.json({ error: "Missing name" }, { status: 400 });
+  const parsed = parseJsonBody(CreateListBodySchema, body);
+  if ("error" in parsed) {
+    return Response.json({ error: parsed.error }, { status: 400 });
   }
+  const { name, is_public } = parsed.data;
   const { data, error } = await supabase
     .from("lists")
     .insert({ user_id: user.id, name: name.trim(), is_public: !!is_public })

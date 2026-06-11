@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseSearchParams } from "@/lib/api/validate";
+import { PairStatusQuerySchema } from "@/lib/openapi/schemas";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 /** TV polls this to check if code was claimed. Returns status and exchange_token when paired. */
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
-  if (!code || !/^\d{6}$/.test(code)) {
-    return NextResponse.json({ error: "Código inválido" }, { status: 400 });
+  const parsed = parseSearchParams(
+    PairStatusQuerySchema,
+    request.nextUrl.searchParams,
+  );
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
+  const { code } = parsed.data;
 
   const supabase = createAdminClient();
   const { data: row, error } = await supabase
@@ -26,7 +32,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (row.exchange_token) {
-    return NextResponse.json({ status: "paired", exchange_token: row.exchange_token });
+    return NextResponse.json({
+      status: "paired",
+      exchange_token: row.exchange_token,
+    });
   }
 
   return NextResponse.json({ status: "pending" });

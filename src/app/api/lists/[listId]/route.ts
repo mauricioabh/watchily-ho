@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
+import { parseJsonBody } from "@/lib/api/validate";
+import { UpdateListBodySchema } from "@/lib/openapi/schemas";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ listId: string }> }
+  { params }: { params: Promise<{ listId: string }> },
 ) {
   const { listId } = await params;
   const { client: supabase, user } = await getSupabaseAndUser();
@@ -16,13 +18,14 @@ export async function GET(
     .eq("id", listId)
     .eq("user_id", user.id)
     .single();
-  if (error || !data) return Response.json({ error: "Not found" }, { status: 404 });
+  if (error || !data)
+    return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json(data);
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ listId: string }> }
+  { params }: { params: Promise<{ listId: string }> },
 ) {
   const { listId } = await params;
   const { client: supabase, user } = await getSupabaseAndUser();
@@ -30,8 +33,13 @@ export async function PATCH(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = await request.json();
-  const { name, is_public } = body as { name?: string; is_public?: boolean };
-  const updates: { name?: string; is_public?: boolean; updated_at?: string } = {};
+  const parsed = parseJsonBody(UpdateListBodySchema, body);
+  if ("error" in parsed) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
+  const { name, is_public } = parsed.data;
+  const updates: { name?: string; is_public?: boolean; updated_at?: string } =
+    {};
   if (name !== undefined) updates.name = name;
   if (is_public !== undefined) updates.is_public = is_public;
   updates.updated_at = new Date().toISOString();
@@ -48,7 +56,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ listId: string }> }
+  { params }: { params: Promise<{ listId: string }> },
 ) {
   const { listId } = await params;
   const { client: supabase, user } = await getSupabaseAndUser();

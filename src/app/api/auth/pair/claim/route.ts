@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseJsonBody } from "@/lib/api/validate";
+import { PairClaimBodySchema } from "@/lib/openapi/schemas";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { randomUUID } from "crypto";
 
@@ -7,17 +9,22 @@ export const dynamic = "force-dynamic";
 /** Web: logged-in user claims the code. Stores their session for TV to exchange. */
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const code = body?.code?.toString()?.trim();
-
-  if (!code || !/^\d{6}$/.test(code)) {
-    return NextResponse.json({ error: "Código inválido" }, { status: 400 });
+  const parsed = parseJsonBody(PairClaimBodySchema, body);
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
+  const { code } = parsed.data;
 
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Inicia sesión primero" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Inicia sesión primero" },
+      { status: 401 },
+    );
   }
 
   const exchangeToken = randomUUID();
@@ -30,7 +37,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (fetchError || !existing) {
-    return NextResponse.json({ error: "Código no encontrado" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Código no encontrado" },
+      { status: 404 },
+    );
   }
 
   if (new Date(existing.expires_at) < new Date()) {

@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { parseSearchParams } from "@/lib/api/validate";
+import { SearchQuerySchema } from "@/lib/openapi/schemas";
 import { searchTitles, getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
@@ -11,24 +13,32 @@ export async function GET(request: NextRequest) {
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q");
-  const type = searchParams.get("type");
+  const parsed = parseSearchParams(SearchQuerySchema, searchParams);
+  if ("error" in parsed) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
 
-  if (!q || q.trim().length === 0) {
+  const q = parsed.data.q;
+  const type = parsed.data.type;
+
+  if (!q || q.length === 0) {
     return Response.json({ titles: [], totalCount: 0 });
   }
 
   const [{ data: profile }, { data: providerRows }] = await Promise.all([
     supabase.from("profiles").select("country_code").eq("id", user.id).single(),
-    supabase.from("user_providers").select("provider_id").eq("user_id", user.id),
+    supabase
+      .from("user_providers")
+      .select("provider_id")
+      .eq("user_id", user.id),
   ]);
 
-  const country = searchParams.get("country") ?? profile?.country_code ?? "MX";
+  const country = parsed.data.country ?? profile?.country_code ?? "MX";
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
 
   try {
     const types = type ? ([type] as ("movie" | "series")[]) : undefined;
-    const result = await searchTitles(q.trim(), { types, country });
+    const result = await searchTitles(q, { types, country });
 
     if (result.titles.length === 0) return Response.json(result);
 
@@ -37,7 +47,7 @@ export async function GET(request: NextRequest) {
     const rest = result.titles.slice(ENRICH_COUNT);
 
     const enriched = await Promise.allSettled(
-      toEnrich.map((t) => getTitleDetails(t.id, { country, region: country }))
+      toEnrich.map((t) => getTitleDetails(t.id, { country, region: country })),
     );
 
     const enrichedTitles: UnifiedTitle[] = toEnrich.map((original, i) => {
@@ -53,7 +63,7 @@ export async function GET(request: NextRequest) {
     // Also require a poster so every tile has something to display
     const filtered = filterTitlesByUserProviders(
       [...enrichedTitles, ...rest],
-      userProviderIds
+      userProviderIds,
     ).filter((t) => t.poster?.startsWith("http"));
 
     return Response.json({ titles: filtered, totalCount: filtered.length });

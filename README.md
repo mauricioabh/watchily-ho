@@ -71,4 +71,5 @@ Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la
 ## Production practices
 
 - **Pre-commit:** Husky runs lint-staged (`eslint --fix`, `prettier --write`) on staged `*.ts` / `*.tsx`.
+- **API contracts:** Zod schemas for priority `/api/*` routes → OpenAPI via `@asteasolutions/zod-to-openapi` → Scalar UI at `/api-docs` (spec JSON at `/api/openapi`).
 - **Observability:** Sentry planned — copy `.env.example` to `.env.local` and set `SENTRY_DSN` after creating the `watchily-ho` project in Sentry.
