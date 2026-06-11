@@ -1,0 +1,65 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+const DEFAULT_URL = "http://127.0.0.1:54321";
+const DEFAULT_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+const DEFAULT_SERVICE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6OjE5ODM4MTI5OTZ9.EGIM96RAZx35lJzdJsyH-qQv8Hdp7fsxs3T8Y1_YbIg";
+
+export function supabaseUrl(): string {
+  return process.env.SUPABASE_URL ?? DEFAULT_URL;
+}
+
+export function anonKey(): string {
+  return process.env.SUPABASE_ANON_KEY ?? DEFAULT_ANON_KEY;
+}
+
+export function serviceRoleKey(): string {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? DEFAULT_SERVICE_KEY;
+}
+
+export function serviceClient(): SupabaseClient {
+  return createClient(supabaseUrl(), serviceRoleKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export function anonClient(): SupabaseClient {
+  return createClient(supabaseUrl(), anonKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export async function createTestUser(
+  label: string,
+  password = "test-password-123",
+): Promise<{ id: string; email: string; client: SupabaseClient }> {
+  const email = `${label}-${crypto.randomUUID()}@rls-test.local`;
+  const admin = serviceClient();
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (error || !data.user) {
+    throw new Error(`createUser(${label}): ${error?.message ?? "no user"}`);
+  }
+
+  const client = anonClient();
+  const { error: signInError } = await client.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (signInError) {
+    throw new Error(`signIn(${label}): ${signInError.message}`);
+  }
+
+  return { id: data.user.id, email, client };
+}
+
+export async function deleteTestUser(userId: string): Promise<void> {
+  const { error } = await serviceClient().auth.admin.deleteUser(userId);
+  if (error) {
+    throw new Error(`deleteUser(${userId}): ${error.message}`);
+  }
+}

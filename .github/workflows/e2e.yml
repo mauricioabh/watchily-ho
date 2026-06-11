@@ -1,0 +1,46 @@
+name: E2E Smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    name: Playwright landing smoke
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder
+      SUPABASE_SECRET_KEY: sb_secret_placeholder
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Start production server
+        run: npm run start &
+
+      - name: Wait for Next.js
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000 > /dev/null && echo "Ready after ${i}s" && exit 0
+            sleep 1
+          done
+          echo "::error::Next.js did not become ready in 30s" && exit 1
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:e2e

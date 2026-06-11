@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
@@ -15,6 +16,7 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   if (isTVRequest(request)) {
+    Sentry.setTag("platform", "webos");
     let rewritePath: string | null = null;
     if (path === "/tv" || path === "/") rewritePath = "/tv-standalone";
     else if (path === "/search") rewritePath = "/search-standalone";

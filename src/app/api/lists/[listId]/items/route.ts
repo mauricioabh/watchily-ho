@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { parseJsonBody } from "@/lib/api/validate";
 import { AddListItemBodySchema } from "@/lib/openapi/schemas";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
+import { isInngestEnabled } from "@/lib/inngest-enabled";
+import { inngest } from "@/inngest/client";
 import { z } from "@/lib/openapi/common";
 
 const DeleteItemQuerySchema = z.object({
@@ -57,6 +59,22 @@ export async function POST(
     if (error.code === "23505") return Response.json({ ok: true });
     return Response.json({ error: error.message }, { status: 500 });
   }
+
+  if (isInngestEnabled()) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("country_code")
+      .eq("id", user.id)
+      .single();
+    await inngest.send({
+      name: "watchlist/item.added",
+      data: {
+        titleId: title_id,
+        countryCode: profile?.country_code ?? "MX",
+      },
+    });
+  }
+
   return Response.json({ ok: true });
 }
 

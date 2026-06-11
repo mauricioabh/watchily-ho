@@ -1,3 +1,7 @@
+import { initSentry, Sentry } from "./lib/sentry";
+
+initSentry();
+
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
@@ -68,7 +72,7 @@ const headerStyles = StyleSheet.create({
   logoText: { color: theme.colors.foreground, fontSize: 18, fontWeight: "600", letterSpacing: -0.3 },
 });
 
-export default function App() {
+function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -123,3 +127,5 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(App);

@@ -4,6 +4,7 @@ import { SearchQuerySchema } from "@/lib/openapi/schemas";
 import { searchTitles, getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
+import { rateLimitTitleSearch } from "@/lib/rate-limit";
 import type { UnifiedTitle } from "@/types/streaming";
 
 const ENRICH_COUNT = 8;
@@ -11,6 +12,17 @@ const ENRICH_COUNT = 8;
 export async function GET(request: NextRequest) {
   const { client: supabase, user } = await getSupabaseAndUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimit = await rateLimitTitleSearch(user.id);
+  if (rateLimit.limited) {
+    return Response.json(
+      { error: "Too many search requests. Try again shortly." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSec) },
+      },
+    );
+  }
 
   const { searchParams } = new URL(request.url);
   const parsed = parseSearchParams(SearchQuerySchema, searchParams);
