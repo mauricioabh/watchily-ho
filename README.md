@@ -74,7 +74,7 @@ Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la
 - **API contracts:** Zod schemas for priority `/api/*` routes → OpenAPI via `@asteasolutions/zod-to-openapi` → Scalar UI at `/api-docs` (spec JSON at `/api/openapi`).
 - **Observability:** `@sentry/nextjs` on web/TV (`platform=web|webos` tags); `@sentry/react-native` on Expo (`platform=mobile`). Set `SENTRY_DSN` in `.env.local` and `EXPO_PUBLIC_SENTRY_DSN` in `apps/mobile/.env`. Auth tokens and emails are scrubbed from breadcrumbs. Dev probe: `GET /api/debug/sentry`; verify with `npm run test:observability`.
 - **Async jobs:** Inngest refreshes watchlist title availability into `title_availability_cache` on add-to-list and daily cron. Supabase Queues alternative: [`docs/supabase-queues-alternative.md`](docs/supabase-queues-alternative.md). Set `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`.
-- **Rate limiting:** Upstash sliding window (20 req/min/user) on `GET /api/titles/search`. Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+- **Rate limiting:** Upstash sliding window (20 req/min/user) on `GET /api/titles/search`. Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Verify with `npm run test:rate-limit`.
 - **CI:** Supabase RLS isolation tests (`.github/workflows/rls.yml`); CodeQL; Playwright landing smoke on PRs (`npm run test:e2e`, workflow `e2e.yml`).
 - **RLS tests:** Row-level security policies in `supabase/migrations/` are verified with Vitest against local Supabase (`supabase start` then `npm run test:rls`). Covers profiles, lists, likes, and `pairing_codes` isolation. CI runs `.github/workflows/rls.yml` on PRs.
 - **Security scanning:** CodeQL (`.github/workflows/codeql.yml`); Dependabot for npm and GitHub Actions.

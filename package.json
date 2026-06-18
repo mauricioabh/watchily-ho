@@ -9,6 +9,7 @@
     "lint": "eslint",
     "deploy": "vercel",
     "test:rls": "vitest run tests/rls",
+    "test:rate-limit": "node --import tsx --test tests/rate-limit.test.ts",
     "test:e2e": "playwright test",
     "test:observability": "playwright test observability.spec.ts",
     "prepare": "husky",
@@ -60,6 +61,7 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vercel": "^50",
     "vitest": "^3.2.4"
