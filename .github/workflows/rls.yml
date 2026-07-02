@@ -16,7 +16,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.40.5
 
       - name: Start Supabase and apply migrations
         run: |
@@ -25,12 +25,32 @@ jobs:
 
       - name: Export Supabase credentials
         run: |
-          eval "$(supabase status -o env)"
-          # Local `supabase start` uses the well-known demo JWT secret; fixed keys avoid
-          # CLI env drift (null JSON fields, storage hex mistaken for API secret).
-          echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
-          echo "SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQv8Hdp7fsxs3T8Y1_YbIg" >> "$GITHUB_ENV"
+          STATUS="$(supabase status -o json)"
+          SUPABASE_URL="$(echo "$STATUS" | jq -r '.API_URL')"
+          SUPABASE_ANON_KEY="$(echo "$STATUS" | jq -r '.ANON_KEY // empty')"
+          SUPABASE_SERVICE_ROLE_KEY="$(echo "$STATUS" | jq -r '.SERVICE_ROLE_KEY // empty')"
+          if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Missing API keys from supabase status; falling back to -o env" >&2
+            eval "$(supabase status -o env)"
+            SUPABASE_URL="${API_URL}"
+            SUPABASE_ANON_KEY="${ANON_KEY:-$PUBLISHABLE_KEY}"
+            if [ -n "${SERVICE_ROLE_KEY:-}" ]; then
+              SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
+            elif [[ "${SECRET_KEY:-}" == sb_secret_* ]]; then
+              SUPABASE_SERVICE_ROLE_KEY="${SECRET_KEY}"
+            else
+              SUPABASE_SERVICE_ROLE_KEY=""
+            fi
+          fi
+          if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Could not resolve Supabase API keys" >&2
+            exit 1
+          fi
+          {
+            echo "SUPABASE_URL=${SUPABASE_URL}"
+            echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
