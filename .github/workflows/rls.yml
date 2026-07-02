@@ -28,12 +28,7 @@ jobs:
           eval "$(supabase status -o env)"
           echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
           echo "SUPABASE_DB_URL=${DB_URL}" >> "$GITHUB_ENV"
-          if [ -n "${ANON_KEY:-}" ] && [ -n "${SERVICE_ROLE_KEY:-}" ]; then
-            echo "SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
-            echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
-          else
-            node scripts/rls-export-keys.mjs >> "$GITHUB_ENV"
-          fi
+          node scripts/rls-export-keys.mjs >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
