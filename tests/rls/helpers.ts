@@ -5,25 +5,36 @@ const DEFAULT_URL = "http://127.0.0.1:54321";
 const DEFAULT_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 const DEFAULT_SERVICE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6OjE5ODM4MTI5OTZ9.EGIM96RAZx35lJzdJsyH-qQv8Hdp7fsxs3T8Y1_YbIg";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQv8Hdp7fsxs3T8Y1_YbIg";
+
+function envKey(...candidates: Array<string | undefined>): string | undefined {
+  for (const value of candidates) {
+    if (value && value !== "null") {
+      return value;
+    }
+  }
+  return undefined;
+}
 
 export function supabaseUrl(): string {
-  return process.env.SUPABASE_URL ?? DEFAULT_URL;
+  return envKey(process.env.SUPABASE_URL) ?? DEFAULT_URL;
 }
 
 export function anonKey(): string {
   return (
-    process.env.SUPABASE_ANON_KEY ??
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    DEFAULT_ANON_KEY
+    envKey(
+      process.env.SUPABASE_ANON_KEY,
+      process.env.SUPABASE_PUBLISHABLE_KEY,
+    ) ?? DEFAULT_ANON_KEY
   );
 }
 
 export function serviceRoleKey(): string {
   return (
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.SUPABASE_SECRET_KEY ??
-    DEFAULT_SERVICE_KEY
+    envKey(
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      process.env.SUPABASE_SECRET_KEY,
+    ) ?? DEFAULT_SERVICE_KEY
   );
 }
 
