@@ -25,7 +25,9 @@ jobs:
 
       - name: Export Supabase credentials
         run: |
+          set -a
           eval "$(supabase status -o env)"
+          set +a
           echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
           echo "SUPABASE_DB_URL=${DB_URL}" >> "$GITHUB_ENV"
           node scripts/rls-export-keys.mjs >> "$GITHUB_ENV"
