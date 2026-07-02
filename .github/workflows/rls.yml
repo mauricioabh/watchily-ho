@@ -26,29 +26,20 @@ jobs:
       - name: Export Supabase credentials
         run: |
           eval "$(supabase status -o env)"
-          SUPABASE_URL="${API_URL}"
+          echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
           if [ -n "${ANON_KEY:-}" ]; then
-            SUPABASE_ANON_KEY="${ANON_KEY}"
+            echo "SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
           else
-            SUPABASE_ANON_KEY="${PUBLISHABLE_KEY}"
+            echo "SUPABASE_ANON_KEY=${PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
           fi
           if [ -n "${SERVICE_ROLE_KEY:-}" ]; then
-            SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
           elif [[ "${SECRET_KEY:-}" == sb_secret_* ]]; then
-            SUPABASE_SERVICE_ROLE_KEY="${SECRET_KEY}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${SECRET_KEY}" >> "$GITHUB_ENV"
           else
-            SUPABASE_SERVICE_ROLE_KEY="$(supabase status 2>/dev/null | awk -F'│' '/Secret/{gsub(/ /,"",$3); if ($3 ~ /^sb_secret_/) {print $3; exit}}')"
+            SB_SECRET="$(supabase status 2>/dev/null | awk -F'│' '/Secret/{gsub(/ /,"",$3); if ($3 ~ /^sb_secret_/) {print $3; exit}}')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${SB_SECRET}" >> "$GITHUB_ENV"
           fi
-          if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "Could not resolve Supabase API keys" >&2
-            supabase status || true
-            exit 1
-          fi
-          {
-            echo "SUPABASE_URL=${SUPABASE_URL}"
-            echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}"
-            echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}"
-          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:

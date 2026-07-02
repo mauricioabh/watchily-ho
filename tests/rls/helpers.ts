@@ -53,11 +53,7 @@ export function anonClient(): SupabaseClient {
 export function userClient(accessToken: string): SupabaseClient {
   return createClient(supabaseUrl(), anonKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    accessToken: async () => accessToken,
   });
 }
 
