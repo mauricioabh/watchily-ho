@@ -50,6 +50,17 @@ export function anonClient(): SupabaseClient {
   });
 }
 
+export function userClient(accessToken: string): SupabaseClient {
+  return createClient(supabaseUrl(), anonKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+}
+
 export async function createTestUser(
   label: string,
   password = "test-password-123",
@@ -65,22 +76,18 @@ export async function createTestUser(
     throw new Error(`createUser(${label}): ${error?.message ?? "no user"}`);
   }
 
-  const client = anonClient();
-  const { error: signInError } = await client.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (signInError) {
-    throw new Error(`signIn(${label}): ${signInError.message}`);
+  const { data: signInData, error: signInError } =
+    await anonClient().auth.signInWithPassword({
+      email,
+      password,
+    });
+  if (signInError || !signInData.session) {
+    throw new Error(
+      `signIn(${label}): ${signInError?.message ?? "no session"}`,
+    );
   }
 
-  const { error: profileError } = await client.from("profiles").upsert({
-    id: data.user.id,
-    email,
-  });
-  if (profileError) {
-    throw new Error(`profile upsert(${label}): ${profileError.message}`);
-  }
+  const client = userClient(signInData.session.access_token);
 
   return { id: data.user.id, email, client };
 }
