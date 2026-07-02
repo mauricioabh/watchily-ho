@@ -21,13 +21,15 @@ describe("likes RLS", () => {
     const titleId = `title-${crypto.randomUUID()}`;
     await seedLike(userB.id, titleId, "movie");
 
-    const { error } = await userA.client
+    const { data, error } = await userA.client
       .from("likes")
       .delete()
       .eq("user_id", userB.id)
-      .eq("title_id", titleId);
+      .eq("title_id", titleId)
+      .select("user_id");
 
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
 
     const { data: stillLiked } = await userB.client
       .from("likes")

@@ -50,12 +50,14 @@ describe("profiles RLS", () => {
     const userB = await createTestUser("profiles-upd-b");
     createdUserIds.push(userA.id, userB.id);
 
-    const { error } = await userA.client
+    const { data, error } = await userA.client
       .from("profiles")
       .update({ display_name: "hacked" })
-      .eq("id", userB.id);
+      .eq("id", userB.id)
+      .select("id");
 
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
 
     const { data: profile } = await serviceClient()
       .from("profiles")

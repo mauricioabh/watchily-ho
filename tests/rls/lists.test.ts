@@ -20,12 +20,14 @@ describe("lists and list_items RLS", () => {
 
     const listBId = await seedList(userB.id, "Private B", false);
 
-    const { error } = await userA.client
+    const { data, error } = await userA.client
       .from("lists")
       .update({ name: "stolen" })
-      .eq("id", listBId);
+      .eq("id", listBId)
+      .select("id");
 
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
 
     const { data: unchanged } = await userB.client
       .from("lists")
@@ -75,12 +77,14 @@ describe("lists and list_items RLS", () => {
 
     const listBId = await seedList(userB.id, "Keep B", false);
 
-    const { error } = await userA.client
+    const { data, error } = await userA.client
       .from("lists")
       .delete()
-      .eq("id", listBId);
+      .eq("id", listBId)
+      .select("id");
 
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
 
     const { data: stillThere } = await userB.client
       .from("lists")
