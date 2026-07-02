@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createTestUser, deleteTestUser } from "./helpers";
+import { createTestUser, deleteTestUser, seedList } from "./helpers";
 
 const createdUserIds: string[] = [];
 
@@ -18,26 +18,19 @@ describe("lists and list_items RLS", () => {
     const userB = await createTestUser("lists-upd-b");
     createdUserIds.push(userA.id, userB.id);
 
-    const { data: listB, error: seedError } = await userB.client
-      .from("lists")
-      .insert({ user_id: userB.id, name: "Private B", is_public: false })
-      .select("id")
-      .single();
-    if (seedError || !listB) {
-      throw new Error(`seed list B failed: ${seedError?.message ?? "no row"}`);
-    }
+    const listBId = await seedList(userB.id, "Private B", false);
 
     const { error } = await userA.client
       .from("lists")
       .update({ name: "stolen" })
-      .eq("id", listB.id);
+      .eq("id", listBId);
 
     expect(error).not.toBeNull();
 
     const { data: unchanged } = await userB.client
       .from("lists")
       .select("name")
-      .eq("id", listB.id)
+      .eq("id", listBId)
       .single();
     expect(unchanged?.name).toBe("Private B");
   });
@@ -47,21 +40,12 @@ describe("lists and list_items RLS", () => {
     const userC = await createTestUser("lists-pub-c");
     createdUserIds.push(userB.id, userC.id);
 
-    const { data: publicList, error: seedError } = await userB.client
-      .from("lists")
-      .insert({ user_id: userB.id, name: "Public B", is_public: true })
-      .select("id, name")
-      .single();
-    if (seedError || !publicList) {
-      throw new Error(
-        `seed public list failed: ${seedError?.message ?? "no row"}`,
-      );
-    }
+    const publicListId = await seedList(userB.id, "Public B", true);
 
     const { data, error } = await userC.client
       .from("lists")
       .select("id, name")
-      .eq("id", publicList.id)
+      .eq("id", publicListId)
       .single();
 
     expect(error).toBeNull();
@@ -73,17 +57,10 @@ describe("lists and list_items RLS", () => {
     const userB = await createTestUser("lists-item-b");
     createdUserIds.push(userA.id, userB.id);
 
-    const { data: listB, error: seedError } = await userB.client
-      .from("lists")
-      .insert({ user_id: userB.id, name: "Items B", is_public: false })
-      .select("id")
-      .single();
-    if (seedError || !listB) {
-      throw new Error(`seed list B failed: ${seedError?.message ?? "no row"}`);
-    }
+    const listBId = await seedList(userB.id, "Items B", false);
 
     const { error } = await userA.client.from("list_items").insert({
-      list_id: listB.id,
+      list_id: listBId,
       title_id: "tm123",
       title_type: "movie",
     });
@@ -96,27 +73,20 @@ describe("lists and list_items RLS", () => {
     const userB = await createTestUser("lists-del-b");
     createdUserIds.push(userA.id, userB.id);
 
-    const { data: listB, error: seedError } = await userB.client
-      .from("lists")
-      .insert({ user_id: userB.id, name: "Keep B", is_public: false })
-      .select("id")
-      .single();
-    if (seedError || !listB) {
-      throw new Error(`seed list B failed: ${seedError?.message ?? "no row"}`);
-    }
+    const listBId = await seedList(userB.id, "Keep B", false);
 
     const { error } = await userA.client
       .from("lists")
       .delete()
-      .eq("id", listB.id);
+      .eq("id", listBId);
 
     expect(error).not.toBeNull();
 
     const { data: stillThere } = await userB.client
       .from("lists")
       .select("id")
-      .eq("id", listB.id)
+      .eq("id", listBId)
       .single();
-    expect(stillThere?.id).toBe(listB.id);
+    expect(stillThere?.id).toBe(listBId);
   });
 });

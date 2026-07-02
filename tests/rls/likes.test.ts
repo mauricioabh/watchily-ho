@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createTestUser, deleteTestUser } from "./helpers";
+import { createTestUser, deleteTestUser, seedLike } from "./helpers";
 
 const createdUserIds: string[] = [];
 
@@ -19,12 +19,7 @@ describe("likes RLS", () => {
     createdUserIds.push(userA.id, userB.id);
 
     const titleId = `title-${crypto.randomUUID()}`;
-    const { error: seedError } = await userB.client.from("likes").insert({
-      user_id: userB.id,
-      title_id: titleId,
-      title_type: "movie",
-    });
-    expect(seedError).toBeNull();
+    await seedLike(userB.id, titleId, "movie");
 
     const { error } = await userA.client
       .from("likes")
