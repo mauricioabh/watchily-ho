@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createTestUser, deleteTestUser, serviceClient } from "./helpers";
+import { createTestUser, deleteTestUser } from "./helpers";
 
 const createdUserIds: string[] = [];
 
@@ -19,8 +19,7 @@ describe("likes RLS", () => {
     createdUserIds.push(userA.id, userB.id);
 
     const titleId = `title-${crypto.randomUUID()}`;
-    const admin = serviceClient();
-    const { error: seedError } = await admin.from("likes").insert({
+    const { error: seedError } = await userB.client.from("likes").insert({
       user_id: userB.id,
       title_id: titleId,
       title_type: "movie",
@@ -35,7 +34,7 @@ describe("likes RLS", () => {
 
     expect(error).not.toBeNull();
 
-    const { data: stillLiked } = await admin
+    const { data: stillLiked } = await userB.client
       .from("likes")
       .select("user_id")
       .eq("user_id", userB.id)
