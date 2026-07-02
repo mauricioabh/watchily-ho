@@ -135,17 +135,19 @@ export async function createTestUser(
     );
   }
 
-  const { error: setSessionError } = await client.auth.setSession({
-    access_token: signInData.session.access_token,
-    refresh_token: signInData.session.refresh_token,
+  const accessToken = signInData.session.access_token;
+  const userClient = createClient(supabaseUrl(), anonKey(), {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
-  if (setSessionError) {
-    throw new Error(`setSession(${label}): ${setSessionError.message}`);
-  }
 
   await ensureProfile(data.user.id, email);
 
-  return { id: data.user.id, email, client };
+  return { id: data.user.id, email, client: userClient };
 }
 
 export async function deleteTestUser(userId: string): Promise<void> {
