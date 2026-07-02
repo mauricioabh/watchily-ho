@@ -16,7 +16,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.40.5
+          version: latest
 
       - name: Start Supabase and apply migrations
         run: |
@@ -25,25 +25,23 @@ jobs:
 
       - name: Export Supabase credentials
         run: |
-          STATUS="$(supabase status -o json)"
-          SUPABASE_URL="$(echo "$STATUS" | jq -r '.API_URL')"
-          SUPABASE_ANON_KEY="$(echo "$STATUS" | jq -r '.ANON_KEY // empty')"
-          SUPABASE_SERVICE_ROLE_KEY="$(echo "$STATUS" | jq -r '.SERVICE_ROLE_KEY // empty')"
-          if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "Missing API keys from supabase status; falling back to -o env" >&2
-            eval "$(supabase status -o env)"
-            SUPABASE_URL="${API_URL}"
-            SUPABASE_ANON_KEY="${ANON_KEY:-$PUBLISHABLE_KEY}"
-            if [ -n "${SERVICE_ROLE_KEY:-}" ]; then
-              SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
-            elif [[ "${SECRET_KEY:-}" == sb_secret_* ]]; then
-              SUPABASE_SERVICE_ROLE_KEY="${SECRET_KEY}"
-            else
-              SUPABASE_SERVICE_ROLE_KEY=""
-            fi
+          eval "$(supabase status -o env)"
+          SUPABASE_URL="${API_URL}"
+          if [ -n "${ANON_KEY:-}" ]; then
+            SUPABASE_ANON_KEY="${ANON_KEY}"
+          else
+            SUPABASE_ANON_KEY="${PUBLISHABLE_KEY}"
+          fi
+          if [ -n "${SERVICE_ROLE_KEY:-}" ]; then
+            SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
+          elif [[ "${SECRET_KEY:-}" == sb_secret_* ]]; then
+            SUPABASE_SERVICE_ROLE_KEY="${SECRET_KEY}"
+          else
+            SUPABASE_SERVICE_ROLE_KEY="$(supabase status 2>/dev/null | awk -F'│' '/Secret/{gsub(/ /,"",$3); if ($3 ~ /^sb_secret_/) {print $3; exit}}')"
           fi
           if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "Could not resolve Supabase API keys" >&2
+            supabase status || true
             exit 1
           fi
           {

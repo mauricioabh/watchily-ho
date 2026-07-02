@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createTestUser, deleteTestUser, serviceClient } from "./helpers";
+import {
+  createTestUser,
+  deleteTestUser,
+  expectNoRowAccess,
+  serviceClient,
+} from "./helpers";
 
 const createdUserIds: string[] = [];
 
@@ -32,13 +37,12 @@ describe("profiles RLS", () => {
     const userB = await createTestUser("profiles-b");
     createdUserIds.push(userA.id, userB.id);
 
-    const { data, error } = await userA.client
+    const result = await userA.client
       .from("profiles")
       .select("id")
       .eq("id", userB.id);
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectNoRowAccess(result);
   });
 
   it("user cannot update another user profile", async () => {
