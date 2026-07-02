@@ -74,7 +74,7 @@ export async function createTestUser(
     throw new Error(`signIn(${label}): ${signInError.message}`);
   }
 
-  const { error: profileError } = await admin.from("profiles").upsert({
+  const { error: profileError } = await client.from("profiles").upsert({
     id: data.user.id,
     email,
   });
