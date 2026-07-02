@@ -3,6 +3,7 @@ import {
   anonClient,
   createTestUser,
   deleteTestUser,
+  expectNoRowAccess,
   serviceClient,
 } from "./helpers";
 
@@ -23,13 +24,12 @@ describe("pairing_codes RLS", () => {
     const admin = serviceClient();
     await admin.from("pairing_codes").insert({ code });
 
-    const { data, error } = await anonClient()
+    const result = await anonClient()
       .from("pairing_codes")
       .select("code")
       .eq("code", code);
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectNoRowAccess(result);
   });
 
   it("authenticated user cannot SELECT pairing_codes", async () => {
@@ -39,12 +39,11 @@ describe("pairing_codes RLS", () => {
     const code = `PAIR-${crypto.randomUUID().slice(0, 8)}`;
     await serviceClient().from("pairing_codes").insert({ code });
 
-    const { data, error } = await user.client
+    const result = await user.client
       .from("pairing_codes")
       .select("code")
       .eq("code", code);
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectNoRowAccess(result);
   });
 });

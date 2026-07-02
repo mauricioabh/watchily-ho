@@ -25,9 +25,11 @@ jobs:
 
       - name: Export Supabase credentials
         run: |
-          echo "SUPABASE_URL=$(supabase status -o json | jq -r '.API_URL')" >> "$GITHUB_ENV"
-          echo "SUPABASE_ANON_KEY=$(supabase status -o json | jq -r '.ANON_KEY')" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o json | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+          # CLI ≥2.45 may omit legacy ANON_KEY/SERVICE_ROLE_KEY from JSON; use -o env + fallbacks.
+          eval "$(supabase status -o env)"
+          echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:

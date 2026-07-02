@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { expect } from "vitest";
 
 const DEFAULT_URL = "http://127.0.0.1:54321";
 const DEFAULT_ANON_KEY =
@@ -11,11 +12,19 @@ export function supabaseUrl(): string {
 }
 
 export function anonKey(): string {
-  return process.env.SUPABASE_ANON_KEY ?? DEFAULT_ANON_KEY;
+  return (
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    DEFAULT_ANON_KEY
+  );
 }
 
 export function serviceRoleKey(): string {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? DEFAULT_SERVICE_KEY;
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_SECRET_KEY ??
+    DEFAULT_SERVICE_KEY
+  );
 }
 
 export function serviceClient(): SupabaseClient {
@@ -61,5 +70,17 @@ export async function deleteTestUser(userId: string): Promise<void> {
   const { error } = await serviceClient().auth.admin.deleteUser(userId);
   if (error) {
     throw new Error(`deleteUser(${userId}): ${error.message}`);
+  }
+}
+
+/** RLS deny: PostgREST may return empty rows or a 42501 permission error. */
+export function expectNoRowAccess(result: {
+  data: unknown;
+  error: { code?: string } | null;
+}): void {
+  if (result.error) {
+    expect(result.error.code).toBe("42501");
+  } else {
+    expect(result.data).toEqual([]);
   }
 }
