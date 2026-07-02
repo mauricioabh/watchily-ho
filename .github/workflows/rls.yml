@@ -30,7 +30,7 @@ jobs:
           echo "SUPABASE_DB_URL=${DB_URL}" >> "$GITHUB_ENV"
           node scripts/rls-export-keys.mjs >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: npm
