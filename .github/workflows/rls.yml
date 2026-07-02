@@ -27,19 +27,12 @@ jobs:
         run: |
           eval "$(supabase status -o env)"
           echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
-          if [ -n "${ANON_KEY:-}" ]; then
-            echo "SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
-          else
-            echo "SUPABASE_ANON_KEY=${PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
-          fi
           echo "SUPABASE_DB_URL=${DB_URL}" >> "$GITHUB_ENV"
-          if [ -n "${SERVICE_ROLE_KEY:-}" ]; then
+          if [ -n "${ANON_KEY:-}" ] && [ -n "${SERVICE_ROLE_KEY:-}" ]; then
+            echo "SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
             echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
-          elif [[ "${SECRET_KEY:-}" == sb_secret_* ]]; then
-            echo "SUPABASE_SERVICE_ROLE_KEY=${SECRET_KEY}" >> "$GITHUB_ENV"
           else
-            SB_SECRET="$(supabase status 2>/dev/null | awk -F'│' '/Secret/{gsub(/ /,"",$3); if ($3 ~ /^sb_secret_/) {print $3; exit}}')"
-            echo "SUPABASE_SERVICE_ROLE_KEY=${SB_SECRET}" >> "$GITHUB_ENV"
+            node scripts/rls-export-keys.mjs >> "$GITHUB_ENV"
           fi
 
       - uses: actions/setup-node@v4
