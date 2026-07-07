@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = buildPageMetadata({
-  title: "Iniciar sesión",
-  pathname: "/login",
+  title: "Ajustes",
+  pathname: "/settings",
   noIndex: true,
 });
 
-export default function LoginLayout({
+export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;

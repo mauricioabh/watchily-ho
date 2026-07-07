@@ -1,3 +1,24 @@
+## ¿Qué es Watchily?
+
+Watchily es una aplicación web tipo JustWatch que te ayuda a descubrir en qué plataformas de streaming están disponibles películas y series en tu región.
+
+**En vivo:** https://watchily-ho.vercel.app/
+
+## ¿Para quién es?
+
+Para personas que quieren saber rápidamente dónde ver un título (Netflix, Disney+, Prime Video, etc.) sin buscar manualmente en cada servicio, y que quieren personalizar resultados según sus suscripciones.
+
+## FAQ
+
+### ¿Cómo sé dónde ver una película o serie?
+Busca el título en Watchily o abre su ficha de detalle. Watchily muestra en qué plataformas está disponible para ver con suscripción, alquiler o compra en tu región.
+
+### ¿Necesito pagar para usar Watchily?
+No. Watchily es gratuito. Solo necesitas crear una cuenta si quieres guardar listas y filtrar por tus plataformas suscritas.
+
+### ¿De dónde obtiene Watchily la información de streaming?
+Watchily combina datos de Watchmode y Streaming Availability para mostrar disponibilidad actualizada por país y plataforma.
+
 # Watchily
 
 App tipo JustWatch: descubre dónde ver películas y series en streaming.

@@ -1,10 +1,12 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PageTransition } from "@/components/page-transition";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { webApplicationJsonLd } from "@/lib/seo/json-ld";
+import { rootLayoutMetadata } from "@/lib/seo/metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,10 +19,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Watchily - Dónde ver películas y series",
-  description: "Descubre dónde ver películas y series en streaming",
-};
+export const metadata = rootLayoutMetadata();
 
 export default function RootLayout({
   children,
@@ -32,9 +31,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
+        <JsonLd data={webApplicationJsonLd()} />
         <ThemeProvider>
           <div className="flex min-h-screen flex-col">
-            <Suspense fallback={<header className="h-16 border-b border-white/8 bg-zinc-900/95" />}>
+            <Suspense
+              fallback={
+                <header className="h-16 border-b border-white/8 bg-zinc-900/95" />
+              }
+            >
               <Header />
             </Suspense>
             <div className="flex-1">
