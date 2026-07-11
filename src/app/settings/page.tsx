@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/settings-form";
+import { PushToggle } from "@/components/pwa/push-toggle";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -22,7 +23,8 @@ export default async function SettingsPage() {
   const selectedProviderIds = (providerRows ?? []).map((r) => r.provider_id);
 
   const defaultCountry = profile?.country_code ?? "MX";
-  const needsOnboarding = !profile?.country_code || selectedProviderIds.length === 0;
+  const needsOnboarding =
+    !profile?.country_code || selectedProviderIds.length === 0;
   const authProvider =
     (user.app_metadata as { provider?: string })?.provider ??
     user.identities?.[0]?.provider ??
@@ -30,7 +32,9 @@ export default async function SettingsPage() {
 
   return (
     <main className="container mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <h1 className="text-center text-2xl font-bold tracking-tight">Configuración</h1>
+      <h1 className="text-center text-2xl font-bold tracking-tight">
+        Configuración
+      </h1>
       <div className="mt-6 space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
         <div>
           <p className="text-sm text-muted-foreground">Email</p>
@@ -38,13 +42,16 @@ export default async function SettingsPage() {
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Iniciaste sesión con</p>
-          <p className="font-medium">{authProvider === "google" ? "Google" : "Email y contraseña"}</p>
+          <p className="font-medium">
+            {authProvider === "google" ? "Google" : "Email y contraseña"}
+          </p>
         </div>
         <SettingsForm
           initialCountry={defaultCountry}
           initialProviderIds={selectedProviderIds}
           redirectOnSave={needsOnboarding}
         />
+        <PushToggle />
       </div>
     </main>
   );

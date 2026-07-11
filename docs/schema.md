@@ -113,12 +113,34 @@ Códigos de vinculación para login en TV (second-screen, estilo JustWatch).
 
 ---
 
+### `public.push_subscriptions`
+
+Suscripciones Web Push (PWA) por usuario y dispositivo/navegador.
+
+| Columna    | Tipo      | Nullable | Default        | Descripción              |
+|------------|-----------|----------|----------------|--------------------------|
+| id         | uuid      | NO       | gen_random_uuid() | PK                    |
+| user_id    | uuid      | NO       | —              | FK → profiles            |
+| endpoint   | text      | NO       | —              | Único; endpoint del push |
+| p256dh     | text      | NO       | —              | Clave pública del cliente|
+| auth       | text      | NO       | —              | Secreto de autenticación |
+| user_agent | text      | YES      | —              | UA del dispositivo       |
+| created_at | timestamptz | YES    | now()          |                          |
+| updated_at | timestamptz | YES    | now()          |                          |
+
+- **Único:** `endpoint`.
+- **RLS:** activado. Usuarios solo gestionan sus propias suscripciones (`auth.uid() = user_id`).
+- **Envío:** el servidor usa `createAdminClient` + `web-push` con claves VAPID.
+
+---
+
 ## Migraciones
 
 - `20250219000001_profiles_and_providers.sql` — profiles, user_providers, trigger `handle_new_user`.
 - `20250219000002_lists_and_likes.sql` — lists, list_items, likes.
 - `20250223000001_default_country_mx.sql` — default country_code para nuevos perfiles: MX.
 - `20250224000001_pairing_codes.sql` — pairing_codes para TV second-screen login.
+- `20260711000000_push_subscriptions.sql` — push_subscriptions para Web Push (PWA).
 
 ---
 

@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import type { Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PageTransition } from "@/components/page-transition";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { webApplicationJsonLd } from "@/lib/seo/json-ld";
 import { rootLayoutMetadata } from "@/lib/seo/metadata";
 import "./globals.css";
@@ -21,6 +23,14 @@ const geistMono = Geist_Mono({
 
 export const metadata = rootLayoutMetadata();
 
+export const viewport: Viewport = {
+  themeColor: "#0b1120",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +42,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <JsonLd data={webApplicationJsonLd()} />
+        <ServiceWorkerRegister />
         <ThemeProvider>
           <div className="flex min-h-screen flex-col">
             <Suspense

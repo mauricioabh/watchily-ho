@@ -80,6 +80,19 @@ export function rootLayoutMetadata(): Metadata {
   return {
     metadataBase: new URL(getSiteUrl()),
     applicationName: PRODUCT_NAME,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      title: PRODUCT_NAME,
+      statusBarStyle: "black-translucent",
+    },
+    icons: {
+      icon: [
+        { url: "/icons/192", sizes: "192x192", type: "image/png" },
+        { url: "/icons/512", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }],
+    },
     title: {
       default: defaultTitle,
       template: `%s — ${PRODUCT_NAME}`,
