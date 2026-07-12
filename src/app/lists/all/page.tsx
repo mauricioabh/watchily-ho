@@ -12,7 +12,9 @@ export type ListSection = { id: string; name: string; titles: UnifiedTitle[] };
 
 async function AllTitlesData() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: providerRows } = await supabase
@@ -52,10 +54,13 @@ async function AllTitlesData() {
   const detailsMap = new Map<string, UnifiedTitle>();
   for (let i = 0; i < allUniqueIds.length; i += BATCH) {
     const batch = allUniqueIds.slice(i, i + BATCH);
-    const results = await Promise.allSettled(batch.map((id) => getTitleDetails(id)));
+    const results = await Promise.allSettled(
+      batch.map((id) => getTitleDetails(id)),
+    );
     for (let j = 0; j < batch.length; j++) {
       const r = results[j];
-      if (r.status === "fulfilled" && r.value) detailsMap.set(batch[j], r.value);
+      if (r.status === "fulfilled" && r.value)
+        detailsMap.set(batch[j], r.value);
     }
   }
 
@@ -93,9 +98,12 @@ export default async function AllTitlesPage() {
             {[1, 2].map((s) => (
               <div key={s} className="space-y-4">
                 <div className="h-6 w-40 animate-pulse rounded bg-white/5" />
-                <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-72 animate-pulse rounded-xl bg-white/5" />
+                    <div
+                      key={i}
+                      className="h-72 animate-pulse rounded-xl bg-white/5"
+                    />
                   ))}
                 </div>
               </div>

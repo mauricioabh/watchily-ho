@@ -9,22 +9,29 @@ import type { UnifiedTitle } from "@/types/streaming";
 export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  const trimmed = q.trim();
+  const searched = trimmed.length > 0;
+
   const [results, setResults] = useState<UnifiedTitle[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeQuery, setActiveQuery] = useState(trimmed);
+
+  // Reset UI state when the query string changes (render-time adjust).
+  if (trimmed !== activeQuery) {
+    setActiveQuery(trimmed);
+    setResults([]);
+    setErrorMessage(null);
+    setLoading(Boolean(trimmed));
+  }
 
   useEffect(() => {
-    if (!q.trim()) {
-      setSearched(false);
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    setSearched(true);
-    setErrorMessage(null);
-    fetch(`/api/titles/search?q=${encodeURIComponent(q.trim())}`)
+    if (!trimmed) return;
+
+    let cancelled = false;
+    fetch(`/api/titles/search?q=${encodeURIComponent(trimmed)}`)
       .then(async (res) => {
+        if (cancelled) return;
         if (res.status === 401) {
           window.location.href = "/login";
           return;
@@ -32,11 +39,21 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
         const data = await res.json();
         setResults(data.titles ?? []);
       })
-      .catch(() =>
-        setErrorMessage("No pudimos completar la búsqueda. Intenta nuevamente.")
-      )
-      .finally(() => setLoading(false));
-  }, [q]);
+      .catch(() => {
+        if (!cancelled) {
+          setErrorMessage(
+            "No pudimos completar la búsqueda. Intenta nuevamente.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [trimmed]);
 
   return (
     <main className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -50,9 +67,11 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
             Películas y series populares
           </h2>
           {popular.length === 0 ? (
-            <p className="text-muted-foreground">Usa el buscador de arriba para encontrar títulos.</p>
+            <p className="text-muted-foreground">
+              Usa el buscador de arriba para encontrar títulos.
+            </p>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
               {popular.map((title) => (
                 <TitleTile key={title.id} title={title} />
               ))}
@@ -72,18 +91,25 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
           {errorMessage ? (
             <p className="py-6 text-center text-destructive">{errorMessage}</p>
           ) : loading ? (
-            <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 animate-pulse rounded-xl bg-white/5" />
+                <div
+                  key={i}
+                  className="h-48 animate-pulse rounded-xl bg-white/5"
+                />
               ))}
             </div>
           ) : results.length === 0 ? (
             <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center sm:py-12">
-              <p className="text-muted-foreground">No hay resultados para esta búsqueda.</p>
-              <p className="mt-2 text-sm text-muted-foreground">Prueba con otro título o término.</p>
+              <p className="text-muted-foreground">
+                No hay resultados para esta búsqueda.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Prueba con otro título o término.
+              </p>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
               {results.map((title) => (
                 <TitleTile key={title.id} title={title} />
               ))}

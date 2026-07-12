@@ -149,5 +149,6 @@
       linear-gradient(180deg, #0b1120 0%, #080c18 30%, #060810 65%, #05070d 100%);
     min-height: 100dvh;
     background-attachment: fixed;
+    overflow-x: hidden;
   }
 }

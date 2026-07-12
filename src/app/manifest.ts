@@ -9,7 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: PRODUCT_NAME,
     description: DEFAULT_DESCRIPTION,
     id: "/",
-    start_url: "/popular",
+    // "/" muestra login si no hay sesión; si hay usuario, Home redirige a /popular
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

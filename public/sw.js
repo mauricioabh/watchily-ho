@@ -11,7 +11,7 @@
  *  - Web Push: show notifications + focus/open the app on click.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `watchily-shell-${VERSION}`;
 const STATIC_CACHE = `watchily-static-${VERSION}`;
 const IMAGE_CACHE = `watchily-images-${VERSION}`;
@@ -208,7 +208,7 @@ self.addEventListener("push", (event) => {
     body: payload.body || "",
     icon: payload.icon || "/icons/192",
     badge: payload.badge || "/icons/192",
-    data: { url: payload.url || "/popular" },
+    data: { url: payload.url || "/" },
     tag: payload.tag,
     renotify: Boolean(payload.tag),
   };
@@ -218,7 +218,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || "/popular";
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
 
   event.waitUntil(
     (async () => {

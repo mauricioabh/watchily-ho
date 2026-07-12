@@ -1,15 +1,23 @@
 import { Suspense } from "react";
 import { getPopularTitles } from "@/lib/streaming/unified";
-import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import {
+  PROVIDER_TO_SOURCE_ID,
+  filterTitlesByUserProviders,
+} from "@/lib/streaming/providers";
 import { TitleTile } from "@/components/title-tile";
 import { createClient } from "@/lib/supabase/server";
 
 async function PopularContent() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: providerRows } = user
-    ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)
+    ? await supabase
+        .from("user_providers")
+        .select("provider_id")
+        .eq("user_id", user.id)
     : { data: [] };
 
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
@@ -24,7 +32,10 @@ async function PopularContent() {
   ]);
 
   // Trim each title's sources to only the user's subscribed providers
-  const trimmed = filterTitlesByUserProviders([...movies, ...series], userProviderIds);
+  const trimmed = filterTitlesByUserProviders(
+    [...movies, ...series],
+    userProviderIds,
+  );
   const combined = trimmed.slice(0, 32);
 
   return combined.length === 0 ? (
@@ -34,7 +45,7 @@ async function PopularContent() {
       </p>
     </div>
   ) : (
-    <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
       {combined.map((title) => (
         <TitleTile key={title.id} title={title} />
       ))}
@@ -44,15 +55,18 @@ async function PopularContent() {
 
 export default function PopularPage() {
   return (
-    <main className="container mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <h1 className="mb-6 text-2xl font-bold text-foreground sm:text-3xl">
+    <main className="container mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <h1 className="mb-5 text-xl font-bold text-foreground sm:mb-6 sm:text-3xl">
         Películas y series populares
       </h1>
       <Suspense
         fallback={
-          <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="h-48 animate-pulse rounded-xl bg-white/5" />
+              <div
+                key={i}
+                className="aspect-2/3 animate-pulse rounded-xl bg-white/5"
+              />
             ))}
           </div>
         }

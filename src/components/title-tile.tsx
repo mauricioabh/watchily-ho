@@ -15,24 +15,45 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { TbBrandDisney, TbBrandHbo, TbBrandNetflix } from "react-icons/tb";
-import { SiAppletv, SiCrunchyroll, SiPrimevideo, SiParamountplus } from "react-icons/si";
+import {
+  SiAppletv,
+  SiCrunchyroll,
+  SiPrimevideo,
+  SiParamountplus,
+} from "react-icons/si";
 import type { UnifiedTitle, StreamingSource } from "@/types/streaming";
 import { cn } from "@/lib/utils";
 
 const API_BASE = "";
 
 /* ── Platform icon matcher ── */
-type IconComponent = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-interface PlatformDef { Icon: IconComponent; color: string; label: string }
+type IconComponent = React.ComponentType<{
+  className?: string;
+  style?: React.CSSProperties;
+}>;
+interface PlatformDef {
+  Icon: IconComponent;
+  color: string;
+  label: string;
+}
 
 const PLATFORMS: [RegExp, PlatformDef][] = [
-  [/netflix/i,    { Icon: TbBrandNetflix,  color: "#E50914", label: "Netflix" }],
-  [/disney/i,     { Icon: TbBrandDisney,   color: "#113CCF", label: "Disney+" }],
-  [/\b(hbo|max)\b/i, { Icon: TbBrandHbo,  color: "#B535F6", label: "HBO Max" }],
-  [/\b(prime|amazon)\b/i, { Icon: SiPrimevideo, color: "#00A8E1", label: "Prime Video" }],
-  [/apple/i,      { Icon: SiAppletv,       color: "#FFFFFF", label: "Apple TV+" }],
-  [/crunchyroll/i,{ Icon: SiCrunchyroll,   color: "#F47521", label: "Crunchyroll" }],
-  [/paramount/i,  { Icon: SiParamountplus, color: "#0064FF", label: "Paramount+" }],
+  [/netflix/i, { Icon: TbBrandNetflix, color: "#E50914", label: "Netflix" }],
+  [/disney/i, { Icon: TbBrandDisney, color: "#113CCF", label: "Disney+" }],
+  [/\b(hbo|max)\b/i, { Icon: TbBrandHbo, color: "#B535F6", label: "HBO Max" }],
+  [
+    /\b(prime|amazon)\b/i,
+    { Icon: SiPrimevideo, color: "#00A8E1", label: "Prime Video" },
+  ],
+  [/apple/i, { Icon: SiAppletv, color: "#FFFFFF", label: "Apple TV+" }],
+  [
+    /crunchyroll/i,
+    { Icon: SiCrunchyroll, color: "#F47521", label: "Crunchyroll" },
+  ],
+  [
+    /paramount/i,
+    { Icon: SiParamountplus, color: "#0064FF", label: "Paramount+" },
+  ],
 ];
 
 function getPlatformDef(name: string): PlatformDef | null {
@@ -57,7 +78,7 @@ function getSubscriptionSources(sources: StreamingSource[]): StreamingSource[] {
 /* ── IMDb logo badge ── */
 function ImdbBadge({ rating }: { rating: number }) {
   return (
-    <span className="flex items-center gap-1 rounded bg-[#f5c518] px-1.5 py-0.5 text-[11px] font-bold leading-none text-black">
+    <span className="flex items-center gap-0.5 rounded bg-[#f5c518] px-1 py-0.5 text-[10px] font-bold leading-none text-black sm:gap-1 sm:px-1.5 sm:text-[11px]">
       IMDb {rating.toFixed(1)}
     </span>
   );
@@ -67,10 +88,12 @@ function ImdbBadge({ rating }: { rating: number }) {
 function RTBadge({ rating }: { rating: number }) {
   const fresh = rating >= 60;
   return (
-    <span className={cn(
-      "flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-bold leading-none",
-      fresh ? "bg-red-600 text-white" : "bg-zinc-600 text-white"
-    )}>
+    <span
+      className={cn(
+        "flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-bold leading-none sm:gap-1 sm:px-1.5 sm:text-[11px]",
+        fresh ? "bg-red-600 text-white" : "bg-zinc-600 text-white",
+      )}
+    >
       {fresh ? "🍅" : "🥦"} {rating}%
     </span>
   );
@@ -107,11 +130,15 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title_id: title.id, title_type: title.type }),
     });
-    setListIdsForTitle((prev) => (prev.includes(listId) ? prev : [...prev, listId]));
+    setListIdsForTitle((prev) =>
+      prev.includes(listId) ? prev : [...prev, listId],
+    );
   };
 
   const removeFromList = async (listId: string) => {
-    await fetch(`${API_BASE}/api/lists/${listId}/items?title_id=${title.id}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/lists/${listId}/items?title_id=${title.id}`, {
+      method: "DELETE",
+    });
     setListIdsForTitle((prev) => prev.filter((id) => id !== listId));
   };
 
@@ -146,9 +173,11 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
           className="h-8 w-8 shrink-0 rounded-full bg-black/60 backdrop-blur-sm transition-all duration-150 hover:scale-110 hover:bg-black/85 hover:ring-2 hover:ring-primary/60"
           title="Añadir a lista"
         >
-          {inAnyList
-            ? <BookmarkCheck className="h-4 w-4 text-primary" />
-            : <Bookmark className="h-4 w-4" />}
+          {inAnyList ? (
+            <BookmarkCheck className="h-4 w-4 text-primary" />
+          ) : (
+            <Bookmark className="h-4 w-4" />
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
@@ -158,7 +187,9 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
         <p className="text-sm text-muted-foreground truncate">{title.name}</p>
 
         {lists.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">Aún no tienes listas. Crea una abajo.</p>
+          <p className="text-sm text-muted-foreground py-2">
+            Aún no tienes listas. Crea una abajo.
+          </p>
         ) : (
           <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
             {lists.map((list) => {
@@ -173,7 +204,9 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
                     variant={inList ? "destructive" : "default"}
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => inList ? removeFromList(list.id) : addToList(list.id)}
+                    onClick={() =>
+                      inList ? removeFromList(list.id) : addToList(list.id)
+                    }
                   >
                     {inList ? "Quitar" : "Añadir"}
                   </Button>
@@ -210,11 +243,16 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
   const subSources = title.sources ? getSubscriptionSources(title.sources) : [];
   const firstSource = title.sources?.find((s) => s.url);
-  const hasInfo = title.imdbRating != null || title.rottenTomatoesRating != null || subSources.length > 0;
+  const hasInfo =
+    title.imdbRating != null ||
+    title.rottenTomatoesRating != null ||
+    subSources.length > 0;
 
   // Use first platform's color for the hover glow
   const firstPlatformColor =
-    subSources.length > 0 ? (getPlatformDef(subSources[0].providerName)?.color ?? "#6366f1") : "#6366f1";
+    subSources.length > 0
+      ? (getPlatformDef(subSources[0].providerName)?.color ?? "#6366f1")
+      : "#6366f1";
 
   return (
     <motion.div
@@ -248,11 +286,13 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
         </Link>
 
         {/* Type badge — top left */}
-        <span className={`pointer-events-none absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-          title.type === "series"
-            ? "bg-primary text-primary-foreground"
-            : "bg-black/60 text-white/90 backdrop-blur-sm"
-        }`}>
+        <span
+          className={`pointer-events-none absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+            title.type === "series"
+              ? "bg-primary text-primary-foreground"
+              : "bg-black/60 text-white/90 backdrop-blur-sm"
+          }`}
+        >
           {title.type === "series" ? "SERIE" : "PELÍCULA"}
         </span>
 
@@ -261,34 +301,32 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
           <BookmarkDialog title={title} />
         </div>
 
-        {/* Year badge — bottom left */}
-        {title.year != null && (
-          <span className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 backdrop-blur-sm">
-            {title.year}
-          </span>
-        )}
+        {/* Year + ratings — bottom overlay (keeps mobile tiles short) */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end gap-1 bg-linear-to-t from-black/75 via-black/35 to-transparent px-2 pb-2 pt-8">
+          {title.year != null && (
+            <span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 backdrop-blur-sm">
+              {title.year}
+            </span>
+          )}
+          {title.imdbRating != null && <ImdbBadge rating={title.imdbRating} />}
+          {title.rottenTomatoesRating != null && (
+            <RTBadge rating={title.rottenTomatoesRating} />
+          )}
+        </div>
       </div>
 
-      {/* Info section */}
-      <div className="flex flex-col gap-2 p-2.5">
+      {/* Info section — compact on mobile so ~2 rows fit in the viewport */}
+      <div className="flex flex-col gap-1.5 p-2 sm:gap-2 sm:p-2.5">
         {/* Title */}
         <Link href={`/title/${title.id}`} className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground leading-tight">
+          <p className="truncate text-xs font-semibold leading-tight text-foreground sm:text-sm">
             {title.name}
           </p>
         </Link>
 
-        {/* Ratings */}
-        {(title.imdbRating != null || title.rottenTomatoesRating != null) && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {title.imdbRating != null && <ImdbBadge rating={title.imdbRating} />}
-            {title.rottenTomatoesRating != null && <RTBadge rating={title.rottenTomatoesRating} />}
-          </div>
-        )}
-
         {/* Platform icons — each links to that platform's page for this title */}
         {subSources.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
             {subSources.slice(0, 5).map((source, i) => {
               const def = getPlatformDef(source.providerName);
               const Wrapper = source.url
@@ -304,26 +342,32 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
                     </a>
                   )
                 : ({ children }: { children: React.ReactNode }) => (
-                    <span title={def?.label ?? source.providerName}>{children}</span>
+                    <span title={def?.label ?? source.providerName}>
+                      {children}
+                    </span>
                   );
 
-              if (!def) return (
-                <Wrapper key={i}>
-                  <span className="rounded-md border border-white/10 bg-white/8 px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:border-white/25 hover:text-foreground">
-                    {source.providerName}
-                  </span>
-                </Wrapper>
-              );
+              if (!def)
+                return (
+                  <Wrapper key={i}>
+                    <span className="rounded-md border border-white/10 bg-white/8 px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:border-white/25 hover:text-foreground sm:px-2">
+                      {source.providerName}
+                    </span>
+                  </Wrapper>
+                );
               return (
                 <Wrapper key={i}>
                   <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border transition-all duration-150 hover:scale-115 hover:brightness-125"
+                    className="flex h-6 w-6 items-center justify-center rounded-md border transition-all duration-150 hover:scale-115 hover:brightness-125 sm:h-8 sm:w-8 sm:rounded-lg"
                     style={{
                       backgroundColor: `${def.color}22`,
                       borderColor: `${def.color}55`,
                     }}
                   >
-                    <def.Icon className="h-5 w-5" style={{ color: def.color }} />
+                    <def.Icon
+                      className="h-3.5 w-3.5 sm:h-5 sm:w-5"
+                      style={{ color: def.color }}
+                    />
                   </div>
                 </Wrapper>
               );
@@ -331,40 +375,43 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
           </div>
         )}
 
-        {/* Ver ahora button */}
-        {firstSource?.url && (() => {
-          const def = getPlatformDef(firstSource.providerName);
-          // Apple TV+ brand is white — use dark bg instead
-          const isWhite = def?.color === "#FFFFFF";
-          const btnColor = isWhite ? "#2a2a2e" : (def?.color ?? "var(--primary)");
-          return (
-            <a
-              href={firstSource.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="group/play block"
-            >
-              <div
-                className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold text-white transition-all duration-150 ease-out group-hover/play:-translate-y-px group-hover/play:brightness-115 active:scale-95 active:brightness-90"
-                style={{
-                  background: `linear-gradient(135deg, ${btnColor}ee 0%, ${btnColor}99 100%)`,
-                  borderColor: `${btnColor}55`,
-                  boxShadow: `0 2px 10px ${btnColor}45, inset 0 1px 0 rgba(255,255,255,0.12)`,
-                }}
+        {/* Ver ahora — desktop/tablet only; on mobile the tile link + platform icons cover it */}
+        {firstSource?.url &&
+          (() => {
+            const def = getPlatformDef(firstSource.providerName);
+            // Apple TV+ brand is white — use dark bg instead
+            const isWhite = def?.color === "#FFFFFF";
+            const btnColor = isWhite
+              ? "#2a2a2e"
+              : (def?.color ?? "var(--primary)");
+            return (
+              <a
+                href={firstSource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="group/play hidden sm:block"
               >
-                <Play className="h-3 w-3 shrink-0 fill-white" />
-                <span>Ver ahora</span>
-                {def && (
-                  <def.Icon
-                    className="ml-auto h-4 w-4 shrink-0"
-                    style={{ color: isWhite ? "#fff" : def.color }}
-                  />
-                )}
-              </div>
-            </a>
-          );
-        })()}
+                <div
+                  className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold text-white transition-all duration-150 ease-out group-hover/play:-translate-y-px group-hover/play:brightness-115 active:scale-95 active:brightness-90"
+                  style={{
+                    background: `linear-gradient(135deg, ${btnColor}ee 0%, ${btnColor}99 100%)`,
+                    borderColor: `${btnColor}55`,
+                    boxShadow: `0 2px 10px ${btnColor}45, inset 0 1px 0 rgba(255,255,255,0.12)`,
+                  }}
+                >
+                  <Play className="h-3 w-3 shrink-0 fill-white" />
+                  <span>Ver ahora</span>
+                  {def && (
+                    <def.Icon
+                      className="ml-auto h-4 w-4 shrink-0"
+                      style={{ color: isWhite ? "#fff" : def.color }}
+                    />
+                  )}
+                </div>
+              </a>
+            );
+          })()}
 
         {/* Fallback: no info, just show genre/type hint */}
         {!hasInfo && !firstSource?.url && (

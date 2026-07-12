@@ -24,13 +24,16 @@ export function AllTitlesContent({ sections }: Props) {
     const q = query.trim().toLowerCase();
     if (!q) return sections;
     return sections
-      .map((s) => ({ ...s, titles: s.titles.filter((t) => t.name.toLowerCase().includes(q)) }))
+      .map((s) => ({
+        ...s,
+        titles: s.titles.filter((t) => t.name.toLowerCase().includes(q)),
+      }))
       .filter((s) => s.titles.length > 0);
   }, [sections, query]);
 
   const filteredTotal = useMemo(
     () => filteredSections.reduce((acc, s) => acc + s.titles.length, 0),
-    [filteredSections]
+    [filteredSections],
   );
 
   if (sections.length === 0) {
@@ -85,7 +88,9 @@ export function AllTitlesContent({ sections }: Props) {
       {/* No results */}
       {filteredSections.length === 0 && (
         <div className="rounded-xl border border-white/8 bg-card/30 py-16 text-center">
-          <p className="text-muted-foreground">Sin resultados para &ldquo;{query}&rdquo;</p>
+          <p className="text-muted-foreground">
+            Sin resultados para &ldquo;{query}&rdquo;
+          </p>
         </div>
       )}
 
@@ -94,15 +99,18 @@ export function AllTitlesContent({ sections }: Props) {
         <section key={section.id} className="space-y-4">
           {/* Section header */}
           <div className="flex items-center gap-2.5">
-            <h2 className="text-lg font-semibold text-foreground">{section.name}</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              {section.name}
+            </h2>
             <span className="rounded-full border border-white/10 bg-white/6 px-2 py-0.5 text-xs font-bold text-foreground/50">
-              {section.titles.length} {section.titles.length === 1 ? "título" : "títulos"}
+              {section.titles.length}{" "}
+              {section.titles.length === 1 ? "título" : "títulos"}
             </span>
             <div className="h-px flex-1 bg-white/6" />
           </div>
 
           {/* Tiles */}
-          <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
             {section.titles.map((title) => (
               <TitleTile key={title.id} title={title} />
             ))}
