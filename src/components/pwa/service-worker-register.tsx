@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 function isTvEnvironment(): boolean {
   if (typeof window === "undefined") return true;
   const ua = navigator.userAgent || "";
-  if (/webos|web0s|tizen|smarttv|netcast|lg browser/i.test(ua)) return true;
+  if (
+    /webos|web0s|tizen|smart-?tv|netcast|webappmanager|hbbtv|lg browser|aft[a-z0-9]|silk|android.?tv/i.test(
+      ua,
+    )
+  )
+    return true;
   const { pathname, searchParams } = new URL(window.location.href);
   if (pathname === "/tv" || pathname.startsWith("/tv/")) return true;
   if (pathname.endsWith("-standalone") || pathname.includes("-standalone/"))

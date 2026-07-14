@@ -172,10 +172,18 @@ export function HeaderClient({ user }: { user: User | null }) {
 
             {/* Mobile: search shortcut + menu toggle */}
             <div className="ml-auto flex items-center gap-1 md:hidden">
-              <Button asChild variant="ghost" size="icon" className="size-9">
-                <Link href="/search" aria-label="Buscar">
-                  <Search className="size-5" />
-                </Link>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                aria-label="Buscar"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/search");
+                }}
+              >
+                <Search className="size-5" />
               </Button>
               <Button
                 type="button"

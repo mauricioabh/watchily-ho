@@ -2,14 +2,15 @@ import * as Sentry from "@sentry/nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
+const TV_UA =
+  /webos|web0s|tizen|smart-?tv|netcast|webappmanager|hbbtv|vidaa|silk|crkey|googletv|android.?tv|apple.?tv|lg browser|aft[a-z0-9]/i;
+
 function isTVRequest(request: NextRequest): boolean {
   const ua = request.headers.get("user-agent") ?? "";
   const url = new URL(request.url);
   if (url.searchParams.get("device") === "tv") return true;
-  return (
-    /webos|web0s|tizen|tv/i.test(ua) ||
-    /linux\/smarttv|lg browser|netcast/i.test(ua)
-  );
+  // Avoid bare "tv" — too many false positives on phones / browsers.
+  return TV_UA.test(ua);
 }
 
 export async function middleware(request: NextRequest) {
@@ -22,8 +23,10 @@ export async function middleware(request: NextRequest) {
     else if (path === "/search") rewritePath = "/search-standalone";
     else if (path === "/lists") rewritePath = "/lists-standalone";
     else if (path === "/lists/all") rewritePath = "/lists-all-standalone";
-    else if (path.match(/^\/lists\/[^/]+$/)) rewritePath = path.replace("/lists/", "/lists-standalone/");
-    else if (path.match(/^\/title\/([^/]+)$/)) rewritePath = path.replace("/title/", "/title-standalone/");
+    else if (path.match(/^\/lists\/[^/]+$/))
+      rewritePath = path.replace("/lists/", "/lists-standalone/");
+    else if (path.match(/^\/title\/([^/]+)$/))
+      rewritePath = path.replace("/title/", "/title-standalone/");
     else if (path === "/login") rewritePath = "/login-standalone";
     else if (path === "/settings") rewritePath = "/settings-standalone";
 
