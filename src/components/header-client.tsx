@@ -153,11 +153,11 @@ export function HeaderClient({ user }: { user: User | null }) {
                   Buscar
                 </Button>
               </form>
-              <Link href="/settings">
-                <Button variant="ghost" size="icon" title="Configuración">
+              <Button asChild variant="ghost" size="icon" title="Configuración">
+                <Link href="/settings" aria-label="Configuración">
                   <Settings className="size-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               <form action="/auth/signout" method="post" className="inline">
                 <Button
                   variant="ghost"
@@ -172,11 +172,11 @@ export function HeaderClient({ user }: { user: User | null }) {
 
             {/* Mobile: search shortcut + menu toggle */}
             <div className="ml-auto flex items-center gap-1 md:hidden">
-              <Link href="/search" aria-label="Buscar">
-                <Button variant="ghost" size="icon" className="size-9">
+              <Button asChild variant="ghost" size="icon" className="size-9">
+                <Link href="/search" aria-label="Buscar">
                   <Search className="size-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -263,15 +263,16 @@ export function HeaderClient({ user }: { user: User | null }) {
               </nav>
 
               <div className="flex items-center gap-2 border-t border-white/8 pt-3">
-                <Link href="/settings" className="flex-1">
-                  <Button
-                    variant="ghost"
-                    className="h-11 w-full justify-start gap-3 px-3"
-                  >
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="h-11 flex-1 justify-start gap-3 px-3"
+                >
+                  <Link href="/settings">
                     <Settings className="size-5" />
                     Configuración
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
                 <form action="/auth/signout" method="post" className="flex-1">
                   <Button
                     variant="ghost"
