@@ -57,6 +57,7 @@ async function PopularContent() {
       initialTitles={titles}
       initialPage={1}
       initialHasMore={hasMore}
+      userProviderIds={userProviderIds}
     />
   );
 }

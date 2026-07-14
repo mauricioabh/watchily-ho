@@ -30,7 +30,7 @@ async function AllTitlesData() {
     .order("created_at", { ascending: false });
 
   if (!lists?.length) {
-    return <AllTitlesContent sections={[]} />;
+    return <AllTitlesContent sections={[]} userProviderIds={userProviderIds} />;
   }
 
   const listIds = lists.map((l) => l.id);
@@ -75,7 +75,9 @@ async function AllTitlesData() {
     })
     .filter((s) => s.titles.length > 0);
 
-  return <AllTitlesContent sections={sections} />;
+  return (
+    <AllTitlesContent sections={sections} userProviderIds={userProviderIds} />
+  );
 }
 
 export default async function AllTitlesPage() {

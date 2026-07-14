@@ -36,7 +36,27 @@ export async function GET(request: NextRequest) {
     const userProviderIds = (providerRows ?? []).map(
       (r: { provider_id: string }) => r.provider_id,
     );
-    const sourceIds = userProviderIds
+
+    // Optional subset filter: ?providers=netflix,disney_plus
+    // - omit → all subscribed providers
+    // - empty → no titles
+    // - list → intersection with subscribed
+    const providersParam = searchParams.get("providers");
+    let filterProviderIds = userProviderIds;
+    if (providersParam !== null) {
+      const requested = providersParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const allowed = new Set(userProviderIds);
+      filterProviderIds = requested.filter((id) => allowed.has(id));
+    }
+
+    if (filterProviderIds.length === 0) {
+      return Response.json({ titles: [], page, hasMore: false });
+    }
+
+    const sourceIds = filterProviderIds
       .map((id: string) => PROVIDER_TO_SOURCE_ID[id])
       .filter(Boolean) as number[];
 
@@ -56,7 +76,7 @@ export async function GET(request: NextRequest) {
         ...baseOpts,
         type,
       });
-      titles = filterTitlesByUserProviders(result.titles, userProviderIds);
+      titles = filterTitlesByUserProviders(result.titles, filterProviderIds);
       hasMore = result.hasMore;
     } else {
       const [movies, series] = await Promise.all([
@@ -65,7 +85,7 @@ export async function GET(request: NextRequest) {
       ]);
       titles = filterTitlesByUserProviders(
         [...movies.titles, ...series.titles],
-        userProviderIds,
+        filterProviderIds,
       );
       hasMore = movies.hasMore || series.hasMore;
     }
