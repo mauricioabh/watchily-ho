@@ -26,6 +26,7 @@ export function ServiceWorkerRegister() {
     if (isTvEnvironment()) return;
 
     let cancelled = false;
+    let onVisible: (() => void) | null = null;
 
     const promptUpdate = (worker: ServiceWorker | null) => {
       if (worker && !cancelled) setWaitingWorker(worker);
@@ -34,8 +35,17 @@ export function ServiceWorkerRegister() {
     navigator.serviceWorker
       .register("/sw.js", { updateViaCache: "none" })
       .then((registration) => {
+        if (cancelled) return;
+
+        const activateWaiting = (worker: ServiceWorker | null) => {
+          if (!worker) return;
+          // Auto-apply so mobile browsers don't stay stuck on old caches.
+          worker.postMessage({ type: "SKIP_WAITING" });
+          promptUpdate(worker);
+        };
+
         if (registration.waiting && navigator.serviceWorker.controller) {
-          promptUpdate(registration.waiting);
+          activateWaiting(registration.waiting);
         }
 
         registration.addEventListener("updatefound", () => {
@@ -46,10 +56,18 @@ export function ServiceWorkerRegister() {
               installing.state === "installed" &&
               navigator.serviceWorker.controller
             ) {
-              promptUpdate(registration.waiting);
+              activateWaiting(registration.waiting);
             }
           });
         });
+
+        onVisible = () => {
+          if (document.visibilityState === "visible") {
+            void registration.update();
+          }
+        };
+        document.addEventListener("visibilitychange", onVisible);
+        void registration.update();
       })
       .catch(() => undefined);
 
@@ -66,6 +84,9 @@ export function ServiceWorkerRegister() {
 
     return () => {
       cancelled = true;
+      if (onVisible) {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
       navigator.serviceWorker.removeEventListener(
         "controllerchange",
         onControllerChange,

@@ -231,24 +231,34 @@ export async function watchmodeListTitles(
     url.searchParams.set("apiKey", key);
     url.searchParams.set("types", type);
     url.searchParams.set("sort_by", options.sortBy ?? "popularity_desc");
-    url.searchParams.set("page_size", String(options.pageSize ?? 20));
+    // Watchmode expects `limit` (page_size is ignored and falls back to ~250).
+    url.searchParams.set("limit", String(options.pageSize ?? 20));
     url.searchParams.set("page", String(page));
     if (options.sourceIds?.length) {
       url.searchParams.set("source_ids", options.sourceIds.join(","));
     }
-    const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
+    const res = await fetch(url.toString(), {
+      // Paginated lists must vary by page; avoid sticky empty/partial caches.
+      next: { revalidate: 300 },
+    });
     if (!res.ok) return { titles: [], page, totalPages: 0 };
     const data: WatchmodeListResponse = await res.json();
+    const titles = (data.titles ?? []).map((t) => ({
+      id: t.id,
+      name: t.title,
+      type: t.type ?? type,
+      year: t.year,
+      image: t.poster ?? undefined,
+    }));
+    const totalPages =
+      data.total_pages ??
+      (titles.length > 0 && titles.length >= (options.pageSize ?? 20)
+        ? page + 1
+        : page);
     return {
-      titles: (data.titles ?? []).map((t) => ({
-        id: t.id,
-        name: t.title,
-        type: t.type ?? type,
-        year: t.year,
-        image: t.poster ?? undefined,
-      })),
+      titles,
       page: data.page ?? page,
-      totalPages: data.total_pages ?? 1,
+      totalPages,
     };
   } catch {
     return { titles: [], page, totalPages: 0 };

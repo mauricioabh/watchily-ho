@@ -11,7 +11,7 @@
  *  - Web Push: show notifications + focus/open the app on click.
  */
 
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL_CACHE = `watchily-shell-${VERSION}`;
 const STATIC_CACHE = `watchily-static-${VERSION}`;
 const IMAGE_CACHE = `watchily-images-${VERSION}`;
@@ -24,6 +24,8 @@ const IMAGE_CACHE_LIMIT = 120;
 const API_CACHE_LIMIT = 60;
 
 self.addEventListener("install", (event) => {
+  // Activate immediately so PWA / mobile browsers pick up new deploys.
+  self.skipWaiting();
   event.waitUntil(
     caches
       .open(SHELL_CACHE)

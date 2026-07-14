@@ -182,7 +182,7 @@ export async function getPopularTitlesPaged(options?: {
       };
     }
 
-    // Enrich only top N for ratings + sources (API already filtered by provider)
+    // Enrich for posters/sources. Cap to keep serverless time budgets healthy.
     const ENRICH = Math.min(12, basic.length);
     const toEnrich = basic.slice(0, ENRICH);
     const rest = basic.slice(ENRICH);
