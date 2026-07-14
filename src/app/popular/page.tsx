@@ -1,11 +1,13 @@
 import { Suspense } from "react";
-import { getPopularTitles } from "@/lib/streaming/unified";
+import { getPopularTitlesPaged } from "@/lib/streaming/unified";
 import {
   PROVIDER_TO_SOURCE_ID,
   filterTitlesByUserProviders,
 } from "@/lib/streaming/providers";
-import { TitleTile } from "@/components/title-tile";
 import { createClient } from "@/lib/supabase/server";
+import { PopularInfiniteGrid } from "@/components/popular-infinite-grid";
+
+const PAGE_SIZE = 16;
 
 async function PopularContent() {
   const supabase = await createClient();
@@ -27,29 +29,35 @@ async function PopularContent() {
     .filter(Boolean) as number[];
 
   const [movies, series] = await Promise.all([
-    getPopularTitles({ type: "movie", enrich: true, sourceIds }),
-    getPopularTitles({ type: "series", enrich: true, sourceIds }),
+    getPopularTitlesPaged({
+      type: "movie",
+      enrich: true,
+      sourceIds,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    }),
+    getPopularTitlesPaged({
+      type: "series",
+      enrich: true,
+      sourceIds,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    }),
   ]);
 
   // Trim each title's sources to only the user's subscribed providers
-  const trimmed = filterTitlesByUserProviders(
-    [...movies, ...series],
+  const titles = filterTitlesByUserProviders(
+    [...movies.titles, ...series.titles],
     userProviderIds,
   );
-  const combined = trimmed.slice(0, 32);
+  const hasMore = movies.hasMore || series.hasMore;
 
-  return combined.length === 0 ? (
-    <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center sm:py-12">
-      <p className="text-muted-foreground">
-        No hay contenido popular en tus plataformas por ahora.
-      </p>
-    </div>
-  ) : (
-    <div className="grid grid-cols-2 gap-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
-      {combined.map((title) => (
-        <TitleTile key={title.id} title={title} />
-      ))}
-    </div>
+  return (
+    <PopularInfiniteGrid
+      initialTitles={titles}
+      initialPage={1}
+      initialHasMore={hasMore}
+    />
   );
 }
 

@@ -19,14 +19,14 @@ export interface WatchmodeSearchResponse {
 export interface WatchmodeAutocompleteResult {
   id: number;
   name: string;
-  type: string;        // "movie" | "tv_series" | ...
+  type: string; // "movie" | "tv_series" | ...
   year?: number;
-  relevance?: number;  // relevance score (higher = more relevant)
+  relevance?: number; // relevance score (higher = more relevant)
   result_type?: string;
   imdb_id?: string | null;
   tmdb_id?: number;
   tmdb_type?: string;
-  image_url?: string;  // thumbnail CDN URL
+  image_url?: string; // thumbnail CDN URL
 }
 
 export interface WatchmodeAutocompleteResponse {
@@ -35,7 +35,7 @@ export interface WatchmodeAutocompleteResponse {
 
 export interface WatchmodeTitleDetails {
   id: number;
-  title: string;          // API returns "title", not "name"
+  title: string; // API returns "title", not "name"
   original_title?: string;
   type: string;
   year?: number;
@@ -46,8 +46,8 @@ export interface WatchmodeTitleDetails {
   plot_overview?: string; // description/synopsis
   imdb_rating?: number;
   rotten_tomatoes?: number;
-  user_rating?: number;   // 0-10
-  critic_score?: number;  // 0-100
+  user_rating?: number; // 0-10
+  critic_score?: number; // 0-100
   runtime_minutes?: number;
   genre_names?: string[];
   us_rating?: string;
@@ -80,7 +80,7 @@ export type WatchmodeSourcesResponse = WatchmodeSource[];
 
 async function fetchWatchmode<T>(
   path: string,
-  params: Record<string, string> = {}
+  params: Record<string, string> = {},
 ): Promise<T> {
   const key = process.env.WATCHMODE_API_KEY;
   if (!key) throw new Error("WATCHMODE_API_KEY is not set");
@@ -94,9 +94,12 @@ async function fetchWatchmode<T>(
 
 export async function watchmodeSearch(
   query: string,
-  types?: string[]
+  types?: string[],
 ): Promise<WatchmodeSearchResponse> {
-  const params: Record<string, string> = { search_field: "name", search_value: query };
+  const params: Record<string, string> = {
+    search_field: "name",
+    search_value: query,
+  };
   if (types?.length) params.types = types.join(",");
   return fetchWatchmode<WatchmodeSearchResponse>("/search/", params);
 }
@@ -106,12 +109,15 @@ export async function watchmodeSearch(
  * search_type=2 → titles only
  */
 export async function watchmodeAutocompleteSearch(
-  query: string
+  query: string,
 ): Promise<WatchmodeAutocompleteResponse> {
-  return fetchWatchmode<WatchmodeAutocompleteResponse>("/autocomplete-search/", {
-    search_value: query,
-    search_type: "2",
-  });
+  return fetchWatchmode<WatchmodeAutocompleteResponse>(
+    "/autocomplete-search/",
+    {
+      search_value: query,
+      search_type: "2",
+    },
+  );
 }
 
 /**
@@ -119,7 +125,13 @@ export async function watchmodeAutocompleteSearch(
  * Falls back to US when the user's country is not in this set.
  */
 const WATCHMODE_SUPPORTED_REGIONS = new Set([
-  "US", "CA", "GB", "AU", "NZ", "IE", "IN",
+  "US",
+  "CA",
+  "GB",
+  "AU",
+  "NZ",
+  "IE",
+  "IN",
 ]);
 
 export function toWatchmodeRegion(countryCode: string): string {
@@ -133,14 +145,17 @@ export function toWatchmodeRegion(countryCode: string): string {
  */
 export async function watchmodeTitleDetails(
   id: string,
-  region = "US"
+  region = "US",
 ): Promise<WatchmodeTitleDetails | null> {
   const wmRegion = toWatchmodeRegion(region);
   try {
-    return await fetchWatchmode<WatchmodeTitleDetails>(`/title/${id}/details/`, {
-      append_to_response: "sources",
-      regions: wmRegion,
-    });
+    return await fetchWatchmode<WatchmodeTitleDetails>(
+      `/title/${id}/details/`,
+      {
+        append_to_response: "sources",
+        regions: wmRegion,
+      },
+    );
   } catch {
     return null;
   }
@@ -149,13 +164,16 @@ export async function watchmodeTitleDetails(
 /** @deprecated Use watchmodeTitleDetails with append_to_response instead */
 export async function watchmodeTitleSources(
   id: string,
-  region = "US"
+  region = "US",
 ): Promise<WatchmodeSource[] | null> {
   const wmRegion = toWatchmodeRegion(region);
   try {
-    const sources = await fetchWatchmode<WatchmodeSource[]>(`/title/${id}/sources/`, {
-      regions: wmRegion,
-    });
+    const sources = await fetchWatchmode<WatchmodeSource[]>(
+      `/title/${id}/sources/`,
+      {
+        regions: wmRegion,
+      },
+    );
     return Array.isArray(sources) ? sources : null;
   } catch {
     return null;
@@ -164,7 +182,7 @@ export async function watchmodeTitleSources(
 
 export interface WatchmodeListTitle {
   id: number;
-  title: string;  // note: "title" not "name" in list-titles endpoint
+  title: string; // note: "title" not "name" in list-titles endpoint
   year?: number;
   imdb_id?: string;
   tmdb_id?: number;
@@ -180,36 +198,59 @@ export interface WatchmodeListResponse {
   page?: number;
 }
 
+export type WatchmodeListTitlesResult = {
+  titles: {
+    id: number;
+    name: string;
+    type: string;
+    year?: number;
+    image?: string;
+  }[];
+  page: number;
+  totalPages: number;
+};
+
 /**
  * Get popular titles via /v1/list-titles/ sorted by popularity.
  * NOTE: /v1/trending/ does NOT exist in Watchmode API.
  */
 export async function watchmodeListTitles(
   type: "movie" | "tv_series",
-  options: { sortBy?: string; pageSize?: number; sourceIds?: number[] } = {}
-): Promise<{ id: number; name: string; type: string; year?: number; image?: string }[]> {
+  options: {
+    sortBy?: string;
+    pageSize?: number;
+    sourceIds?: number[];
+    page?: number;
+  } = {},
+): Promise<WatchmodeListTitlesResult> {
+  const page = Math.max(1, options.page ?? 1);
   try {
     const key = process.env.WATCHMODE_API_KEY;
-    if (!key) return [];
+    if (!key) return { titles: [], page, totalPages: 0 };
     const url = new URL(`${WATCHMODE_BASE}/list-titles/`);
     url.searchParams.set("apiKey", key);
     url.searchParams.set("types", type);
     url.searchParams.set("sort_by", options.sortBy ?? "popularity_desc");
     url.searchParams.set("page_size", String(options.pageSize ?? 20));
+    url.searchParams.set("page", String(page));
     if (options.sourceIds?.length) {
       url.searchParams.set("source_ids", options.sourceIds.join(","));
     }
     const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-    if (!res.ok) return [];
+    if (!res.ok) return { titles: [], page, totalPages: 0 };
     const data: WatchmodeListResponse = await res.json();
-    return (data.titles ?? []).map((t) => ({
-      id: t.id,
-      name: t.title,
-      type: t.type ?? type,
-      year: t.year,
-      image: t.poster ?? undefined,
-    }));
+    return {
+      titles: (data.titles ?? []).map((t) => ({
+        id: t.id,
+        name: t.title,
+        type: t.type ?? type,
+        year: t.year,
+        image: t.poster ?? undefined,
+      })),
+      page: data.page ?? page,
+      totalPages: data.total_pages ?? 1,
+    };
   } catch {
-    return [];
+    return { titles: [], page, totalPages: 0 };
   }
 }

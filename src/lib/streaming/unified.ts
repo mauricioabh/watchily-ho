@@ -1,10 +1,14 @@
-import type { UnifiedTitle, UnifiedSearchResult, StreamingSource } from "@/types/streaming";
+import type {
+  UnifiedTitle,
+  UnifiedSearchResult,
+  StreamingSource,
+} from "@/types/streaming";
 import * as watchmode from "./watchmode";
 import * as streamingAvailability from "./streaming-availability";
 
 function mapWatchmodeDetailsToUnified(
   d: watchmode.WatchmodeTitleDetails,
-  sources?: watchmode.WatchmodeSource[]
+  sources?: watchmode.WatchmodeSource[],
 ): UnifiedTitle {
   const src: StreamingSource[] = (sources ?? []).map((s) => ({
     providerId: String(s.source_id),
@@ -17,25 +21,27 @@ function mapWatchmodeDetailsToUnified(
   }));
   return {
     id: String(d.id),
-    name: d.title,                          // Watchmode uses "title" not "name"
+    name: d.title, // Watchmode uses "title" not "name"
     originalName: d.original_title,
     type: d.type === "tv_series" ? "series" : "movie",
     year: d.year,
     poster: d.posterLarge ?? d.posterMedium ?? d.poster,
     backdrop: d.backdrop,
-    overview: d.plot_overview,              // Watchmode uses "plot_overview"
+    overview: d.plot_overview, // Watchmode uses "plot_overview"
     imdbRating: d.imdb_rating,
     rottenTomatoesRating: d.rotten_tomatoes,
     userRating: d.user_rating,
     criticScore: d.critic_score,
-    runtime: d.runtime_minutes,             // Watchmode uses "runtime_minutes"
+    runtime: d.runtime_minutes, // Watchmode uses "runtime_minutes"
     genres: d.genre_names,
     sources: src.length ? src : undefined,
     trailer: d.trailer,
   };
 }
 
-function mapWatchmodeResultToUnified(r: watchmode.WatchmodeTitleResult): UnifiedTitle {
+function mapWatchmodeResultToUnified(
+  r: watchmode.WatchmodeTitleResult,
+): UnifiedTitle {
   return {
     id: String(r.id),
     name: r.name,
@@ -45,19 +51,21 @@ function mapWatchmodeResultToUnified(r: watchmode.WatchmodeTitleResult): Unified
   };
 }
 
-function mapWatchmodeAutocompleteToUnified(r: watchmode.WatchmodeAutocompleteResult): UnifiedTitle {
+function mapWatchmodeAutocompleteToUnified(
+  r: watchmode.WatchmodeAutocompleteResult,
+): UnifiedTitle {
   return {
     id: String(r.id),
     name: r.name,
     type: r.type === "tv_series" ? "series" : "movie",
     year: r.year,
-    poster: r.image_url,  // thumbnail from CDN — already sorted by relevance
+    poster: r.image_url, // thumbnail from CDN — already sorted by relevance
   };
 }
 
 export async function searchTitles(
   query: string,
-  options?: { types?: ("movie" | "series")[]; country?: string }
+  options?: { types?: ("movie" | "series")[]; country?: string },
 ): Promise<UnifiedSearchResult> {
   const country = (options?.country ?? "us").toLowerCase();
 
@@ -68,7 +76,9 @@ export async function searchTitles(
 
     // Client-side type filter if specified
     if (options?.types?.length) {
-      const wmTypes = options.types.map((t) => (t === "series" ? "tv_series" : "movie"));
+      const wmTypes = options.types.map((t) =>
+        t === "series" ? "tv_series" : "movie",
+      );
       results = results.filter((r) => (wmTypes as string[]).includes(r.type));
     }
 
@@ -82,7 +92,9 @@ export async function searchTitles(
 
   // Fallback: legacy Watchmode search
   try {
-    const types = options?.types?.map((t) => (t === "series" ? "tv_series" : "movie"));
+    const types = options?.types?.map((t) =>
+      t === "series" ? "tv_series" : "movie",
+    );
     const res = await watchmode.watchmodeSearch(query, types);
     const titles = (res.title_results ?? []).map(mapWatchmodeResultToUnified);
     if (titles.length > 0) {
@@ -94,7 +106,10 @@ export async function searchTitles(
 
   // Last resort: Streaming Availability API
   try {
-    const titles = await streamingAvailability.streamingAvailabilitySearch(query, country);
+    const titles = await streamingAvailability.streamingAvailabilitySearch(
+      query,
+      country,
+    );
     return { titles, totalCount: titles.length };
   } catch {
     return { titles: [], totalCount: 0 };
@@ -103,7 +118,7 @@ export async function searchTitles(
 
 export async function getTitleDetails(
   id: string,
-  options?: { region?: string; country?: string }
+  options?: { region?: string; country?: string },
 ): Promise<UnifiedTitle | null> {
   const region = options?.region ?? options?.country ?? "US";
   try {
@@ -118,27 +133,38 @@ export async function getTitleDetails(
   }
   const sa = await streamingAvailability.streamingAvailabilityGetTitle(
     id,
-    (options?.country ?? options?.region ?? "us").toLowerCase()
+    (options?.country ?? options?.region ?? "us").toLowerCase(),
   );
   return sa;
 }
 
-export async function getPopularTitles(options?: {
+export type PopularTitlesPage = {
+  titles: UnifiedTitle[];
+  page: number;
+  totalPages: number;
+  hasMore: boolean;
+};
+
+export async function getPopularTitlesPaged(options?: {
   type?: "movie" | "series";
   country?: string;
   enrich?: boolean;
   sourceIds?: number[]; // Watchmode source IDs to pre-filter by provider
-}): Promise<UnifiedTitle[]> {
+  page?: number;
+  pageSize?: number;
+}): Promise<PopularTitlesPage> {
   const type = options?.type ?? "movie";
   const country = options?.country ?? "US";
+  const page = Math.max(1, options?.page ?? 1);
+  const pageSize = options?.pageSize ?? 20;
 
   try {
     const list = await watchmode.watchmodeListTitles(
       type === "movie" ? "movie" : "tv_series",
-      { pageSize: 20, sourceIds: options?.sourceIds }
+      { pageSize, page, sourceIds: options?.sourceIds },
     );
 
-    const basic: UnifiedTitle[] = list.map((t) => ({
+    const basic: UnifiedTitle[] = list.titles.map((t) => ({
       id: String(t.id),
       name: t.name,
       type: type === "movie" ? "movie" : "series",
@@ -146,15 +172,23 @@ export async function getPopularTitles(options?: {
       poster: t.image,
     }));
 
-    if (!options?.enrich || basic.length === 0) return basic;
+    if (!options?.enrich || basic.length === 0) {
+      const titles = basic.filter((t) => t.poster?.startsWith("http"));
+      return {
+        titles,
+        page: list.page,
+        totalPages: list.totalPages,
+        hasMore: list.page < list.totalPages,
+      };
+    }
 
-    // Enrich only top 12 for ratings + sources (API already filtered by provider)
-    const ENRICH = 12;
+    // Enrich only top N for ratings + sources (API already filtered by provider)
+    const ENRICH = Math.min(12, basic.length);
     const toEnrich = basic.slice(0, ENRICH);
     const rest = basic.slice(ENRICH);
 
     const enriched = await Promise.allSettled(
-      toEnrich.map((t) => getTitleDetails(t.id, { country, region: country }))
+      toEnrich.map((t) => getTitleDetails(t.id, { country, region: country })),
     );
 
     const enrichedTitles: UnifiedTitle[] = toEnrich.map((original, i) => {
@@ -166,8 +200,28 @@ export async function getPopularTitles(options?: {
     });
 
     // Only return titles that have a poster to display
-    return [...enrichedTitles, ...rest].filter((t) => t.poster?.startsWith("http"));
+    const titles = [...enrichedTitles, ...rest].filter((t) =>
+      t.poster?.startsWith("http"),
+    );
+    return {
+      titles,
+      page: list.page,
+      totalPages: list.totalPages,
+      hasMore: list.page < list.totalPages,
+    };
   } catch {
-    return [];
+    return { titles: [], page, totalPages: 0, hasMore: false };
   }
+}
+
+export async function getPopularTitles(options?: {
+  type?: "movie" | "series";
+  country?: string;
+  enrich?: boolean;
+  sourceIds?: number[]; // Watchmode source IDs to pre-filter by provider
+  page?: number;
+  pageSize?: number;
+}): Promise<UnifiedTitle[]> {
+  const result = await getPopularTitlesPaged(options);
+  return result.titles;
 }
