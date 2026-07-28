@@ -8,7 +8,7 @@ import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import type { ListSection } from "@/app/lists/all/page";
+import type { ListSection } from "@/types/library";
 
 interface Props {
   sections: ListSection[];

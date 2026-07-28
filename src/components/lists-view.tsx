@@ -53,25 +53,25 @@ export function ListsView({ lists }: { lists: ListRow[] }) {
           className="h-9 gap-2 bg-blue-800 text-white hover:bg-blue-900 hover:text-white"
         >
           <Plus className="h-3.5 w-3.5" />
-          Nueva lista
+          New list
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Crear lista</DialogTitle>
+          <DialogTitle>Create list</DialogTitle>
         </DialogHeader>
         <form onSubmit={createList} className="space-y-4">
           <div>
-            <Label htmlFor="list-name">Nombre</Label>
+            <Label htmlFor="list-name">Name</Label>
             <Input
               id="list-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Por ver"
+              placeholder="e.g. Watch later"
             />
           </div>
           <Button type="submit" disabled={loading || !name.trim()}>
-            Crear
+            Create
           </Button>
         </form>
       </DialogContent>

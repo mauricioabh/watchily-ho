@@ -1,49 +1,75 @@
 import { Suspense } from "react";
-import { getPopularTitles } from "@/lib/streaming/unified";
-import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import { getPopularTitlesPaged } from "@/lib/streaming/unified";
+import {
+  PROVIDER_TO_SOURCE_ID,
+  filterTitlesByUserProviders,
+} from "@/lib/streaming/providers";
 import { createClient } from "@/lib/supabase/server";
 import { SearchContent } from "@/components/search-content";
-import type { UnifiedTitle } from "@/types/streaming";
 
-async function getPopularForUser(): Promise<UnifiedTitle[]> {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+const PAGE_SIZE = 16;
 
-    const { data: providerRows } = user
-      ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)
-      : { data: [] };
+async function SearchPageData() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
-    const sourceIds = userProviderIds
-      .map((id) => PROVIDER_TO_SOURCE_ID[id])
-      .filter(Boolean) as number[];
+  const { data: providerRows } = user
+    ? await supabase
+        .from("user_providers")
+        .select("provider_id")
+        .eq("user_id", user.id)
+    : { data: [] };
 
-    const [movies, series] = await Promise.all([
-      getPopularTitles({ type: "movie", enrich: true, sourceIds }),
-      getPopularTitles({ type: "series", enrich: true, sourceIds }),
-    ]);
+  const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+  const sourceIds = userProviderIds
+    .map((id) => PROVIDER_TO_SOURCE_ID[id])
+    .filter(Boolean) as number[];
 
-    const all = [...movies, ...series];
-    // Trim sources to only the user's subscribed providers
-    return filterTitlesByUserProviders(all, userProviderIds).slice(0, 24) as UnifiedTitle[];
-  } catch {
-    return [];
-  }
+  const [movies, series] = await Promise.all([
+    getPopularTitlesPaged({
+      type: "movie",
+      enrich: true,
+      sourceIds,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    }),
+    getPopularTitlesPaged({
+      type: "series",
+      enrich: true,
+      sourceIds,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    }),
+  ]);
+
+  const initialTitles = filterTitlesByUserProviders(
+    [...movies.titles, ...series.titles],
+    userProviderIds,
+  );
+  const initialHasMore = movies.hasMore || series.hasMore;
+
+  return (
+    <SearchContent
+      initialTitles={initialTitles}
+      initialPage={1}
+      initialHasMore={initialHasMore}
+      userProviderIds={userProviderIds}
+    />
+  );
 }
 
 export default async function SearchPage() {
-  const popular = await getPopularForUser();
-
   return (
     <Suspense
       fallback={
         <main className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
-          <p className="text-muted-foreground">Cargando...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </main>
       }
     >
-      <SearchContent popular={popular} />
+      <SearchPageData />
     </Suspense>
   );
 }

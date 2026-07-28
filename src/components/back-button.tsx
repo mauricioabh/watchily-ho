@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
-export function BackButton({ fallback = "/popular" }: { fallback?: string }) {
+export function BackButton({ fallback = "/library" }: { fallback?: string }) {
   const router = useRouter();
 
   const handleBack = () => {

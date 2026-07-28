@@ -237,6 +237,35 @@ export type Database = {
           },
         ];
       };
+      user_title_statuses: {
+        Row: {
+          status: string;
+          title_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          status: string;
+          title_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          status?: string;
+          title_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_title_statuses_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

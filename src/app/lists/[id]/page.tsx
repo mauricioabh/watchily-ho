@@ -59,10 +59,10 @@ export default async function ListDetailPage({
     <main className="container mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-4 flex items-center gap-4">
         <Link
-          href="/lists"
+          href="/library"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Mis listas
+          ← My Library
         </Link>
       </div>
       <ListTitlesContent
