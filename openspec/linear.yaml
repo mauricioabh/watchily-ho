@@ -10,4 +10,12 @@ issue_label_filter:
 archive_documents:
   enabled: true
   title_prefix: "OpenSpec:"
-  documents: {}
+  documents:
+    library-ia:
+      id: "e5d8287d-1c14-4207-87d3-5853e2f1a2ab"
+      url: "https://linear.app/wayool/document/openspec-library-ia-b90e1a0e51e5"
+      title: "OpenSpec: library-ia"
+    watch-status:
+      id: "26badc0b-e814-405d-8d88-fa0b3349051e"
+      url: "https://linear.app/wayool/document/openspec-watch-status-08e22b15a799"
+      title: "OpenSpec: watch-status"
