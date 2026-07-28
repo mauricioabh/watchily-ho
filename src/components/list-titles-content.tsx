@@ -39,10 +39,10 @@ export function ListTitlesContent({
         <div>
           <h1 className="text-2xl font-bold">{listName}</h1>
           <p className="text-muted-foreground">
-            {visible.length} {visible.length === 1 ? "título" : "títulos"}
+            {visible.length} {visible.length === 1 ? "title" : "titles"}
             {activeCount < totalCount && totalCount > 0 ? (
               <span className="ml-1.5 text-foreground/45">
-                (filtrado · {activeCount}/{totalCount} plataformas)
+                (filtered · {activeCount}/{totalCount} platforms)
               </span>
             ) : null}
           </p>
@@ -62,7 +62,7 @@ export function ListTitlesContent({
       <div className="mb-4 flex gap-2">
         <Link href={`/lists/${listId}`}>
           <Button variant={!filterType ? "default" : "outline"} size="sm">
-            Ver todo
+            All
           </Button>
         </Link>
         <Link href={`/lists/${listId}?type=movie`}>
@@ -70,7 +70,7 @@ export function ListTitlesContent({
             variant={filterType === "movie" ? "default" : "outline"}
             size="sm"
           >
-            Películas
+            Movies
           </Button>
         </Link>
         <Link href={`/lists/${listId}?type=series`}>
@@ -87,8 +87,8 @@ export function ListTitlesContent({
         <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center">
           <p className="text-muted-foreground">
             {activeCount === 0
-              ? "Activa al menos una plataforma para ver títulos."
-              : "No hay títulos en las plataformas seleccionadas."}
+              ? "Enable at least one platform to see titles."
+              : "No titles on the selected platforms."}
           </p>
         </div>
       ) : (

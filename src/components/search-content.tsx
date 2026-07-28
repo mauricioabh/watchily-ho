@@ -5,11 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { TitleTile } from "@/components/title-tile";
+import { PopularInfiniteGrid } from "@/components/popular-infinite-grid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { UnifiedTitle } from "@/types/streaming";
 
-export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
+type Props = {
+  initialTitles: UnifiedTitle[];
+  initialPage: number;
+  initialHasMore: boolean;
+  userProviderIds: string[];
+};
+
+export function SearchContent({
+  initialTitles,
+  initialPage,
+  initialHasMore,
+  userProviderIds,
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
@@ -23,7 +36,6 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
   const [activeQuery, setActiveQuery] = useState(trimmed);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Keep local draft in sync with the URL query (render-time adjust).
   if (trimmed !== activeQuery) {
     setActiveQuery(trimmed);
     setDraft(trimmed);
@@ -33,7 +45,6 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
   }
 
   useEffect(() => {
-    // Mobile: lupa lands here — focus the field and open the keyboard.
     const id = window.setTimeout(() => {
       inputRef.current?.focus({ preventScroll: false });
     }, 50);
@@ -56,9 +67,7 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
       })
       .catch(() => {
         if (!cancelled) {
-          setErrorMessage(
-            "No pudimos completar la búsqueda. Intenta nuevamente.",
-          );
+          setErrorMessage("We couldn't complete the search. Please try again.");
         }
       })
       .finally(() => {
@@ -90,8 +99,8 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
           name="q"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Películas o series..."
-          aria-label="Buscar películas o series"
+          placeholder="Movies or series..."
+          aria-label="Search movies or series"
           autoComplete="off"
           enterKeyHint="search"
           className="h-12 flex-1 rounded-xl border-white/10 bg-white/5 text-base placeholder:text-muted-foreground sm:h-11 sm:text-sm"
@@ -103,7 +112,7 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
           className="h-12 shrink-0 rounded-xl px-4 sm:h-11"
         >
           <Search className="size-4" />
-          <span className="hidden sm:inline">Buscar</span>
+          <span className="hidden sm:inline">Search</span>
         </Button>
       </form>
 
@@ -114,22 +123,17 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
           transition={{ duration: 0.35, ease: "easeOut" }}
         >
           <h1 className="mb-2 text-xl font-semibold text-foreground sm:text-2xl">
-            Buscar
+            Search
           </h1>
           <p className="mb-6 text-sm text-muted-foreground">
-            Escribe un título arriba. Mientras tanto, esto es lo popular ahora:
+            Type a title above. Here&apos;s what&apos;s popular right now:
           </p>
-          {popular.length === 0 ? (
-            <p className="text-muted-foreground">
-              Usa el buscador para encontrar películas y series.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
-              {popular.map((title) => (
-                <TitleTile key={title.id} title={title} />
-              ))}
-            </div>
-          )}
+          <PopularInfiniteGrid
+            initialTitles={initialTitles}
+            initialPage={initialPage}
+            initialHasMore={initialHasMore}
+            userProviderIds={userProviderIds}
+          />
         </motion.section>
       ) : (
         <motion.section
@@ -139,7 +143,7 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <h1 className="mb-6 text-xl font-semibold text-foreground sm:text-2xl">
-            {loading ? "Buscando…" : `Resultados para "${q}"`}
+            {loading ? "Searching…" : `Results for "${q}"`}
           </h1>
           {errorMessage ? (
             <p className="py-6 text-center text-destructive">{errorMessage}</p>
@@ -155,10 +159,10 @@ export function SearchContent({ popular }: { popular: UnifiedTitle[] }) {
           ) : results.length === 0 ? (
             <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center sm:py-12">
               <p className="text-muted-foreground">
-                No hay resultados para esta búsqueda.
+                No results for this search.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Prueba con otro título o término.
+                Try another title or keyword.
               </p>
             </div>
           ) : (

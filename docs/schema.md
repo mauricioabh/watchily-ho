@@ -95,6 +95,24 @@ Likes de usuario por título.
 
 ---
 
+### `public.user_title_statuses`
+
+Estado global de visualización por usuario y título (watching | finished).
+
+| Columna    | Tipo      | Nullable | Default | Descripción   |
+|------------|-----------|----------|---------|---------------|
+| user_id    | uuid      | NO       | —       | FK → profiles, PK (compuesta) |
+| title_id   | text      | NO       | —       | PK (compuesta) |
+| status     | text      | NO       | —       | 'watching' \| 'finished' |
+| updated_at | timestamptz | NO     | now()   |               |
+
+- **PK:** `(user_id, title_id)`.
+- **Check:** `status in ('watching', 'finished')`.
+- **RLS:** activado. Usuarios solo gestionan sus propios estados (`auth.uid() = user_id`).
+- **Índices:** `idx_user_title_statuses_user_id`, `idx_user_title_statuses_user_status`.
+
+---
+
 ### `public.pairing_codes`
 
 Códigos de vinculación para login en TV (second-screen, estilo JustWatch).
@@ -141,6 +159,7 @@ Suscripciones Web Push (PWA) por usuario y dispositivo/navegador.
 - `20250223000001_default_country_mx.sql` — default country_code para nuevos perfiles: MX.
 - `20250224000001_pairing_codes.sql` — pairing_codes para TV second-screen login.
 - `20260711000000_push_subscriptions.sql` — push_subscriptions para Web Push (PWA).
+- `20260728000001_user_title_statuses.sql` — user_title_statuses para watching/finished por título.
 
 ---
 

@@ -45,9 +45,15 @@ export function ListActions({
   };
 
   const deleteList = async () => {
-    if (!confirm("¿Eliminar esta lista? No se eliminan los títulos, solo la lista.")) return;
+    if (
+      !confirm(
+        "Delete this list? Titles are not removed — only the list is deleted.",
+      )
+    ) {
+      return;
+    }
     const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
-    if (res.ok) router.push("/lists");
+    if (res.ok) router.push("/library");
   };
 
   return (
@@ -56,16 +62,16 @@ export function ListActions({
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             <Pencil className="mr-1 h-4 w-4" />
-            Editar
+            Edit
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar lista</DialogTitle>
+            <DialogTitle>Edit list</DialogTitle>
           </DialogHeader>
           <form onSubmit={updateList} className="space-y-4">
             <div>
-              <Label htmlFor="edit-name">Nombre</Label>
+              <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
                 value={name}
@@ -73,14 +79,14 @@ export function ListActions({
               />
             </div>
             <Button type="submit" disabled={loading || !name.trim()}>
-              Guardar
+              Save
             </Button>
           </form>
         </DialogContent>
       </Dialog>
       <Button variant="destructive" size="sm" onClick={deleteList}>
         <Trash2 className="mr-1 h-4 w-4" />
-        Eliminar
+        Delete
       </Button>
     </div>
   );

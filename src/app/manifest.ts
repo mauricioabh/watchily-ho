@@ -9,14 +9,14 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: PRODUCT_NAME,
     description: DEFAULT_DESCRIPTION,
     id: "/",
-    // "/" muestra login si no hay sesión; si hay usuario, Home redirige a /popular
+    // "/" shows login when logged out; authenticated users redirect to /library
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
     background_color: "#05070d",
     theme_color: "#0b1120",
-    lang: "es",
+    lang: "en",
     dir: "ltr",
     categories: ["entertainment", "lifestyle"],
     icons: [
@@ -47,19 +47,14 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Populares",
-        short_name: "Populares",
-        url: "/popular",
-      },
-      {
-        name: "Buscar",
-        short_name: "Buscar",
+        name: "Search",
+        short_name: "Search",
         url: "/search",
       },
       {
-        name: "Mis listas",
-        short_name: "Listas",
-        url: "/lists",
+        name: "My Library",
+        short_name: "Library",
+        url: "/library",
       },
     ],
   };

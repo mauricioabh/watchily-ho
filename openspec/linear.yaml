@@ -1,0 +1,13 @@
+team:
+  id: "918d1d41-95ee-429a-976f-e380f65feb8b"
+  key: "WAY"
+  name: "Wayool"
+project:
+  id: "f6355964-013b-4ca8-bf73-61e16d3cc1f7"
+  name: "watchily-ho"
+issue_label_filter:
+  name: "WAT"
+archive_documents:
+  enabled: true
+  title_prefix: "OpenSpec:"
+  documents: {}

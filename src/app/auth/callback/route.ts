@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/popular";
+  const next = searchParams.get("next") ?? "/library";
 
   if (code) {
     const supabase = await createClient();
@@ -16,8 +16,15 @@ export async function GET(request: Request) {
 
       if (user && next !== "/tv/pair") {
         const [{ data: profile }, { data: providerRows }] = await Promise.all([
-          supabase.from("profiles").select("country_code").eq("id", user.id).single(),
-          supabase.from("user_providers").select("provider_id").eq("user_id", user.id),
+          supabase
+            .from("profiles")
+            .select("country_code")
+            .eq("id", user.id)
+            .single(),
+          supabase
+            .from("user_providers")
+            .select("provider_id")
+            .eq("user_id", user.id),
         ]);
 
         const needsOnboarding =

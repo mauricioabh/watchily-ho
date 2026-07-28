@@ -22,6 +22,8 @@ import {
   SiParamountplus,
 } from "react-icons/si";
 import type { UnifiedTitle, StreamingSource } from "@/types/streaming";
+import type { WatchStatus } from "@/types/library";
+import { WatchStatusControls } from "@/components/watch-status-controls";
 import { cn } from "@/lib/utils";
 
 const API_BASE = "";
@@ -239,7 +241,17 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
 }
 
 /* ── Main tile ── */
-export function TitleTile({ title }: { title: UnifiedTitle }) {
+export function TitleTile({
+  title,
+  showWatchStatus = false,
+  watchStatus,
+  onWatchStatusChange,
+}: {
+  title: UnifiedTitle;
+  showWatchStatus?: boolean;
+  watchStatus?: WatchStatus | null;
+  onWatchStatusChange?: (titleId: string, status: WatchStatus | null) => void;
+}) {
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
   const subSources = title.sources ? getSubscriptionSources(title.sources) : [];
   const firstSource = title.sources?.find((s) => s.url);
@@ -293,11 +305,19 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
               : "bg-black/60 text-white/90 backdrop-blur-sm"
           }`}
         >
-          {title.type === "series" ? "SERIE" : "PELÍCULA"}
+          {title.type === "series" ? "SERIES" : "MOVIE"}
         </span>
 
-        {/* Bookmark — top right, over poster */}
-        <div className="absolute right-2 top-2 z-10">
+        {/* Watch status + bookmark — top right */}
+        <div className="absolute right-2 top-2 z-10 flex flex-col items-end gap-1.5">
+          {showWatchStatus && (
+            <WatchStatusControls
+              titleId={title.id}
+              status={watchStatus}
+              onChange={onWatchStatusChange}
+              compact
+            />
+          )}
           <BookmarkDialog title={title} />
         </div>
 
@@ -416,7 +436,7 @@ export function TitleTile({ title }: { title: UnifiedTitle }) {
         {/* Fallback: no info, just show genre/type hint */}
         {!hasInfo && !firstSource?.url && (
           <p className="text-[11px] text-muted-foreground">
-            {title.type === "series" ? "Serie" : "Película"}
+            {title.type === "series" ? "Series" : "Movie"}
           </p>
         )}
       </div>
