@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { ListTitlesContent } from "@/components/list-titles-content";
+import type { StatusMap } from "@/types/library";
 import type { UnifiedTitle } from "@/types/streaming";
 
 export default async function ListDetailPage({
@@ -25,6 +26,18 @@ export default async function ListDetailPage({
     .select("provider_id")
     .eq("user_id", user.id);
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+
+  const { data: statusRows } = await supabase
+    .from("user_title_statuses")
+    .select("title_id, status")
+    .eq("user_id", user.id);
+
+  const statusMap: StatusMap = {};
+  for (const row of statusRows ?? []) {
+    if (row.status === "watching" || row.status === "finished") {
+      statusMap[row.title_id] = row.status;
+    }
+  }
 
   const { data: list } = await supabase
     .from("lists")
@@ -70,6 +83,7 @@ export default async function ListDetailPage({
         listName={list.name}
         titles={titles}
         userProviderIds={userProviderIds}
+        statusMap={statusMap}
         filterType={filterType}
       />
     </main>

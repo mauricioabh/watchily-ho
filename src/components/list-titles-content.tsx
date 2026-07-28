@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
@@ -8,6 +8,7 @@ import { ListActions } from "@/components/list-actions";
 import { Button } from "@/components/ui/button";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import type { StatusMap, WatchStatus } from "@/types/library";
 import type { UnifiedTitle } from "@/types/streaming";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   listName: string;
   titles: UnifiedTitle[];
   userProviderIds: string[];
+  statusMap: StatusMap;
   filterType?: string;
 };
 
@@ -23,10 +25,28 @@ export function ListTitlesContent({
   listName,
   titles,
   userProviderIds,
+  statusMap: initialStatusMap,
   filterType,
 }: Props) {
+  const [statusMap, setStatusMap] = useState<StatusMap>(initialStatusMap);
   const { activeIds, activeCount, totalCount, toggle, setAll } =
     useProviderFilter(userProviderIds);
+
+  useEffect(() => {
+    setStatusMap(initialStatusMap);
+  }, [initialStatusMap]);
+
+  const handleStatusChange = useCallback(
+    (titleId: string, status: WatchStatus | null) => {
+      setStatusMap((prev) => {
+        const next = { ...prev };
+        if (status === null) delete next[titleId];
+        else next[titleId] = status;
+        return next;
+      });
+    },
+    [],
+  );
 
   const visible = useMemo(() => {
     if (activeIds.length === 0) return [];
@@ -94,7 +114,13 @@ export function ListTitlesContent({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {visible.map((title) => (
-            <TitleTile key={title.id} title={title} />
+            <TitleTile
+              key={title.id}
+              title={title}
+              watchStatus={statusMap[title.id]}
+              showWatchStatus
+              onWatchStatusChange={handleStatusChange}
+            />
           ))}
         </div>
       )}
