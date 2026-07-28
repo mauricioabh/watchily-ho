@@ -5,7 +5,11 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { movieOrSeriesJsonLd } from "@/lib/seo/json-ld";
 import { getTitleDetails } from "@/lib/streaming/unified";
-import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import {
+  dedupeSourcesByBrand,
+  displayProviderName,
+  filterTitlesByUserProviders,
+} from "@/lib/streaming/providers";
 import { TitleActions } from "@/components/title-actions";
 import { BackButton } from "@/components/back-button";
 import { createClient } from "@/lib/supabase/server";
@@ -72,7 +76,9 @@ function SourceCard({ s }: { s: StreamingSource }) {
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate">{s.providerName}</p>
+        <p className="text-sm font-medium truncate">
+          {displayProviderName(s.providerName)}
+        </p>
         <p className="text-xs text-muted-foreground">
           {typeLabel}
           {s.quality ? ` · ${s.quality}` : ""}
@@ -174,14 +180,8 @@ export default async function TitlePage({
     ? title.backdrop
     : undefined;
 
-  // Deduplicate sources by provider+type
-  const seen = new Set<string>();
-  const uniqueSources = (title.sources ?? []).filter((s) => {
-    const key = `${s.providerName}-${s.type}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  // One entry per canonical brand (+ type); prefer native over "(via …)"
+  const uniqueSources = dedupeSourcesByBrand(title.sources ?? []);
   const subSources = uniqueSources.filter((s) => s.type === "sub");
   const paidSources = uniqueSources.filter((s) => s.type !== "sub");
 

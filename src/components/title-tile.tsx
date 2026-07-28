@@ -21,9 +21,10 @@ import {
   SiPrimevideo,
   SiParamountplus,
 } from "react-icons/si";
-import type { UnifiedTitle, StreamingSource } from "@/types/streaming";
+import type { UnifiedTitle } from "@/types/streaming";
 import type { WatchStatus } from "@/types/library";
 import { WatchStatusControls } from "@/components/watch-status-controls";
+import { dedupeSubscriptionSourcesByBrand } from "@/lib/streaming/providers";
 import { cn } from "@/lib/utils";
 
 const API_BASE = "";
@@ -63,18 +64,6 @@ function getPlatformDef(name: string): PlatformDef | null {
     if (re.test(name)) return def;
   }
   return null;
-}
-
-/* ── Deduplicated subscription sources only ── */
-function getSubscriptionSources(sources: StreamingSource[]): StreamingSource[] {
-  const seen = new Set<string>();
-  return sources.filter((s) => {
-    if (s.type !== "sub") return false;
-    const key = s.providerName.toLowerCase().replace(/\s+/g, "");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 /* ── IMDb logo badge ── */
@@ -253,7 +242,9 @@ export function TitleTile({
   onWatchStatusChange?: (titleId: string, status: WatchStatus | null) => void;
 }) {
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
-  const subSources = title.sources ? getSubscriptionSources(title.sources) : [];
+  const subSources = title.sources
+    ? dedupeSubscriptionSourcesByBrand(title.sources)
+    : [];
   const firstSource = title.sources?.find((s) => s.url);
   const hasInfo =
     title.imdbRating != null ||

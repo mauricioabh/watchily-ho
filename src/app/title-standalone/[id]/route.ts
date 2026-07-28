@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
-import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
+import {
+  canonicalProviderId,
+  dedupeSourcesByBrand,
+  displayProviderName,
+  filterTitlesByUserProviders,
+} from "@/lib/streaming/providers";
+import {
+  tvNavHtml,
+  tvNavCss,
+  tvLogoutScript,
+  tvLogoutModalCheck,
+  tvLogoutModalCheckKeydown,
+} from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +65,7 @@ export async function GET(
   const filtered = filterTitlesByUserProviders([title], userProviderIds);
   const t = filtered[0] ?? { ...title, sources: [] };
 
-  const seen = new Set<string>();
-  const uniqueSources = (t.sources ?? []).filter((s) => {
-    const key = `${s.providerName}-${s.type}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const uniqueSources = dedupeSourcesByBrand(t.sources ?? []);
   const subSources = uniqueSources.filter((s) => s.type === "sub");
   const paidSources = uniqueSources.filter((s) => s.type !== "sub");
 
@@ -73,42 +78,28 @@ export async function GET(
           ? "Compra"
           : "Gratis";
 
-  const webOSAppIds: Record<string, string> = {
+  const webOSAppIdsByBrand: Record<string, string> = {
     netflix: "netflix",
-    "disney+": "com.disney.disneyplus-prod",
-    "disney plus": "com.disney.disneyplus-prod",
-    disneyplus: "com.disney.disneyplus-prod",
-    "hbo max": "com.wbd.max",
-    hbomax: "com.wbd.max",
-    max: "com.wbd.max",
-    "amazon prime video": "amazon",
-    "amazon prime": "amazon",
-    "prime video": "amazon",
-    prime: "amazon",
-    amazon: "amazon",
+    disney_plus: "com.disney.disneyplus-prod",
+    hbo_max: "com.wbd.max",
+    amazon_prime: "amazon",
     crunchyroll: "com.crunchyroll.crmay",
-    "crunchy roll": "com.crunchyroll.crmay",
-    "paramount+": "com.paramount.paramountplus",
-    paramountplus: "com.paramount.paramountplus",
-    "apple tv+": "com.apple.appletv",
-    appletv: "com.apple.appletv",
-    "apple tv plus": "com.apple.appletv",
+    paramount_plus: "com.paramount.paramountplus",
+    apple_tv_plus: "com.apple.appletv",
   };
   function resolveWebOSAppId(providerName: string): string | undefined {
+    const brand = canonicalProviderId(providerName ?? "");
+    if (webOSAppIdsByBrand[brand]) return webOSAppIdsByBrand[brand];
     const raw = (providerName ?? "").toLowerCase().trim();
-    const normalized = raw.replace(/\s+/g, " ").replace(/[+]/g, "");
-    const noSpaces = raw.replace(/\s+/g, "").replace(/[+]/g, "");
     return (
-      webOSAppIds[raw] ??
-      webOSAppIds[normalized] ??
-      webOSAppIds[noSpaces] ??
-      webOSAppIds[raw.replace(/\s+/g, "")] ??
-      (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined) ??
       (raw.includes("crunchy") ? "com.crunchyroll.crmay" : undefined) ??
       (raw.includes("paramount") ? "com.paramount.paramountplus" : undefined) ??
-      (raw.includes("hbo") || raw.includes("max") ? "com.wbd.max" : undefined) ??
+      (raw.includes("hbo") || raw.includes("max")
+        ? "com.wbd.max"
+        : undefined) ??
       (raw.includes("disney") ? "com.disney.disneyplus-prod" : undefined) ??
-      (raw.includes("netflix") ? "netflix" : undefined)
+      (raw.includes("netflix") ? "netflix" : undefined) ??
+      (raw.includes("prime") || raw.includes("amazon") ? "amazon" : undefined)
     );
   }
   const sourceCards = (sources: typeof uniqueSources) =>
@@ -116,9 +107,10 @@ export async function GET(
       .map((s) => {
         const url = s.url ?? "#";
         const appId = resolveWebOSAppId(s.providerName ?? "");
+        const name = displayProviderName(s.providerName ?? "");
         return `
     <a href="${url}" target="_blank" rel="noopener noreferrer" tabindex="0" class="source-link" data-url="${escapeHtml(url)}" data-app-id="${appId ?? ""}">
-      <span class="source-name">${escapeHtml(s.providerName)}</span>
+      <span class="source-name">${escapeHtml(name)}</span>
       <span class="source-type">${typeLabel(s)}${s.quality ? ` · ${s.quality}` : ""}${s.price != null ? ` · $${s.price}` : ""}</span>
     </a>`;
       })
