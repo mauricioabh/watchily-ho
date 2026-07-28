@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { tvNavHtml, tvNavCss, tvTileCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
+import {
+  tvNavHtml,
+  tvNavCss,
+  tvTileCss,
+  tvLogoutScript,
+  tvLogoutModalCheck,
+  tvLogoutModalCheckKeydown,
+} from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 function escapeHtml(s: string): string {
   return s
@@ -19,7 +27,9 @@ function escapeHtml(s: string): string {
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim().toLowerCase() ?? "";
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(`${BASE}/login-standalone`, 302);
@@ -35,7 +45,7 @@ export async function GET(request: NextRequest) {
     .from("lists")
     .select("id, name")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("position", { ascending: true });
 
   if (!lists?.length) {
     return NextResponse.redirect(`${BASE}/lists-standalone`, 302);
@@ -46,7 +56,7 @@ export async function GET(request: NextRequest) {
     .from("list_items")
     .select("list_id, title_id")
     .in("list_id", listIds)
-    .order("added_at", { ascending: false });
+    .order("position", { ascending: true });
 
   const allIds = [...new Set((items ?? []).map((i) => i.title_id))];
   const titles: Awaited<ReturnType<typeof getTitleDetails>>[] = [];
@@ -54,18 +64,20 @@ export async function GET(request: NextRequest) {
     const t = await getTitleDetails(id);
     if (t) titles.push(t);
   }
-  const validTitles = titles.filter((t): t is NonNullable<typeof t> => t != null);
+  const validTitles = titles.filter(
+    (t): t is NonNullable<typeof t> => t != null,
+  );
   let filtered = filterTitlesByUserProviders(validTitles, userProviderIds);
   if (q) {
     filtered = filtered.filter((t) => t.name.toLowerCase().includes(q));
   }
 
-  const tileHtml = (t: typeof filtered[0]) => {
+  const tileHtml = (t: (typeof filtered)[0]) => {
     const platform = t.sources?.[0]?.providerName ?? "";
     return `<a href="${BASE}/title-standalone/${t.id}" tabindex="0" class="tile-link">
       <div class="tile">
         <div class="tile-poster">
-          ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
+          ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0, 2))}</div>`}
           <span class="tile-badge">${t.type === "series" ? "SERIE" : "PELÍCULA"}</span>
           ${platform ? `<span class="tile-platform">${escapeHtml(platform)}</span>` : ""}
         </div>

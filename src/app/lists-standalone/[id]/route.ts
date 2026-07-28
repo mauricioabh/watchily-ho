@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
-import { tvLogoutScript, tvLogoutModalHtml, tvLogoutModalCss } from "@/lib/tv-shared";
+import {
+  tvLogoutScript,
+  tvLogoutModalHtml,
+  tvLogoutModalCss,
+} from "@/lib/tv-shared";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 function escapeHtml(s: string): string {
   return s
@@ -18,11 +23,13 @@ function escapeHtml(s: string): string {
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(`${BASE}/login-standalone`, 302);
@@ -49,14 +56,16 @@ export async function GET(
     .from("list_items")
     .select("title_id")
     .eq("list_id", id)
-    .order("added_at", { ascending: false });
+    .order("position", { ascending: true });
 
   const titles: Awaited<ReturnType<typeof getTitleDetails>>[] = [];
   for (const item of items ?? []) {
     const t = await getTitleDetails(item.title_id);
     if (t) titles.push(t);
   }
-  const validTitles = titles.filter((t): t is NonNullable<typeof t> => t != null);
+  const validTitles = titles.filter(
+    (t): t is NonNullable<typeof t> => t != null,
+  );
   const filtered = filterTitlesByUserProviders(validTitles, userProviderIds);
 
   const tiles = filtered
@@ -65,7 +74,7 @@ export async function GET(
       <a href="${BASE}/title-standalone/${t.id}" tabindex="0" class="tile-link" style="display:block;text-decoration:none;color:inherit;">
         <div class="tile">
           <div class="tile-poster">
-            ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
+            ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0, 2))}</div>`}
             <span class="tile-badge">${t.type === "series" ? "SERIE" : "PELÍCULA"}</span>
           </div>
           <div class="tile-info">
@@ -73,7 +82,7 @@ export async function GET(
             ${t.year ? `<span class="tile-year">${t.year}</span>` : ""}
           </div>
         </div>
-      </a>`
+      </a>`,
     )
     .join("");
 

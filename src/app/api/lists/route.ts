@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { parseJsonBody } from "@/lib/api/validate";
 import { CreateListBodySchema } from "@/lib/openapi/schemas";
+import { bumpListPositions } from "@/lib/lists/order";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -10,16 +11,16 @@ export async function GET() {
   }
   let { data, error } = await supabase
     .from("lists")
-    .select("id, name, is_public, created_at, list_items(count)")
+    .select("id, name, is_public, created_at, position, list_items(count)")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("position", { ascending: true });
   // Fallback if list_items(count) relation not available
   if (error) {
     const fallback = await supabase
       .from("lists")
-      .select("id, name, is_public, created_at")
+      .select("id, name, is_public, created_at, position")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("position", { ascending: true });
     data = (fallback.data ?? []) as typeof data;
     error = fallback.error;
   }
@@ -45,10 +46,19 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
   const { name, is_public } = parsed.data;
+  const bump = await bumpListPositions(supabase, user.id);
+  if (bump.error) {
+    return Response.json({ error: bump.error }, { status: 500 });
+  }
   const { data, error } = await supabase
     .from("lists")
-    .insert({ user_id: user.id, name: name.trim(), is_public: !!is_public })
-    .select("id, name, is_public")
+    .insert({
+      user_id: user.id,
+      name: name.trim(),
+      is_public: !!is_public,
+      position: 0,
+    })
+    .select("id, name, is_public, position")
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json(data);

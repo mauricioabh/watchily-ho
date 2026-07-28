@@ -1,25 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
-import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
+import {
+  tvNavHtml,
+  tvNavCss,
+  tvLogoutScript,
+  tvLogoutModalCheck,
+  tvLogoutModalCheckKeydown,
+} from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: titleId } = await params;
   const title = await getTitleDetails(titleId);
   const titleType = title?.type ?? "movie";
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.redirect(`${BASE}/login-standalone`, 302);
 
@@ -27,7 +40,7 @@ export async function GET(
     .from("lists")
     .select("id, name")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("position", { ascending: true });
 
   const { data: items } = await supabase
     .from("list_items")
@@ -72,10 +85,13 @@ export async function GET(
     <h1>Añadir a lista</h1>
     <a href="${BASE}/title-standalone/${titleId}" tabindex="0" class="btn-back" id="firstFocus">← Volver</a>
     <div style="margin-top:24px">
-      ${listRows.map((l) => l.inList
-        ? `<div class="list-row"><span class="list-name">${escapeHtml(l.name)}</span><form method="POST" action="${BASE}/api/tv/remove-from-list" style="display:inline"><input type="hidden" name="list_id" value="${l.id}" /><input type="hidden" name="title_id" value="${titleId}" /><input type="hidden" name="redirect" value="${BASE}/title-standalone/${titleId}/add-to-list" /><button type="submit" tabindex="0" class="btn-remove">Quitar</button></form></div>`
-        : `<div class="list-row"><span class="list-name">${escapeHtml(l.name)}</span><form method="POST" action="${BASE}/api/tv/add-to-list" style="display:inline"><input type="hidden" name="list_id" value="${l.id}" /><input type="hidden" name="title_id" value="${titleId}" /><input type="hidden" name="title_type" value="${titleType}" /><input type="hidden" name="redirect" value="${BASE}/title-standalone/${titleId}/add-to-list" /><button type="submit" tabindex="0" class="btn-add">Añadir</button></form></div>`
-      ).join("")}
+      ${listRows
+        .map((l) =>
+          l.inList
+            ? `<div class="list-row"><span class="list-name">${escapeHtml(l.name)}</span><form method="POST" action="${BASE}/api/tv/remove-from-list" style="display:inline"><input type="hidden" name="list_id" value="${l.id}" /><input type="hidden" name="title_id" value="${titleId}" /><input type="hidden" name="redirect" value="${BASE}/title-standalone/${titleId}/add-to-list" /><button type="submit" tabindex="0" class="btn-remove">Quitar</button></form></div>`
+            : `<div class="list-row"><span class="list-name">${escapeHtml(l.name)}</span><form method="POST" action="${BASE}/api/tv/add-to-list" style="display:inline"><input type="hidden" name="list_id" value="${l.id}" /><input type="hidden" name="title_id" value="${titleId}" /><input type="hidden" name="title_type" value="${titleType}" /><input type="hidden" name="redirect" value="${BASE}/title-standalone/${titleId}/add-to-list" /><button type="submit" tabindex="0" class="btn-add">Añadir</button></form></div>`,
+        )
+        .join("")}
     </div>
     ${listRows.length === 0 ? "<p class='create-hint'>No tienes listas. <a href='" + BASE + "/lists' tabindex='0'>Crea una en la web</a></p>" : ""}
     <p class="create-hint">Para crear listas nuevas, usa la <a href="${BASE}/lists" tabindex="0">web</a> o la app móvil.</p>
@@ -135,5 +151,7 @@ export async function GET(
 </body>
 </html>`;
 
-  return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new NextResponse(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
 }

@@ -61,6 +61,35 @@ export const AddListItemBodySchema = z
   .strict()
   .openapi("AddListItemBody");
 
+export const ReorderListsBodySchema = z
+  .object({
+    orderedIds: z.array(z.string().uuid()).min(1),
+  })
+  .strict()
+  .openapi("ReorderListsBody");
+
+export const ReorderListItemsBodySchema = z
+  .object({
+    orderedIds: z.array(z.string().min(1)).min(1),
+  })
+  .strict()
+  .openapi("ReorderListItemsBody");
+
+export const LibraryPrefsSchema = z
+  .object({
+    statusFilter: z.enum(["all", "watching", "finished"]),
+    titleSort: z.enum(["custom", "asc", "desc"]),
+  })
+  .openapi("LibraryPrefs");
+
+export const UpdateLibraryPrefsBodySchema = z
+  .object({
+    statusFilter: z.enum(["all", "watching", "finished"]).optional(),
+    titleSort: z.enum(["custom", "asc", "desc"]).optional(),
+  })
+  .strict()
+  .openapi("UpdateLibraryPrefsBody");
+
 export const LikeBodySchema = z
   .object({
     title_id: z.string().min(1),

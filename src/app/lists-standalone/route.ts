@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
+import {
+  tvNavHtml,
+  tvNavCss,
+  tvLogoutScript,
+  tvLogoutModalCheckKeydown,
+} from "@/lib/tv-shared";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 function escapeHtml(s: string): string {
   return s
@@ -17,48 +23,58 @@ function escapeHtml(s: string): string {
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.redirect(`${BASE}/login-standalone`, 302);
     }
 
-    let { data: lists } = await supabase
-    .from("lists")
-    .select("id, name, is_public, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const { data: lists } = await supabase
+      .from("lists")
+      .select("id, name, is_public, created_at")
+      .eq("user_id", user.id)
+      .order("position", { ascending: true });
 
-  const listIds = (lists ?? []).map((l) => l.id);
-  const { data: itemRows } = listIds.length
-    ? await supabase.from("list_items").select("list_id").in("list_id", listIds)
-    : { data: [] };
+    const listIds = (lists ?? []).map((l) => l.id);
+    const { data: itemRows } = listIds.length
+      ? await supabase
+          .from("list_items")
+          .select("list_id")
+          .in("list_id", listIds)
+      : { data: [] };
 
-  const countByList: Record<string, number> = {};
-  for (const row of itemRows ?? []) {
-    countByList[row.list_id] = (countByList[row.list_id] ?? 0) + 1;
-  }
+    const countByList: Record<string, number> = {};
+    for (const row of itemRows ?? []) {
+      countByList[row.list_id] = (countByList[row.list_id] ?? 0) + 1;
+    }
 
-  const listCards = (lists ?? []).map(
-    (list) => `
+    const listCards = (lists ?? [])
+      .map(
+        (list) => `
     <a href="${BASE}/lists-standalone/${list.id}" tabindex="0" class="list-card-link">
       <div class="list-card">
         <p class="list-name">${escapeHtml(list.name)}</p>
         <span class="list-count">${countByList[list.id] ?? 0} títulos</span>
       </div>
-    </a>`
-  ).join("");
+    </a>`,
+      )
+      .join("");
 
-  const newListCard = `<a href="${BASE}/lists-standalone/create" tabindex="0" class="list-card-link list-card-new">
+    const newListCard = `<a href="${BASE}/lists-standalone/create" tabindex="0" class="list-card-link list-card-new">
     <div class="list-card">
       <p class="list-name">+ Nueva lista</p>
       <span class="list-count">Crear lista</span>
     </div>
   </a>`;
 
-  const gridContent = listCards ? listCards + newListCard : newListCard + '<p class="empty">Aún no tienes listas. Pulsa en + Nueva lista para crear una.</p>';
+    const gridContent = listCards
+      ? listCards + newListCard
+      : newListCard +
+        '<p class="empty">Aún no tienes listas. Pulsa en + Nueva lista para crear una.</p>';
 
-  const html = `<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />

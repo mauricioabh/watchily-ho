@@ -48,6 +48,7 @@ export type Database = {
           added_at: string | null;
           id: string;
           list_id: string;
+          position: number;
           title_id: string;
           title_type: string;
         };
@@ -55,6 +56,7 @@ export type Database = {
           added_at?: string | null;
           id?: string;
           list_id: string;
+          position?: number;
           title_id: string;
           title_type: string;
         };
@@ -62,6 +64,7 @@ export type Database = {
           added_at?: string | null;
           id?: string;
           list_id?: string;
+          position?: number;
           title_id?: string;
           title_type?: string;
         };
@@ -81,6 +84,7 @@ export type Database = {
           id: string;
           is_public: boolean | null;
           name: string;
+          position: number;
           updated_at: string | null;
           user_id: string;
         };
@@ -89,6 +93,7 @@ export type Database = {
           id?: string;
           is_public?: boolean | null;
           name: string;
+          position?: number;
           updated_at?: string | null;
           user_id: string;
         };
@@ -97,6 +102,7 @@ export type Database = {
           id?: string;
           is_public?: boolean | null;
           name?: string;
+          position?: number;
           updated_at?: string | null;
           user_id?: string;
         };
@@ -145,6 +151,8 @@ export type Database = {
           display_name: string | null;
           email: string | null;
           id: string;
+          library_status_filter: string;
+          library_title_sort: string;
           updated_at: string | null;
         };
         Insert: {
@@ -154,6 +162,8 @@ export type Database = {
           display_name?: string | null;
           email?: string | null;
           id: string;
+          library_status_filter?: string;
+          library_title_sort?: string;
           updated_at?: string | null;
         };
         Update: {
@@ -163,6 +173,8 @@ export type Database = {
           display_name?: string | null;
           email?: string | null;
           id?: string;
+          library_status_filter?: string;
+          library_title_sort?: string;
           updated_at?: string | null;
         };
         Relationships: [];

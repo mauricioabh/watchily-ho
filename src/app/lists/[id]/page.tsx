@@ -51,7 +51,7 @@ export default async function ListDetailPage({
     .from("list_items")
     .select("title_id, title_type")
     .eq("list_id", id)
-    .order("added_at", { ascending: false });
+    .order("position", { ascending: true });
 
   const { type: filterType } = await searchParams;
   let filtered = items ?? [];

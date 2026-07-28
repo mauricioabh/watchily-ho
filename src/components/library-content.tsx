@@ -4,8 +4,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ChevronDown,
   ChevronRight,
+  GripVertical,
   MoreHorizontal,
   Plus,
   Search,
@@ -25,23 +45,29 @@ import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import type { ListSection, StatusMap, WatchStatus } from "@/types/library";
+import type {
+  LibraryPrefs,
+  ListSection,
+  StatusFilter,
+  StatusMap,
+  TitleSortMode,
+  WatchStatus,
+} from "@/types/library";
+import type { UnifiedTitle } from "@/types/streaming";
 import { cn } from "@/lib/utils";
 
 const COLLAPSED_KEY = "watchily.library.collapsed";
-
-type SortOrder = "asc" | "desc";
-type StatusFilter = "all" | WatchStatus;
 
 interface Props {
   sections: ListSection[];
   userProviderIds: string[];
   statusMap: StatusMap;
+  prefs: LibraryPrefs;
 }
 
-function sortTitles<T extends { name: string }>(
+function sortTitlesByName<T extends { name: string }>(
   titles: T[],
-  order: SortOrder,
+  order: "asc" | "desc",
 ): T[] {
   return [...titles].sort((a, b) => {
     const cmp = a.name.localeCompare(b.name, undefined, {
@@ -71,17 +97,314 @@ function saveCollapsed(ids: Set<string>) {
   }
 }
 
+function titleSortableId(listId: string, titleId: string) {
+  return `title:${listId}:${titleId}`;
+}
+
+function parseTitleSortableId(
+  id: string,
+): { listId: string; titleId: string } | null {
+  if (!id.startsWith("title:")) return null;
+  const rest = id.slice("title:".length);
+  const idx = rest.indexOf(":");
+  if (idx < 0) return null;
+  return { listId: rest.slice(0, idx), titleId: rest.slice(idx + 1) };
+}
+
+function SortableListSection({
+  section,
+  isCollapsed,
+  canReorderLists,
+  canReorderTitles,
+  menuOpenId,
+  setMenuOpenId,
+  toggleCollapsed,
+  deleteList,
+  setRenameSection,
+  setRenameName,
+  statusMap,
+  onWatchStatusChange,
+  onTitlesDragEnd,
+}: {
+  section: ListSection;
+  isCollapsed: boolean;
+  canReorderLists: boolean;
+  canReorderTitles: boolean;
+  menuOpenId: string | null;
+  setMenuOpenId: (
+    id: string | null | ((prev: string | null) => string | null),
+  ) => void;
+  toggleCollapsed: (id: string) => void;
+  deleteList: (listId: string, listName: string) => void;
+  setRenameSection: (s: ListSection | null) => void;
+  setRenameName: (n: string) => void;
+  statusMap: StatusMap;
+  onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
+  onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id, disabled: !canReorderLists });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  const titleIds = section.titles.map((t) => titleSortableId(section.id, t.id));
+
+  return (
+    <section
+      ref={setNodeRef}
+      style={style}
+      className="rounded-xl border border-white/8 bg-card/20"
+    >
+      <div className="flex items-center gap-2 px-4 py-3">
+        {canReorderLists ? (
+          <button
+            type="button"
+            className="flex shrink-0 touch-none items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-white/6 hover:text-foreground"
+            aria-label="Drag to reorder list"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5" />
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          className="flex shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-white/6 hover:text-foreground"
+          onClick={() => toggleCollapsed(section.id)}
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? "Expand section" : "Collapse section"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <ChevronDown className="h-5 w-5" />
+          )}
+        </button>
+
+        <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">
+          {section.name}
+        </h2>
+
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/6 px-2 py-0.5 text-xs font-bold text-foreground/50">
+          {section.titles.length}{" "}
+          {section.titles.length === 1 ? "title" : "titles"}
+        </span>
+
+        <div className="relative shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-expanded={menuOpenId === section.id}
+            onClick={() =>
+              setMenuOpenId((id) => (id === section.id ? null : section.id))
+            }
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">List actions</span>
+          </Button>
+          {menuOpenId === section.id && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-40 cursor-default"
+                aria-label="Close menu"
+                onClick={() => setMenuOpenId(null)}
+              />
+              <div className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-lg border border-white/10 bg-popover py-1 shadow-lg">
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-white/6"
+                  onClick={() => {
+                    setMenuOpenId(null);
+                    setRenameSection(section);
+                    setRenameName(section.name);
+                  }}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-destructive hover:bg-white/6"
+                  onClick={() => {
+                    setMenuOpenId(null);
+                    void deleteList(section.id, section.name);
+                  }}
+                >
+                  Delete
+                </button>
+                <Link
+                  href={`/lists/${section.id}`}
+                  className="block px-3 py-2 text-sm hover:bg-white/6"
+                  onClick={() => setMenuOpenId(null)}
+                >
+                  View list
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {!isCollapsed && (
+        <div className="border-t border-white/6 px-4 pb-4 pt-2">
+          {section.titles.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              This list is empty or no titles match your filters.
+            </p>
+          ) : canReorderTitles ? (
+            <SortableTitlesGrid
+              listId={section.id}
+              titles={section.titles}
+              titleIds={titleIds}
+              statusMap={statusMap}
+              onWatchStatusChange={onWatchStatusChange}
+              onTitlesDragEnd={onTitlesDragEnd}
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+              {section.titles.map((title) => (
+                <TitleTile
+                  key={title.id}
+                  title={title}
+                  watchStatus={statusMap[title.id]}
+                  showWatchStatus
+                  onWatchStatusChange={onWatchStatusChange}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SortableTitlesGrid({
+  listId,
+  titles,
+  titleIds,
+  statusMap,
+  onWatchStatusChange,
+  onTitlesDragEnd,
+}: {
+  listId: string;
+  titles: UnifiedTitle[];
+  titleIds: string[];
+  statusMap: StatusMap;
+  onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
+  onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 150, tolerance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={(event) => onTitlesDragEnd(listId, event)}
+    >
+      <SortableContext items={titleIds} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+          {titles.map((title) => (
+            <SortableTitleTile
+              key={title.id}
+              listId={listId}
+              title={title}
+              watchStatus={statusMap[title.id]}
+              onWatchStatusChange={onWatchStatusChange}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableTitleTile({
+  listId,
+  title,
+  watchStatus,
+  onWatchStatusChange,
+}: {
+  listId: string;
+  title: UnifiedTitle;
+  watchStatus?: WatchStatus;
+  onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
+}) {
+  const id = titleSortableId(listId, title.id);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      <button
+        type="button"
+        className="absolute left-1 top-1 z-10 flex touch-none items-center justify-center rounded-md bg-black/55 p-1 text-white/80 hover:bg-black/70"
+        aria-label="Drag to reorder title"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <TitleTile
+        title={title}
+        watchStatus={watchStatus}
+        showWatchStatus
+        onWatchStatusChange={onWatchStatusChange}
+      />
+    </div>
+  );
+}
+
 export function LibraryContent({
   sections: initialSections,
   userProviderIds,
   statusMap: initialStatusMap,
+  prefs: initialPrefs,
 }: Props) {
   const router = useRouter();
   const [sections, setSections] = useState(initialSections);
   const [statusMap, setStatusMap] = useState<StatusMap>(initialStatusMap);
   const [query, setQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [titleSort, setTitleSort] = useState<TitleSortMode>(
+    initialPrefs.titleSort,
+  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    initialPrefs.statusFilter,
+  );
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [collapsedReady, setCollapsedReady] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -95,6 +418,18 @@ export function LibraryContent({
   const { activeIds, activeCount, totalCount, toggle, setAll } =
     useProviderFilter(userProviderIds);
 
+  const listSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 150, tolerance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   useEffect(() => {
     setCollapsed(loadCollapsed());
     setCollapsedReady(true);
@@ -107,6 +442,33 @@ export function LibraryContent({
   useEffect(() => {
     setStatusMap(initialStatusMap);
   }, [initialStatusMap]);
+
+  useEffect(() => {
+    setStatusFilter(initialPrefs.statusFilter);
+    setTitleSort(initialPrefs.titleSort);
+  }, [initialPrefs]);
+
+  const persistPrefs = useCallback(
+    async (patch: Partial<LibraryPrefs>) => {
+      const res = await fetch("/api/library/prefs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) router.refresh();
+    },
+    [router],
+  );
+
+  const changeStatusFilter = (next: StatusFilter) => {
+    setStatusFilter(next);
+    void persistPrefs({ statusFilter: next });
+  };
+
+  const changeTitleSort = (next: TitleSortMode) => {
+    setTitleSort(next);
+    void persistPrefs({ titleSort: next });
+  };
 
   const handleStatusChange = useCallback(
     (titleId: string, status: WatchStatus | null) => {
@@ -144,11 +506,28 @@ export function LibraryContent({
         titles = titles.filter((t) => t.name.toLowerCase().includes(q));
       }
 
-      titles = sortTitles(titles, sortOrder);
+      if (titleSort === "asc" || titleSort === "desc") {
+        titles = sortTitlesByName(titles, titleSort);
+      }
 
       return { ...section, titles };
     });
-  }, [providerFilteredSections, statusFilter, statusMap, query, sortOrder]);
+  }, [providerFilteredSections, statusFilter, statusMap, query, titleSort]);
+
+  const visibleSections = useMemo(() => {
+    const q = query.trim();
+    if (statusFilter === "all" && !q) return processedSections;
+    return processedSections.filter((s) => s.titles.length > 0);
+  }, [processedSections, statusFilter, query]);
+
+  const canReorderLists =
+    statusFilter === "all" && !query.trim() && visibleSections.length > 1;
+  const canReorderTitles =
+    titleSort === "custom" &&
+    statusFilter === "all" &&
+    !query.trim() &&
+    activeCount === totalCount &&
+    totalCount > 0;
 
   const totalUnique = useMemo(() => {
     const seen = new Set<string>();
@@ -159,8 +538,8 @@ export function LibraryContent({
   }, [providerFilteredSections]);
 
   const visibleTitleCount = useMemo(
-    () => processedSections.reduce((acc, s) => acc + s.titles.length, 0),
-    [processedSections],
+    () => visibleSections.reduce((acc, s) => acc + s.titles.length, 0),
+    [visibleSections],
   );
 
   const toggleCollapsed = (id: string) => {
@@ -234,6 +613,56 @@ export function LibraryContent({
     }
     const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
     if (res.ok) router.refresh();
+  };
+
+  const onListsDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sections.findIndex((s) => s.id === active.id);
+    const newIndex = sections.findIndex((s) => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const previous = sections;
+    const next = arrayMove(sections, oldIndex, newIndex);
+    setSections(next);
+    const res = await fetch("/api/lists/reorder", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds: next.map((s) => s.id) }),
+    });
+    if (!res.ok) {
+      setSections(previous);
+      router.refresh();
+    }
+  };
+
+  const onTitlesDragEnd = async (listId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const a = parseTitleSortableId(String(active.id));
+    const b = parseTitleSortableId(String(over.id));
+    if (!a || !b || a.listId !== listId || b.listId !== listId) return;
+
+    const section = sections.find((s) => s.id === listId);
+    if (!section) return;
+    const oldIndex = section.titles.findIndex((t) => t.id === a.titleId);
+    const newIndex = section.titles.findIndex((t) => t.id === b.titleId);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previous = sections;
+    const nextTitles = arrayMove(section.titles, oldIndex, newIndex);
+    setSections((prev) =>
+      prev.map((s) => (s.id === listId ? { ...s, titles: nextTitles } : s)),
+    );
+
+    const res = await fetch(`/api/lists/${listId}/items/reorder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds: nextTitles.map((t) => t.id) }),
+    });
+    if (!res.ok) {
+      setSections(previous);
+      router.refresh();
+    }
   };
 
   const statusChipClass = (active: boolean) =>
@@ -361,11 +790,12 @@ export function LibraryContent({
           </div>
 
           <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            value={titleSort}
+            onChange={(e) => changeTitleSort(e.target.value as TitleSortMode)}
             className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground"
-            aria-label="Sort by name"
+            aria-label="Sort titles"
           >
+            <option value="custom">Custom order</option>
             <option value="asc">Name A–Z</option>
             <option value="desc">Name Z–A</option>
           </select>
@@ -384,21 +814,21 @@ export function LibraryContent({
           <button
             type="button"
             className={statusChipClass(statusFilter === "all")}
-            onClick={() => setStatusFilter("all")}
+            onClick={() => changeStatusFilter("all")}
           >
             All
           </button>
           <button
             type="button"
             className={statusChipClass(statusFilter === "watching")}
-            onClick={() => setStatusFilter("watching")}
+            onClick={() => changeStatusFilter("watching")}
           >
             Watching
           </button>
           <button
             type="button"
             className={statusChipClass(statusFilter === "finished")}
-            onClick={() => setStatusFilter("finished")}
+            onClick={() => changeStatusFilter("finished")}
           >
             Finished
           </button>
@@ -429,125 +859,40 @@ export function LibraryContent({
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {processedSections.map((section) => {
-            const isCollapsed = collapsedReady && collapsed.has(section.id);
-            return (
-              <section
-                key={section.id}
-                className="rounded-xl border border-white/8 bg-card/20"
-              >
-                <div className="flex items-center gap-2 px-4 py-3">
-                  <button
-                    type="button"
-                    className="flex shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-white/6 hover:text-foreground"
-                    onClick={() => toggleCollapsed(section.id)}
-                    aria-expanded={!isCollapsed}
-                    aria-label={
-                      isCollapsed ? "Expand section" : "Collapse section"
-                    }
-                  >
-                    {isCollapsed ? (
-                      <ChevronRight className="h-5 w-5" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5" />
-                    )}
-                  </button>
-
-                  <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">
-                    {section.name}
-                  </h2>
-
-                  <span className="shrink-0 rounded-full border border-white/10 bg-white/6 px-2 py-0.5 text-xs font-bold text-foreground/50">
-                    {section.titles.length}{" "}
-                    {section.titles.length === 1 ? "title" : "titles"}
-                  </span>
-
-                  <div className="relative shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      aria-expanded={menuOpenId === section.id}
-                      onClick={() =>
-                        setMenuOpenId((id) =>
-                          id === section.id ? null : section.id,
-                        )
-                      }
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">List actions</span>
-                    </Button>
-                    {menuOpenId === section.id && (
-                      <>
-                        <button
-                          type="button"
-                          className="fixed inset-0 z-40 cursor-default"
-                          aria-label="Close menu"
-                          onClick={() => setMenuOpenId(null)}
-                        />
-                        <div className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-lg border border-white/10 bg-popover py-1 shadow-lg">
-                          <button
-                            type="button"
-                            className="block w-full px-3 py-2 text-left text-sm hover:bg-white/6"
-                            onClick={() => {
-                              setMenuOpenId(null);
-                              setRenameSection(section);
-                              setRenameName(section.name);
-                            }}
-                          >
-                            Rename
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full px-3 py-2 text-left text-sm text-destructive hover:bg-white/6"
-                            onClick={() => {
-                              setMenuOpenId(null);
-                              void deleteList(section.id, section.name);
-                            }}
-                          >
-                            Delete
-                          </button>
-                          <Link
-                            href={`/lists/${section.id}`}
-                            className="block px-3 py-2 text-sm hover:bg-white/6"
-                            onClick={() => setMenuOpenId(null)}
-                          >
-                            View list
-                          </Link>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {!isCollapsed && (
-                  <div className="border-t border-white/6 px-4 pb-4 pt-2">
-                    {section.titles.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        {query || statusFilter !== "all"
-                          ? "No titles match your filters in this list."
-                          : "This list is empty."}
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
-                        {section.titles.map((title) => (
-                          <TitleTile
-                            key={title.id}
-                            title={title}
-                            watchStatus={statusMap[title.id]}
-                            showWatchStatus
-                            onWatchStatusChange={handleStatusChange}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
-            );
-          })}
-        </div>
+        <DndContext
+          sensors={listSensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onListsDragEnd}
+        >
+          <SortableContext
+            items={visibleSections.map((s) => s.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-6">
+              {visibleSections.map((section) => {
+                const isCollapsed = collapsedReady && collapsed.has(section.id);
+                return (
+                  <SortableListSection
+                    key={section.id}
+                    section={section}
+                    isCollapsed={isCollapsed}
+                    canReorderLists={canReorderLists}
+                    canReorderTitles={canReorderTitles && !isCollapsed}
+                    menuOpenId={menuOpenId}
+                    setMenuOpenId={setMenuOpenId}
+                    toggleCollapsed={toggleCollapsed}
+                    deleteList={deleteList}
+                    setRenameSection={setRenameSection}
+                    setRenameName={setRenameName}
+                    statusMap={statusMap}
+                    onWatchStatusChange={handleStatusChange}
+                    onTitlesDragEnd={onTitlesDragEnd}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <Dialog

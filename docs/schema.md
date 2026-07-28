@@ -19,12 +19,15 @@ Perfil extendido del usuario (vinculado a `auth.users`).
 | display_name  | text      | YES      | —       |                      |
 | avatar_url    | text      | YES      | —       |                      |
 | country_code  | text      | YES      | 'MX'    |                      |
+| library_status_filter | text | NO | `'all'` | My Library chip: `all` \| `watching` \| `finished` |
+| library_title_sort | text | NO | `'custom'` | Title order mode: `custom` \| `asc` \| `desc` |
 | created_at    | timestamptz | YES    | now()   |                      |
 | updated_at    | timestamptz | YES    | now()   |                      |
 
 - **RLS:** activado.
 - **Políticas:** usuarios pueden SELECT/UPDATE/INSERT solo su propio perfil (`auth.uid() = id`).
 - **Trigger:** al insertar en `auth.users`, `handle_new_user()` crea la fila en `profiles`.
+- **Checks:** `library_status_filter` ∈ {all, watching, finished}; `library_title_sort` ∈ {custom, asc, desc}.
 
 ---
 
@@ -54,11 +57,13 @@ Listas creadas por el usuario (ej. “Favoritas”, “Por ver”).
 | user_id    | uuid      | NO       | —              | FK → profiles |
 | name       | text      | NO       | —              |               |
 | is_public  | boolean   | YES      | false          |               |
+| position   | integer   | NO       | 0              | Orden custom del usuario (0 = primero) |
 | created_at | timestamptz | YES    | now()          |               |
 | updated_at | timestamptz | YES    | now()          |               |
 
 - **RLS:** activado.
 - **Políticas:** CRUD propio por usuario; listas con `is_public = true` son legibles por todos.
+- **Índice:** `(user_id, position)`.
 
 ---
 
@@ -72,10 +77,12 @@ Títulos dentro de una lista (`title_id` viene de Watchmode/Streaming Availabili
 | list_id    | uuid      | NO       | —              | FK → lists    |
 | title_id   | text      | NO       | —              |               |
 | title_type | text      | NO       | —              | 'movie' \| 'series' |
+| position   | integer   | NO       | 0              | Orden custom dentro de la lista (0 = primero) |
 | added_at   | timestamptz | YES    | now()          |               |
 
 - **Único:** `(list_id, title_id)`.
 - **RLS:** activado. Solo el dueño de la lista gestiona items; items de listas públicas son solo lectura para el resto.
+- **Índice:** `(list_id, position)`.
 
 ---
 
@@ -160,6 +167,7 @@ Suscripciones Web Push (PWA) por usuario y dispositivo/navegador.
 - `20250224000001_pairing_codes.sql` — pairing_codes para TV second-screen login.
 - `20260711000000_push_subscriptions.sql` — push_subscriptions para Web Push (PWA).
 - `20260728000001_user_title_statuses.sql` — user_title_statuses para watching/finished por título.
+- `20260728000002_list_order_and_library_prefs.sql` — lists/list_items.position + library prefs en profiles.
 
 ---
 

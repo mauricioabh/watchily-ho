@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { parseJsonBody } from "@/lib/api/validate";
 import { AddListItemBodySchema } from "@/lib/openapi/schemas";
+import { bumpListItemPositions } from "@/lib/lists/order";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
 import { isInngestEnabled } from "@/lib/inngest-enabled";
 import { inngest } from "@/inngest/client";
@@ -28,9 +29,9 @@ export async function GET(
   if (!list) return Response.json({ items: [] }, { status: 404 });
   const { data: items, error } = await supabase
     .from("list_items")
-    .select("id, title_id, title_type, added_at")
+    .select("id, title_id, title_type, added_at, position")
     .eq("list_id", listId)
-    .order("added_at", { ascending: false });
+    .order("position", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ items: items ?? [] });
 }
@@ -50,10 +51,27 @@ export async function POST(
     return Response.json({ error: parsed.error }, { status: 400 });
   }
   const { title_id, title_type } = parsed.data;
+
+  const { data: list } = await supabase
+    .from("lists")
+    .select("id")
+    .eq("id", listId)
+    .eq("user_id", user.id)
+    .single();
+  if (!list) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const bump = await bumpListItemPositions(supabase, listId);
+  if (bump.error) {
+    return Response.json({ error: bump.error }, { status: 500 });
+  }
+
   const { error } = await supabase.from("list_items").insert({
     list_id: listId,
     title_id,
     title_type,
+    position: 0,
   });
   if (error) {
     if (error.code === "23505") return Response.json({ ok: true });
