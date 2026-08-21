@@ -124,6 +124,7 @@ function SortableListSection({
   setRenameName,
   statusMap,
   onWatchStatusChange,
+  onListsChange,
   onTitlesDragEnd,
 }: {
   section: ListSection;
@@ -140,6 +141,7 @@ function SortableListSection({
   setRenameName: (n: string) => void;
   statusMap: StatusMap;
   onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
+  onListsChange: () => void;
   onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
 }) {
   const {
@@ -270,6 +272,7 @@ function SortableListSection({
               titleIds={titleIds}
               statusMap={statusMap}
               onWatchStatusChange={onWatchStatusChange}
+              onListsChange={onListsChange}
               onTitlesDragEnd={onTitlesDragEnd}
             />
           ) : (
@@ -281,6 +284,7 @@ function SortableListSection({
                   watchStatus={statusMap[title.id]}
                   showWatchStatus
                   onWatchStatusChange={onWatchStatusChange}
+                  onListsChange={onListsChange}
                 />
               ))}
             </div>
@@ -297,6 +301,7 @@ function SortableTitlesGrid({
   titleIds,
   statusMap,
   onWatchStatusChange,
+  onListsChange,
   onTitlesDragEnd,
 }: {
   listId: string;
@@ -304,6 +309,7 @@ function SortableTitlesGrid({
   titleIds: string[];
   statusMap: StatusMap;
   onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
+  onListsChange: () => void;
   onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
 }) {
   const sensors = useSensors(
@@ -333,6 +339,7 @@ function SortableTitlesGrid({
               title={title}
               watchStatus={statusMap[title.id]}
               onWatchStatusChange={onWatchStatusChange}
+              onListsChange={onListsChange}
             />
           ))}
         </div>
@@ -346,11 +353,13 @@ function SortableTitleTile({
   title,
   watchStatus,
   onWatchStatusChange,
+  onListsChange,
 }: {
   listId: string;
   title: UnifiedTitle;
   watchStatus?: WatchStatus;
   onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
+  onListsChange: () => void;
 }) {
   const id = titleSortableId(listId, title.id);
   const {
@@ -384,6 +393,7 @@ function SortableTitleTile({
         watchStatus={watchStatus}
         showWatchStatus
         onWatchStatusChange={onWatchStatusChange}
+        onListsChange={onListsChange}
       />
     </div>
   );
@@ -886,6 +896,7 @@ export function LibraryContent({
                     setRenameName={setRenameName}
                     statusMap={statusMap}
                     onWatchStatusChange={handleStatusChange}
+                    onListsChange={() => router.refresh()}
                     onTitlesDragEnd={onTitlesDragEnd}
                   />
                 );

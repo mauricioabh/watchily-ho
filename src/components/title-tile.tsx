@@ -91,12 +91,19 @@ function RTBadge({ rating }: { rating: number }) {
 }
 
 /* ── Lists dialog ── */
-function BookmarkDialog({ title }: { title: UnifiedTitle }) {
+function BookmarkDialog({
+  title,
+  onListsChange,
+}: {
+  title: UnifiedTitle;
+  onListsChange?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
   const [listIdsForTitle, setListIdsForTitle] = useState<string[]>([]);
   const [newListName, setNewListName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   // Check on mount if the title is already in any list (so icon shows correctly)
   useEffect(() => {
@@ -115,12 +122,21 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
       .catch(() => {});
   }, [open]);
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next && dirty) {
+      setDirty(false);
+      onListsChange?.();
+    }
+    setOpen(next);
+  };
+
   const addToList = async (listId: string) => {
     await fetch(`${API_BASE}/api/lists/${listId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title_id: title.id, title_type: title.type }),
     });
+    setDirty(true);
     setListIdsForTitle((prev) =>
       prev.includes(listId) ? prev : [...prev, listId],
     );
@@ -130,6 +146,7 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
     await fetch(`${API_BASE}/api/lists/${listId}/items?title_id=${title.id}`, {
       method: "DELETE",
     });
+    setDirty(true);
     setListIdsForTitle((prev) => prev.filter((id) => id !== listId));
   };
 
@@ -156,7 +173,7 @@ function BookmarkDialog({ title }: { title: UnifiedTitle }) {
   const inAnyList = listIdsForTitle.length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant="secondary"
@@ -235,11 +252,14 @@ export function TitleTile({
   showWatchStatus = false,
   watchStatus,
   onWatchStatusChange,
+  onListsChange,
 }: {
   title: UnifiedTitle;
   showWatchStatus?: boolean;
   watchStatus?: WatchStatus | null;
   onWatchStatusChange?: (titleId: string, status: WatchStatus | null) => void;
+  /** Called after list membership changes when the bookmark dialog closes. */
+  onListsChange?: () => void;
 }) {
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
   const subSources = title.sources
@@ -309,7 +329,7 @@ export function TitleTile({
               compact
             />
           )}
-          <BookmarkDialog title={title} />
+          <BookmarkDialog title={title} onListsChange={onListsChange} />
         </div>
 
         {/* Year + ratings — bottom overlay (keeps mobile tiles short) */}

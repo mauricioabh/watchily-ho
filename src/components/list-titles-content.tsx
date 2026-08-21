@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { ListActions } from "@/components/list-actions";
@@ -28,6 +29,7 @@ export function ListTitlesContent({
   statusMap: initialStatusMap,
   filterType,
 }: Props) {
+  const router = useRouter();
   const [statusMap, setStatusMap] = useState<StatusMap>(initialStatusMap);
   const { activeIds, activeCount, totalCount, toggle, setAll } =
     useProviderFilter(userProviderIds);
@@ -120,6 +122,7 @@ export function ListTitlesContent({
               watchStatus={statusMap[title.id]}
               showWatchStatus
               onWatchStatusChange={handleStatusChange}
+              onListsChange={() => router.refresh()}
             />
           ))}
         </div>
