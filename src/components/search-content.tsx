@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { TitleTile } from "@/components/title-tile";
 import { PopularInfiniteGrid } from "@/components/popular-infinite-grid";
+import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useProviderFilter } from "@/hooks/use-provider-filter";
+import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import type { UnifiedTitle } from "@/types/streaming";
 
 type Props = {
@@ -16,6 +26,14 @@ type Props = {
   initialHasMore: boolean;
   userProviderIds: string[];
 };
+
+function effectiveType(
+  moviesOn: boolean,
+  seriesOn: boolean,
+): "movie" | "series" | undefined {
+  if (moviesOn === seriesOn) return undefined;
+  return moviesOn ? "movie" : "series";
+}
 
 export function SearchContent({
   initialTitles,
@@ -33,11 +51,27 @@ export function SearchContent({
   const [results, setResults] = useState<UnifiedTitle[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeQuery, setActiveQuery] = useState(trimmed);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [moviesOn, setMoviesOn] = useState(true);
+  const [seriesOn, setSeriesOn] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  if (trimmed !== activeQuery) {
-    setActiveQuery(trimmed);
+  const { activeIds, activeCount, totalCount, toggle, setAll } =
+    useProviderFilter(userProviderIds);
+
+  const typeFilter = effectiveType(moviesOn, seriesOn);
+  const searchKey = `${trimmed}|${typeFilter ?? "all"}`;
+  const [activeSearchKey, setActiveSearchKey] = useState(searchKey);
+  const filtersActive =
+    (totalCount > 0 && activeCount < totalCount) || typeFilter !== undefined;
+
+  const visibleResults = useMemo(() => {
+    if (activeIds.length === 0) return [];
+    return filterTitlesByUserProviders(results, activeIds);
+  }, [results, activeIds]);
+
+  if (searchKey !== activeSearchKey) {
+    setActiveSearchKey(searchKey);
     setDraft(trimmed);
     setResults([]);
     setErrorMessage(null);
@@ -55,7 +89,8 @@ export function SearchContent({
     if (!trimmed) return;
 
     let cancelled = false;
-    fetch(`/api/titles/search?q=${encodeURIComponent(trimmed)}`)
+    const typeParam = typeFilter ? `&type=${typeFilter}` : "";
+    fetch(`/api/titles/search?q=${encodeURIComponent(trimmed)}${typeParam}`)
       .then(async (res) => {
         if (cancelled) return;
         if (res.status === 401) {
@@ -77,7 +112,7 @@ export function SearchContent({
     return () => {
       cancelled = true;
     };
-  }, [trimmed]);
+  }, [trimmed, typeFilter]);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +125,7 @@ export function SearchContent({
     <main className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <form
         onSubmit={submitSearch}
-        className="mb-8 flex items-center gap-2"
+        className="mb-6 flex items-center gap-2"
         role="search"
       >
         <Input
@@ -114,7 +149,76 @@ export function SearchContent({
           <Search className="size-4" />
           <span className="hidden sm:inline">Search</span>
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="relative h-12 shrink-0 rounded-xl px-3 sm:h-11"
+          aria-label="Filtros"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen(true)}
+        >
+          <SlidersHorizontal className="size-4" />
+          {filtersActive ? (
+            <span
+              className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary"
+              aria-hidden
+            />
+          ) : null}
+        </Button>
       </form>
+
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Filtros</SheetTitle>
+            <SheetDescription>
+              Tipo y plataformas. Los cambios se aplican al instante.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mb-6 space-y-2.5">
+            <span className="text-sm font-medium text-muted-foreground">
+              Tipo
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                aria-pressed={moviesOn}
+                onClick={() => setMoviesOn((v) => !v)}
+                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  moviesOn
+                    ? "border-primary/50 bg-primary/15 text-foreground"
+                    : "border-white/10 bg-white/4 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                }`}
+              >
+                Movies
+              </button>
+              <button
+                type="button"
+                aria-pressed={seriesOn}
+                onClick={() => setSeriesOn((v) => !v)}
+                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  seriesOn
+                    ? "border-primary/50 bg-primary/15 text-foreground"
+                    : "border-white/10 bg-white/4 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                }`}
+              >
+                Series
+              </button>
+            </div>
+          </div>
+
+          <ProviderFilterBar
+            userProviderIds={userProviderIds}
+            activeIds={activeIds}
+            activeCount={activeCount}
+            totalCount={totalCount}
+            onToggle={toggle}
+            onSelectAll={setAll}
+          />
+        </SheetContent>
+      </Sheet>
 
       {!searched ? (
         <motion.section
@@ -122,22 +226,18 @@ export function SearchContent({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <h1 className="mb-2 text-xl font-semibold text-foreground sm:text-2xl">
-            Search
-          </h1>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Type a title above. Here&apos;s what&apos;s popular right now:
-          </p>
           <PopularInfiniteGrid
             initialTitles={initialTitles}
             initialPage={initialPage}
             initialHasMore={initialHasMore}
             userProviderIds={userProviderIds}
+            activeIds={activeIds}
+            typeFilter={typeFilter}
           />
         </motion.section>
       ) : (
         <motion.section
-          key={q}
+          key={`${q}|${typeFilter ?? "all"}`}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
@@ -156,18 +256,22 @@ export function SearchContent({
                 />
               ))}
             </div>
-          ) : results.length === 0 ? (
+          ) : visibleResults.length === 0 ? (
             <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center sm:py-12">
               <p className="text-muted-foreground">
-                No results for this search.
+                {activeCount === 0
+                  ? "Activa al menos una plataforma para ver resultados."
+                  : "No results for this search."}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Try another title or keyword.
+                {activeCount === 0
+                  ? "Abre filtros y selecciona plataformas."
+                  : "Try another title, keyword, or adjust filters."}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
-              {results.map((title) => (
+              {visibleResults.map((title) => (
                 <TitleTile key={title.id} title={title} />
               ))}
             </div>
