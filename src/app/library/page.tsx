@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { LibraryContent } from "@/components/library-content";
 import type { LibraryPrefs, ListSection, StatusMap } from "@/types/library";
+import { isLibraryTitleHydrated } from "@/lib/streaming/unified";
 import type { TitleType, UnifiedTitle } from "@/types/streaming";
 
 export type { ListSection } from "@/types/library";
@@ -143,7 +144,7 @@ async function LibraryData() {
       title_id: string;
       payload: unknown;
     }[]) {
-      if (isUnifiedTitle(row.payload)) {
+      if (isUnifiedTitle(row.payload) && isLibraryTitleHydrated(row.payload)) {
         detailsMap.set(row.title_id, row.payload);
       }
     }

@@ -33,6 +33,11 @@ export function isAvailabilityCacheFresh(
   return now - ts < AVAILABILITY_CACHE_TTL_MS;
 }
 
+/** True when library/tile can show real content (not a stub skeleton). */
+export function isLibraryTitleHydrated(title: UnifiedTitle): boolean {
+  return Boolean(title.name?.trim() || title.poster?.startsWith("http"));
+}
+
 function mapWatchmodeDetailsToUnified(
   d: watchmode.WatchmodeTitleDetails,
   sources?: watchmode.WatchmodeSource[],

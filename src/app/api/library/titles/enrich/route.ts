@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getSupabaseAndUser, createAdminClient } from "@/lib/supabase/server";
 import {
   getTitleDetails,
-  isAvailabilityCacheFresh,
+  isLibraryTitleHydrated,
 } from "@/lib/streaming/unified";
 import type { UnifiedTitle } from "@/types/streaming";
 
@@ -50,7 +50,6 @@ export async function POST(request: Request) {
   const country = (parsed.data.country ?? DEFAULT_COUNTRY).toUpperCase();
   const ids = [...new Set(parsed.data.ids)];
 
-  // Table exists in migrations; not yet in generated Database types.
   const admin = createAdminClient();
   const { data: cachedRaw, error: cacheError } = await admin
     .from("title_availability_cache")
@@ -64,24 +63,23 @@ export async function POST(request: Request) {
 
   const cached = (cachedRaw ?? []) as CacheRow[];
   const byId = new Map<string, UnifiedTitle>();
+
   for (const row of cached) {
-    if (
-      isUnifiedTitle(row.payload) &&
-      isAvailabilityCacheFresh(row.refreshed_at)
-    ) {
+    if (isUnifiedTitle(row.payload) && isLibraryTitleHydrated(row.payload)) {
       byId.set(row.title_id, row.payload);
     }
   }
 
   const missing = ids.filter((id) => !byId.has(id));
 
-  await Promise.all(
-    missing.map(async (id) => {
+  // Sequential fetches — avoids serverless timeouts from parallel Watchmode+SA calls.
+  for (const id of missing) {
+    try {
       const detail = await getTitleDetails(id, {
         country,
         region: country,
       });
-      if (!detail) return;
+      if (!detail || !isLibraryTitleHydrated(detail)) continue;
       byId.set(id, detail);
       await admin.from("title_availability_cache").upsert(
         {
@@ -92,8 +90,10 @@ export async function POST(request: Request) {
         },
         { onConflict: "title_id,country_code" },
       );
-    }),
-  );
+    } catch (err) {
+      console.error("[library/enrich]", id, err);
+    }
+  }
 
   const titles = ids
     .map((id) => byId.get(id))

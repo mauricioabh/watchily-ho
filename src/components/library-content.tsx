@@ -46,6 +46,7 @@ import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
+import { isLibraryTitleHydrated } from "@/lib/streaming/unified";
 import type {
   LibraryPrefs,
   ListSection,
@@ -481,9 +482,13 @@ export function LibraryContent({
   }, [initialPrefs]);
 
   useEffect(() => {
-    if (initialPendingIds.length === 0) return;
+    const stubIds = initialSections.flatMap((section) =>
+      section.titles.filter((t) => !isLibraryTitleHydrated(t)).map((t) => t.id),
+    );
+    const queue = [...new Set([...initialPendingIds, ...stubIds])];
+    if (queue.length === 0) return;
+
     let cancelled = false;
-    const queue = [...initialPendingIds];
 
     const run = async () => {
       setEnriching(true);
@@ -494,9 +499,12 @@ export function LibraryContent({
           const res = await fetch("/api/library/titles/enrich", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ids: batch }),
+            body: JSON.stringify({ ids: batch, country: "MX" }),
           });
-          if (!res.ok) continue;
+          if (!res.ok) {
+            console.error("[library/enrich]", res.status, await res.text());
+            continue;
+          }
           const data = (await res.json()) as { titles?: UnifiedTitle[] };
           const titles = data.titles ?? [];
           if (titles.length === 0) continue;
@@ -518,7 +526,7 @@ export function LibraryContent({
     return () => {
       cancelled = true;
     };
-  }, [initialPendingIds]);
+  }, [initialPendingIds, initialSections]);
 
   const persistPrefs = useCallback(
     async (patch: Partial<LibraryPrefs>) => {
@@ -942,9 +950,9 @@ export function LibraryContent({
   if (sections.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">My Library</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {createListButton}
             {filtersToggle}
           </div>
@@ -959,29 +967,34 @@ export function LibraryContent({
     );
   }
 
+  const showUpdating = enriching || pendingIds.length > 0;
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold">My Library</h1>
-            <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-0.5 text-sm font-semibold text-foreground/60">
-              {totalUnique}
-            </span>
-            {activeCount < totalCount && totalCount > 0 ? (
-              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                {activeCount}/{totalCount} platforms
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl font-bold">My Library</h1>
+              <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-0.5 text-sm font-semibold text-foreground/60">
+                {totalUnique}
               </span>
-            ) : null}
-            {enriching || pendingIds.length > 0 ? (
-              <span className="text-xs text-muted-foreground">Updating…</span>
-            ) : null}
+              {activeCount < totalCount && totalCount > 0 ? (
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  {activeCount}/{totalCount} platforms
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {createListButton}
+              {filtersToggle}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {createListButton}
-            {filtersToggle}
-          </div>
+          {showUpdating ? (
+            <p className="text-xs text-muted-foreground">Updating…</p>
+          ) : null}
         </div>
 
         {filterDrawer}
