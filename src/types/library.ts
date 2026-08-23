@@ -4,6 +4,8 @@ export type WatchStatus = "watching" | "finished";
 
 export type StatusFilter = "all" | WatchStatus;
 
+export type TypeFilter = "all" | "movie" | "series";
+
 export type TitleSortMode = "custom" | "asc" | "desc";
 
 export type LibraryPrefs = {
