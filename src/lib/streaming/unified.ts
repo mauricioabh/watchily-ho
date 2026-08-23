@@ -6,6 +6,33 @@ import type {
 import * as watchmode from "./watchmode";
 import * as streamingAvailability from "./streaming-availability";
 
+/** DB + enrich freshness window for availability payloads (quota protection). */
+export const AVAILABILITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * When true (default), countries outside Watchmode plan-enabled set use SA for sources.
+ * Set AVAILABILITY_SA_FOR_UNSUPPORTED_REGIONS=0 to rollback to Watchmode-primary (US remap).
+ */
+export function isSaUnsupportedRegionRoutingEnabled(): boolean {
+  const v =
+    process.env.AVAILABILITY_SA_FOR_UNSUPPORTED_REGIONS?.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "off") return false;
+  return true;
+}
+
+export function isAvailabilityCacheFresh(
+  refreshedAt: string | Date | null | undefined,
+  now = Date.now(),
+): boolean {
+  if (!refreshedAt) return false;
+  const ts =
+    typeof refreshedAt === "string"
+      ? Date.parse(refreshedAt)
+      : refreshedAt.getTime();
+  if (!Number.isFinite(ts)) return false;
+  return now - ts < AVAILABILITY_CACHE_TTL_MS;
+}
+
 function mapWatchmodeDetailsToUnified(
   d: watchmode.WatchmodeTitleDetails,
   sources?: watchmode.WatchmodeSource[],
@@ -21,21 +48,22 @@ function mapWatchmodeDetailsToUnified(
   }));
   return {
     id: String(d.id),
-    name: d.title, // Watchmode uses "title" not "name"
+    name: d.title,
     originalName: d.original_title,
     type: d.type === "tv_series" ? "series" : "movie",
     year: d.year,
     poster: d.posterLarge ?? d.posterMedium ?? d.poster,
     backdrop: d.backdrop,
-    overview: d.plot_overview, // Watchmode uses "plot_overview"
+    overview: d.plot_overview,
     imdbRating: d.imdb_rating,
     rottenTomatoesRating: d.rotten_tomatoes,
     userRating: d.user_rating,
     criticScore: d.critic_score,
-    runtime: d.runtime_minutes, // Watchmode uses "runtime_minutes"
+    runtime: d.runtime_minutes,
     genres: d.genre_names,
     sources: src.length ? src : undefined,
     trailer: d.trailer,
+    availabilitySource: "watchmode",
   };
 }
 
@@ -59,8 +87,20 @@ function mapWatchmodeAutocompleteToUnified(
     name: r.name,
     type: r.type === "tv_series" ? "series" : "movie",
     year: r.year,
-    poster: r.image_url, // thumbnail from CDN — already sorted by relevance
+    poster: r.image_url,
   };
+}
+
+function saShowIdFromWatchmode(
+  d: watchmode.WatchmodeTitleDetails,
+): string | null {
+  if (d.imdb_id?.startsWith("tt")) return d.imdb_id;
+  if (d.tmdb_id != null) {
+    const kind =
+      d.tmdb_type === "tv" || d.type === "tv_series" ? "tv" : "movie";
+    return `${kind}/${d.tmdb_id}`;
+  }
+  return null;
 }
 
 export async function searchTitles(
@@ -69,12 +109,10 @@ export async function searchTitles(
 ): Promise<UnifiedSearchResult> {
   const country = (options?.country ?? "us").toLowerCase();
 
-  // Primary: Watchmode autocomplete — relevance-sorted + thumbnails
   try {
     const res = await watchmode.watchmodeAutocompleteSearch(query);
     let results = res.results ?? [];
 
-    // Client-side type filter if specified
     if (options?.types?.length) {
       const wmTypes = options.types.map((t) =>
         t === "series" ? "tv_series" : "movie",
@@ -90,7 +128,6 @@ export async function searchTitles(
     // fall through
   }
 
-  // Fallback: legacy Watchmode search
   try {
     const types = options?.types?.map((t) =>
       t === "series" ? "tv_series" : "movie",
@@ -104,7 +141,6 @@ export async function searchTitles(
     // fall through
   }
 
-  // Last resort: Streaming Availability API
   try {
     const titles = await streamingAvailability.streamingAvailabilitySearch(
       query,
@@ -116,21 +152,57 @@ export async function searchTitles(
   }
 }
 
+/**
+ * Metadata from Watchmode; availability from Watchmode only when the country is
+ * plan-enabled. Otherwise SA for that country (region correctness — not JustWatch freshness).
+ */
 export async function getTitleDetails(
   id: string,
   options?: { region?: string; country?: string },
 ): Promise<UnifiedTitle | null> {
-  const region = options?.region ?? options?.country ?? "US";
+  const country = (options?.region ?? options?.country ?? "US").toUpperCase();
+  const useSaForAvailability =
+    isSaUnsupportedRegionRoutingEnabled() &&
+    !watchmode.isWatchmodeAvailabilityRegion(country);
+
   try {
-    // Single call: details + sources via append_to_response (half the API quota)
-    const details = await watchmode.watchmodeTitleDetails(id, region);
-    if (details) {
-      // sources are embedded in details when append_to_response=sources is used
+    // Metadata always from Watchmode. For unsupported regions, ignore Watchmode
+    // sources (they would be remapped US) and load SA sources instead.
+    const details = await watchmode.watchmodeTitleDetails(
+      id,
+      useSaForAvailability ? "US" : country,
+    );
+    if (!details) {
+      // fall through to SA-only below
+    } else if (useSaForAvailability) {
+      const meta = mapWatchmodeDetailsToUnified(details, []);
+      const saId = saShowIdFromWatchmode(details);
+      if (saId) {
+        const sa = await streamingAvailability.streamingAvailabilityGetTitle(
+          saId,
+          country.toLowerCase(),
+          String(details.id),
+        );
+        if (sa) {
+          return {
+            ...meta,
+            sources: sa.sources,
+            availabilitySource: "sa",
+            // Keep Watchmode poster/overview if SA omits them
+            poster: meta.poster ?? sa.poster,
+            backdrop: meta.backdrop ?? sa.backdrop,
+            overview: meta.overview ?? sa.overview,
+          };
+        }
+      }
+      return { ...meta, sources: undefined, availabilitySource: "sa" };
+    } else {
       return mapWatchmodeDetailsToUnified(details, details.sources);
     }
   } catch {
-    // fallback
+    // fall through
   }
+
   const sa = await streamingAvailability.streamingAvailabilityGetTitle(
     id,
     (options?.country ?? options?.region ?? "us").toLowerCase(),
@@ -149,7 +221,7 @@ export async function getPopularTitlesPaged(options?: {
   type?: "movie" | "series";
   country?: string;
   enrich?: boolean;
-  sourceIds?: number[]; // Watchmode source IDs to pre-filter by provider
+  sourceIds?: number[];
   page?: number;
   pageSize?: number;
 }): Promise<PopularTitlesPage> {
@@ -182,7 +254,6 @@ export async function getPopularTitlesPaged(options?: {
       };
     }
 
-    // Enrich for posters/sources. Cap to keep serverless time budgets healthy.
     const ENRICH = Math.min(12, basic.length);
     const toEnrich = basic.slice(0, ENRICH);
     const rest = basic.slice(ENRICH);
@@ -199,7 +270,6 @@ export async function getPopularTitlesPaged(options?: {
       return original;
     });
 
-    // Only return titles that have a poster to display
     const titles = [...enrichedTitles, ...rest].filter((t) =>
       t.poster?.startsWith("http"),
     );
@@ -218,7 +288,7 @@ export async function getPopularTitles(options?: {
   type?: "movie" | "series";
   country?: string;
   enrich?: boolean;
-  sourceIds?: number[]; // Watchmode source IDs to pre-filter by provider
+  sourceIds?: number[];
   page?: number;
   pageSize?: number;
 }): Promise<UnifiedTitle[]> {

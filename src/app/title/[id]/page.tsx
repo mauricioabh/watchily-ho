@@ -351,6 +351,33 @@ export default async function TitlePage({
             No hay fuentes de streaming disponibles para esta región.
           </p>
         )}
+
+        {title.availabilitySource === "sa" && uniqueSources.length > 0 && (
+          <p className="mt-4 text-xs text-muted-foreground">
+            Disponibilidad regional vía{" "}
+            <a
+              href="https://www.movieofthenight.com/about/api"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Streaming Availability
+            </a>{" "}
+            (Movie of the Night). Puede ir unos días detrás de JustWatch.
+          </p>
+        )}
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          <a
+            href={`https://www.justwatch.com/${userCountry.toLowerCase()}/search?q=${encodeURIComponent(title.name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            Ver en JustWatch
+          </a>{" "}
+          (fuente más actualizada; no scrapamos su sitio).
+        </p>
       </div>
     </main>
   );

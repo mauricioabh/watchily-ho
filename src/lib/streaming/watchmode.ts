@@ -121,22 +121,28 @@ export async function watchmodeAutocompleteSearch(
 }
 
 /**
- * Watchmode supported region codes. Many countries (e.g. MX) are not supported.
- * Falls back to US when the user's country is not in this set.
+ * Watchmode regions with plan_enabled=true for the current Free/legacy key
+ * (verified via GET /v1/regions/, Aug 2026). Re-audit that endpoint if the plan changes.
+ * MX and most LatAm countries are NOT enabled → do not use Watchmode for availability there.
  */
-const WATCHMODE_SUPPORTED_REGIONS = new Set([
+const WATCHMODE_PLAN_ENABLED_REGIONS = new Set([
   "US",
   "CA",
   "GB",
   "AU",
-  "NZ",
-  "IE",
+  "BR",
+  "ES",
   "IN",
 ]);
 
+export function isWatchmodeAvailabilityRegion(countryCode: string): boolean {
+  return WATCHMODE_PLAN_ENABLED_REGIONS.has(countryCode.toUpperCase());
+}
+
+/** Remap unsupported countries to US for Watchmode calls that require a region param. */
 export function toWatchmodeRegion(countryCode: string): string {
   const code = countryCode.toUpperCase();
-  return WATCHMODE_SUPPORTED_REGIONS.has(code) ? code : "US";
+  return WATCHMODE_PLAN_ENABLED_REGIONS.has(code) ? code : "US";
 }
 
 /**

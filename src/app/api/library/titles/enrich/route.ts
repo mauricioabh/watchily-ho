@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { getSupabaseAndUser, createAdminClient } from "@/lib/supabase/server";
-import { getTitleDetails } from "@/lib/streaming/unified";
+import {
+  getTitleDetails,
+  isAvailabilityCacheFresh,
+} from "@/lib/streaming/unified";
 import type { UnifiedTitle } from "@/types/streaming";
 
 const BodySchema = z.object({
@@ -10,7 +13,11 @@ const BodySchema = z.object({
 
 const DEFAULT_COUNTRY = "MX";
 
-type CacheRow = { title_id: string; payload: unknown };
+type CacheRow = {
+  title_id: string;
+  payload: unknown;
+  refreshed_at?: string | null;
+};
 
 function isUnifiedTitle(value: unknown): value is UnifiedTitle {
   if (!value || typeof value !== "object") return false;
@@ -47,7 +54,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: cachedRaw, error: cacheError } = await admin
     .from("title_availability_cache")
-    .select("title_id, payload")
+    .select("title_id, payload, refreshed_at")
     .eq("country_code", country)
     .in("title_id", ids);
 
@@ -58,7 +65,10 @@ export async function POST(request: Request) {
   const cached = (cachedRaw ?? []) as CacheRow[];
   const byId = new Map<string, UnifiedTitle>();
   for (const row of cached) {
-    if (isUnifiedTitle(row.payload)) {
+    if (
+      isUnifiedTitle(row.payload) &&
+      isAvailabilityCacheFresh(row.refreshed_at)
+    ) {
       byId.set(row.title_id, row.payload);
     }
   }

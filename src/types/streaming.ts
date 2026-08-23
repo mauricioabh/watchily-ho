@@ -20,14 +20,16 @@ export interface UnifiedTitle {
   year?: number;
   poster?: string;
   backdrop?: string;
-  overview?: string;        // plot/synopsis
-  imdbRating?: number;      // 0-10
+  overview?: string; // plot/synopsis
+  imdbRating?: number; // 0-10
   rottenTomatoesRating?: number; // 0-100
-  userRating?: number;      // Watchmode user rating 0-10
-  criticScore?: number;     // Watchmode critic score 0-100
-  runtime?: number;         // minutes
+  userRating?: number; // Watchmode user rating 0-10
+  criticScore?: number; // Watchmode critic score 0-100
+  runtime?: number; // minutes
   genres?: string[];
   sources?: StreamingSource[];
+  /** Which API produced `sources` (region routing). Not catalog freshness. */
+  availabilitySource?: "watchmode" | "sa";
   trailer?: string;
   // For series
   numberOfSeasons?: number;
