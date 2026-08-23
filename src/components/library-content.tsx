@@ -29,6 +29,7 @@ import {
   MoreHorizontal,
   Plus,
   Search,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -51,18 +52,22 @@ import type {
   StatusFilter,
   StatusMap,
   TitleSortMode,
+  TypeFilter,
   WatchStatus,
 } from "@/types/library";
 import type { UnifiedTitle } from "@/types/streaming";
 import { cn } from "@/lib/utils";
 
 const COLLAPSED_KEY = "watchily.library.collapsed";
+const TYPE_FILTER_KEY = "watchily.library.typeFilter";
+const ENRICH_BATCH = 8;
 
 interface Props {
   sections: ListSection[];
   userProviderIds: string[];
   statusMap: StatusMap;
   prefs: LibraryPrefs;
+  pendingTitleIds: string[];
 }
 
 function sortTitlesByName<T extends { name: string }>(
@@ -404,6 +409,7 @@ export function LibraryContent({
   userProviderIds,
   statusMap: initialStatusMap,
   prefs: initialPrefs,
+  pendingTitleIds: initialPendingIds,
 }: Props) {
   const router = useRouter();
   const [sections, setSections] = useState(initialSections);
@@ -415,6 +421,10 @@ export function LibraryContent({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
     initialPrefs.statusFilter,
   );
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [pendingIds, setPendingIds] = useState(initialPendingIds);
+  const [enriching, setEnriching] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [collapsedReady, setCollapsedReady] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -443,6 +453,14 @@ export function LibraryContent({
   useEffect(() => {
     setCollapsed(loadCollapsed());
     setCollapsedReady(true);
+    try {
+      const raw = localStorage.getItem(TYPE_FILTER_KEY);
+      if (raw === "movie" || raw === "series" || raw === "all") {
+        setTypeFilter(raw);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -454,9 +472,53 @@ export function LibraryContent({
   }, [initialStatusMap]);
 
   useEffect(() => {
+    setPendingIds(initialPendingIds);
+  }, [initialPendingIds]);
+
+  useEffect(() => {
     setStatusFilter(initialPrefs.statusFilter);
     setTitleSort(initialPrefs.titleSort);
   }, [initialPrefs]);
+
+  useEffect(() => {
+    if (initialPendingIds.length === 0) return;
+    let cancelled = false;
+    const queue = [...initialPendingIds];
+
+    const run = async () => {
+      setEnriching(true);
+      try {
+        for (let i = 0; i < queue.length; i += ENRICH_BATCH) {
+          if (cancelled) return;
+          const batch = queue.slice(i, i + ENRICH_BATCH);
+          const res = await fetch("/api/library/titles/enrich", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: batch }),
+          });
+          if (!res.ok) continue;
+          const data = (await res.json()) as { titles?: UnifiedTitle[] };
+          const titles = data.titles ?? [];
+          if (titles.length === 0) continue;
+          const map = new Map(titles.map((t) => [t.id, t]));
+          setSections((prev) =>
+            prev.map((section) => ({
+              ...section,
+              titles: section.titles.map((t) => map.get(t.id) ?? t),
+            })),
+          );
+          setPendingIds((prev) => prev.filter((id) => !map.has(id)));
+        }
+      } finally {
+        if (!cancelled) setEnriching(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialPendingIds]);
 
   const persistPrefs = useCallback(
     async (patch: Partial<LibraryPrefs>) => {
@@ -473,6 +535,15 @@ export function LibraryContent({
   const changeStatusFilter = (next: StatusFilter) => {
     setStatusFilter(next);
     void persistPrefs({ statusFilter: next });
+  };
+
+  const changeTypeFilter = (next: TypeFilter) => {
+    setTypeFilter(next);
+    try {
+      localStorage.setItem(TYPE_FILTER_KEY, next);
+    } catch {
+      // ignore
+    }
   };
 
   const changeTitleSort = (next: TitleSortMode) => {
@@ -498,7 +569,11 @@ export function LibraryContent({
       titles:
         activeIds.length === 0
           ? []
-          : filterTitlesByUserProviders(s.titles, activeIds),
+          : s.titles.flatMap((title) => {
+              // Pending enrich: keep visible until sources are known
+              if (title.sources === undefined) return [title];
+              return filterTitlesByUserProviders([title], activeIds);
+            }),
     }));
   }, [sections, activeIds]);
 
@@ -512,6 +587,10 @@ export function LibraryContent({
         titles = titles.filter((t) => statusMap[t.id] === statusFilter);
       }
 
+      if (typeFilter !== "all") {
+        titles = titles.filter((t) => t.type === typeFilter);
+      }
+
       if (q) {
         titles = titles.filter((t) => t.name.toLowerCase().includes(q));
       }
@@ -522,19 +601,32 @@ export function LibraryContent({
 
       return { ...section, titles };
     });
-  }, [providerFilteredSections, statusFilter, statusMap, query, titleSort]);
+  }, [
+    providerFilteredSections,
+    statusFilter,
+    typeFilter,
+    statusMap,
+    query,
+    titleSort,
+  ]);
 
   const visibleSections = useMemo(() => {
     const q = query.trim();
-    if (statusFilter === "all" && !q) return processedSections;
+    if (statusFilter === "all" && typeFilter === "all" && !q) {
+      return processedSections;
+    }
     return processedSections.filter((s) => s.titles.length > 0);
-  }, [processedSections, statusFilter, query]);
+  }, [processedSections, statusFilter, typeFilter, query]);
 
   const canReorderLists =
-    statusFilter === "all" && !query.trim() && visibleSections.length > 1;
+    statusFilter === "all" &&
+    typeFilter === "all" &&
+    !query.trim() &&
+    visibleSections.length > 1;
   const canReorderTitles =
     titleSort === "custom" &&
     statusFilter === "all" &&
+    typeFilter === "all" &&
     !query.trim() &&
     activeCount === totalCount &&
     totalCount > 0;
@@ -683,143 +775,100 @@ export function LibraryContent({
         : "border-white/12 bg-white/5 text-muted-foreground hover:bg-white/8 hover:text-foreground",
     );
 
-  if (sections.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">My Library</h1>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                New list
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create list</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={createList} className="space-y-4">
-                <div>
-                  <Label htmlFor="new-list-name">Name</Label>
-                  <Input
-                    id="new-list-name"
-                    value={newListName}
-                    onChange={(e) => setNewListName(e.target.value)}
-                    placeholder="e.g. Watch later"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={creating || !newListName.trim()}
-                >
-                  Create
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="rounded-xl border border-white/8 bg-card/30 py-16 text-center">
-          <p className="text-muted-foreground">
-            Your library is empty. Create a list and add titles from search.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold">My Library</h1>
-            <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-0.5 text-sm font-semibold text-foreground/60">
-              {totalUnique}
-            </span>
-            {activeCount < totalCount && totalCount > 0 ? (
-              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                {activeCount}/{totalCount} platforms
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  New list
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create list</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={createList} className="space-y-4">
-                  <div>
-                    <Label htmlFor="new-list-name">Name</Label>
-                    <Input
-                      id="new-list-name"
-                      value={newListName}
-                      onChange={(e) => setNewListName(e.target.value)}
-                      placeholder="e.g. Watch later"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={creating || !newListName.trim()}
-                  >
-                    Create
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+  const createListButton = (
+    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          aria-label="New list"
+          title="New list"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create list</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={createList} className="space-y-4">
+          <div>
+            <Label htmlFor="new-list-name">Name</Label>
             <Input
-              placeholder="Find in library..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="h-9 pl-9 pr-9 text-sm"
+              id="new-list-name"
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              placeholder="e.g. Watch later"
             />
-            {query && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                onClick={() => setQuery("")}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
           </div>
+          <Button type="submit" disabled={creating || !newListName.trim()}>
+            Create
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 
-          <select
-            value={titleSort}
-            onChange={(e) => changeTitleSort(e.target.value as TitleSortMode)}
-            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground"
-            aria-label="Sort titles"
+  const filtersToggle = (
+    <Button
+      type="button"
+      variant={filtersOpen ? "secondary" : "outline"}
+      size="icon"
+      className="h-9 w-9 shrink-0"
+      aria-label="Filters"
+      aria-expanded={filtersOpen}
+      title="Filters"
+      onClick={() => setFiltersOpen((o) => !o)}
+    >
+      <SlidersHorizontal className="h-4 w-4" />
+    </Button>
+  );
+
+  const filterDrawer = filtersOpen ? (
+    <div className="max-h-[min(55vh,28rem)] space-y-4 overflow-y-auto rounded-xl border border-white/10 bg-card/40 p-4">
+      <div className="relative w-full sm:max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Find in library..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="h-9 pl-9 pr-9 text-sm"
+        />
+        {query ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+            onClick={() => setQuery("")}
           >
-            <option value="custom">Custom order</option>
-            <option value="asc">Name A–Z</option>
-            <option value="desc">Name Z–A</option>
-          </select>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
+      </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={expandAll}>
-              Expand all
-            </Button>
-            <Button variant="outline" size="sm" onClick={collapseAll}>
-              Collapse all
-            </Button>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={titleSort}
+          onChange={(e) => changeTitleSort(e.target.value as TitleSortMode)}
+          className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground"
+          aria-label="Sort titles"
+        >
+          <option value="custom">Custom order</option>
+          <option value="asc">Name A–Z</option>
+          <option value="desc">Name Z–A</option>
+        </select>
+        <Button variant="outline" size="sm" onClick={expandAll}>
+          Expand all
+        </Button>
+        <Button variant="outline" size="sm" onClick={collapseAll}>
+          Collapse all
+        </Button>
+      </div>
 
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Status
+        </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -845,14 +894,98 @@ export function LibraryContent({
         </div>
       </div>
 
-      <ProviderFilterBar
-        userProviderIds={userProviderIds}
-        activeIds={activeIds}
-        activeCount={activeCount}
-        totalCount={totalCount}
-        onToggle={toggle}
-        onSelectAll={setAll}
-      />
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Type
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={statusChipClass(typeFilter === "all")}
+            onClick={() => changeTypeFilter("all")}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className={statusChipClass(typeFilter === "movie")}
+            onClick={() => changeTypeFilter("movie")}
+          >
+            Movies
+          </button>
+          <button
+            type="button"
+            className={statusChipClass(typeFilter === "series")}
+            onClick={() => changeTypeFilter("series")}
+          >
+            Series
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Platforms
+        </p>
+        <ProviderFilterBar
+          userProviderIds={userProviderIds}
+          activeIds={activeIds}
+          activeCount={activeCount}
+          totalCount={totalCount}
+          onToggle={toggle}
+          onSelectAll={setAll}
+        />
+      </div>
+    </div>
+  ) : null;
+
+  if (sections.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">My Library</h1>
+          <div className="flex items-center gap-2">
+            {createListButton}
+            {filtersToggle}
+          </div>
+        </div>
+        {filterDrawer}
+        <div className="rounded-xl border border-white/8 bg-card/30 py-16 text-center">
+          <p className="text-muted-foreground">
+            Your library is empty. Create a list and add titles from search.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl font-bold">My Library</h1>
+            <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-0.5 text-sm font-semibold text-foreground/60">
+              {totalUnique}
+            </span>
+            {activeCount < totalCount && totalCount > 0 ? (
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {activeCount}/{totalCount} platforms
+              </span>
+            ) : null}
+            {enriching || pendingIds.length > 0 ? (
+              <span className="text-xs text-muted-foreground">Updating…</span>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {createListButton}
+            {filtersToggle}
+          </div>
+        </div>
+
+        {filterDrawer}
+      </div>
 
       {query && (
         <p className="text-sm text-muted-foreground">

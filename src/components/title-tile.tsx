@@ -261,6 +261,7 @@ export function TitleTile({
   /** Called after list membership changes when the bookmark dialog closes. */
   onListsChange?: () => void;
 }) {
+  const pending = title.sources === undefined && !title.poster && !title.name;
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
   const subSources = title.sources
     ? dedupeSubscriptionSourcesByBrand(title.sources)
@@ -291,22 +292,29 @@ export function TitleTile({
     >
       {/* Poster */}
       <div className="relative aspect-2/3 overflow-hidden bg-muted">
-        <Link href={`/title/${title.id}`} className="absolute inset-0 block">
-          {posterUrl ? (
-            <Image
-              src={posterUrl}
-              alt={title.name}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-muted-foreground">
-              {title.name.slice(0, 2)}
-            </div>
-          )}
-        </Link>
+        {pending ? (
+          <div
+            className="absolute inset-0 animate-pulse bg-white/8"
+            aria-hidden
+          />
+        ) : (
+          <Link href={`/title/${title.id}`} className="absolute inset-0 block">
+            {posterUrl ? (
+              <Image
+                src={posterUrl}
+                alt={title.name}
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-muted-foreground">
+                {(title.name || "?").slice(0, 2)}
+              </div>
+            )}
+          </Link>
+        )}
 
         {/* Type badge — top left */}
         <span
@@ -321,7 +329,7 @@ export function TitleTile({
 
         {/* Watch status + bookmark — top right */}
         <div className="absolute right-2 top-2 z-10 flex flex-col items-end gap-1.5">
-          {showWatchStatus && (
+          {!pending && showWatchStatus && (
             <WatchStatusControls
               titleId={title.id}
               status={watchStatus}
@@ -329,7 +337,9 @@ export function TitleTile({
               compact
             />
           )}
-          <BookmarkDialog title={title} onListsChange={onListsChange} />
+          {!pending && (
+            <BookmarkDialog title={title} onListsChange={onListsChange} />
+          )}
         </div>
 
         {/* Year + ratings — bottom overlay (keeps mobile tiles short) */}
@@ -349,11 +359,15 @@ export function TitleTile({
       {/* Info section — compact on mobile so ~2 rows fit in the viewport */}
       <div className="flex flex-col gap-1.5 p-2 sm:gap-2 sm:p-2.5">
         {/* Title */}
-        <Link href={`/title/${title.id}`} className="min-w-0">
-          <p className="truncate text-xs font-semibold leading-tight text-foreground sm:text-sm">
-            {title.name}
-          </p>
-        </Link>
+        {pending ? (
+          <div className="h-4 w-3/4 animate-pulse rounded bg-white/10" />
+        ) : (
+          <Link href={`/title/${title.id}`} className="min-w-0">
+            <p className="truncate text-xs font-semibold leading-tight text-foreground sm:text-sm">
+              {title.name}
+            </p>
+          </Link>
+        )}
 
         {/* Platform icons — each links to that platform's page for this title */}
         {subSources.length > 0 && (

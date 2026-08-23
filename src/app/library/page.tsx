@@ -1,13 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { getTitleDetails } from "@/lib/streaming/unified";
-import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { LibraryContent } from "@/components/library-content";
 import type { LibraryPrefs, ListSection, StatusMap } from "@/types/library";
-import type { UnifiedTitle } from "@/types/streaming";
+import type { TitleType, UnifiedTitle } from "@/types/streaming";
 
 export type { ListSection } from "@/types/library";
+
+const CACHE_COUNTRY = "MX";
 
 function normalizePrefs(
   row: {
@@ -25,6 +25,27 @@ function normalizePrefs(
       ? row.library_title_sort
       : "custom";
   return { statusFilter, titleSort };
+}
+
+function isUnifiedTitle(value: unknown): value is UnifiedTitle {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.id === "string" &&
+    typeof v.name === "string" &&
+    (v.type === "movie" || v.type === "series")
+  );
+}
+
+function stubTitle(id: string, titleType: string): UnifiedTitle {
+  const type: TitleType = titleType === "series" ? "series" : "movie";
+  return {
+    id,
+    name: "",
+    type,
+    // undefined sources = pending enrich (keep visible in library)
+    sources: undefined,
+  };
 }
 
 async function LibraryData() {
@@ -72,6 +93,7 @@ async function LibraryData() {
         userProviderIds={userProviderIds}
         statusMap={statusMap}
         prefs={prefs}
+        pendingTitleIds={[]}
       />
     );
   }
@@ -84,11 +106,15 @@ async function LibraryData() {
     .in("list_id", listIds)
     .order("position", { ascending: true });
 
-  const byList: Record<string, { title_id: string; position: number }[]> = {};
+  const byList: Record<
+    string,
+    { title_id: string; title_type: string; position: number }[]
+  > = {};
   for (const item of items ?? []) {
     if (!byList[item.list_id]) byList[item.list_id] = [];
     byList[item.list_id].push({
       title_id: item.title_id,
+      title_type: item.title_type,
       position: item.position,
     });
   }
@@ -97,25 +123,43 @@ async function LibraryData() {
   }
 
   const allUniqueIds = [...new Set((items ?? []).map((i) => i.title_id))];
-  const BATCH = 8;
-  const detailsMap = new Map<string, UnifiedTitle>();
-  for (let i = 0; i < allUniqueIds.length; i += BATCH) {
-    const batch = allUniqueIds.slice(i, i + BATCH);
-    const results = await Promise.allSettled(
-      batch.map((id) => getTitleDetails(id)),
-    );
-    for (let j = 0; j < batch.length; j++) {
-      const r = results[j];
-      if (r.status === "fulfilled" && r.value)
-        detailsMap.set(batch[j], r.value);
+  const typeById = new Map<string, string>();
+  for (const item of items ?? []) {
+    if (!typeById.has(item.title_id)) {
+      typeById.set(item.title_id, item.title_type);
     }
   }
 
+  const detailsMap = new Map<string, UnifiedTitle>();
+  if (allUniqueIds.length > 0) {
+    const admin = createAdminClient();
+    const { data: cachedRaw } = await admin
+      .from("title_availability_cache")
+      .select("title_id, payload")
+      .eq("country_code", CACHE_COUNTRY)
+      .in("title_id", allUniqueIds);
+
+    for (const row of (cachedRaw ?? []) as {
+      title_id: string;
+      payload: unknown;
+    }[]) {
+      if (isUnifiedTitle(row.payload)) {
+        detailsMap.set(row.title_id, row.payload);
+      }
+    }
+  }
+
+  const pendingTitleIds = allUniqueIds.filter((id) => !detailsMap.has(id));
+
   const sections: ListSection[] = lists.map((list) => {
-    const raw = (byList[list.id] ?? [])
-      .map((row) => detailsMap.get(row.title_id))
-      .filter(Boolean) as UnifiedTitle[];
-    const titles = filterTitlesByUserProviders(raw, userProviderIds);
+    const titles = (byList[list.id] ?? []).map((row) => {
+      const cached = detailsMap.get(row.title_id);
+      if (cached) return cached;
+      return stubTitle(
+        row.title_id,
+        typeById.get(row.title_id) ?? row.title_type,
+      );
+    });
     return { id: list.id, name: list.name, titles };
   });
 
@@ -125,6 +169,7 @@ async function LibraryData() {
       userProviderIds={userProviderIds}
       statusMap={statusMap}
       prefs={prefs}
+      pendingTitleIds={pendingTitleIds}
     />
   );
 }

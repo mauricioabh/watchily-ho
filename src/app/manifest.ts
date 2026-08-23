@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: PRODUCT_NAME,
     description: DEFAULT_DESCRIPTION,
     id: "/",
-    // "/" shows login when logged out; authenticated users redirect to /library
-    start_url: "/",
+    // Authenticated users land on library immediately; page redirects to login if needed
+    start_url: "/library",
     scope: "/",
     display: "standalone",
     orientation: "any",
