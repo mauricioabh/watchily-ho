@@ -25,4 +25,4 @@
 ## 5. Verify + ship
 
 - [x] 5.1 Local/build check: MX Bee Movie path does not use US Netflix-only remap; US path still Watchmode
-- [ ] 5.2 Set Vercel env if needed; push; confirm deployment Ready; smoke prod title page
+- [x] 5.2 Set Vercel env if needed; push; confirm deployment Ready; smoke prod title page
