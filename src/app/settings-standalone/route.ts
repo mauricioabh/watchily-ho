@@ -1,26 +1,45 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { tvNavHtml, tvNavCss, tvLogoutScript, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
+import {
+  tvNavHtml,
+  tvNavCss,
+  tvLogoutScript,
+  tvLogoutModalCheckKeydown,
+} from "@/lib/tv-shared";
+import { env } from "@/env";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE = env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 const COUNTRY_NAMES: Record<string, string> = {
-  US: "Estados Unidos", ES: "España", MX: "México", AR: "Argentina",
-  CO: "Colombia", CL: "Chile", BR: "Brasil", GB: "Reino Unido",
-  DE: "Alemania", FR: "Francia",
+  US: "Estados Unidos",
+  ES: "España",
+  MX: "México",
+  AR: "Argentina",
+  CO: "Colombia",
+  CL: "Chile",
+  BR: "Brasil",
+  GB: "Reino Unido",
+  DE: "Alemania",
+  FR: "Francia",
 };
 
 const PROVIDER_NAMES: Record<string, string> = {
-  netflix: "Netflix", disney_plus: "Disney+", hbo_max: "HBO Max",
-  amazon_prime: "Amazon Prime Video", apple_tv_plus: "Apple TV+",
-  paramount_plus: "Paramount+", crunchyroll: "Crunchyroll",
+  netflix: "Netflix",
+  disney_plus: "Disney+",
+  hbo_max: "HBO Max",
+  amazon_prime: "Amazon Prime Video",
+  apple_tv_plus: "Apple TV+",
+  paramount_plus: "Paramount+",
+  crunchyroll: "Crunchyroll",
 };
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(`${BASE}/login-standalone`, 302);
@@ -39,7 +58,9 @@ export async function GET() {
 
   const countryCode = profile?.country_code ?? "MX";
   const countryName = COUNTRY_NAMES[countryCode] ?? countryCode;
-  const providers = (providerRows ?? []).map((r) => PROVIDER_NAMES[r.provider_id] ?? r.provider_id);
+  const providers = (providerRows ?? []).map(
+    (r) => PROVIDER_NAMES[r.provider_id] ?? r.provider_id,
+  );
 
   const html = `<!DOCTYPE html>
 <html lang="es">

@@ -3,6 +3,8 @@
 // RapidAPI fallback: STREAMING_AVAILABILITY_API_KEY / RAPIDAPI_KEY
 // Docs: https://docs.movieofthenight.com/
 
+import { env } from "@/env";
+
 const DIRECT_BASE = "https://api.movieofthenight.com/v4";
 const RAPIDAPI_HOST = "streaming-availability.p.rapidapi.com";
 
@@ -56,11 +58,9 @@ type SaTransport =
   | { mode: "rapidapi"; key: string };
 
 function resolveSaTransport(): SaTransport {
-  const direct = process.env.MOVIEOFTHENIGHT_API_KEY?.trim();
+  const direct = env.MOVIEOFTHENIGHT_API_KEY;
   if (direct) return { mode: "direct", key: direct };
-  const rapid =
-    process.env.STREAMING_AVAILABILITY_API_KEY?.trim() ??
-    process.env.RAPIDAPI_KEY?.trim();
+  const rapid = env.STREAMING_AVAILABILITY_API_KEY ?? env.RAPIDAPI_KEY;
   if (rapid) return { mode: "rapidapi", key: rapid };
   throw new Error(
     "MOVIEOFTHENIGHT_API_KEY or STREAMING_AVAILABILITY_API_KEY is not set",

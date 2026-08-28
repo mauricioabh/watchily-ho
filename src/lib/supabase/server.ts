@@ -1,30 +1,37 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
+import { env } from "@/env";
 
 /** Client with user session (cookies). Use in API routes and Server Components. RLS applies. */
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        setAll(
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options?: Record<string, unknown>;
+          }[],
+        ) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options),
             );
           } catch {
             // Ignore in Server Components
           }
         },
       },
-    }
+    },
   );
 }
 
@@ -35,18 +42,19 @@ export async function createClient() {
  */
 export async function createClientForRequest() {
   const headerStore = await headers();
-  const auth = headerStore.get("authorization") ?? headerStore.get("Authorization");
+  const auth =
+    headerStore.get("authorization") ?? headerStore.get("Authorization");
 
   if (auth?.startsWith("Bearer ")) {
     const token = auth.slice(7);
     // Lightweight client — validates JWT with Supabase and respects RLS
     const client = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       {
         auth: { persistSession: false },
         global: { headers: { Authorization: `Bearer ${token}` } },
-      }
+      },
     );
     return client;
   }
@@ -65,34 +73,38 @@ export async function getSupabaseAndUser(): Promise<{
   user: { id: string } | null;
 }> {
   const headerStore = await headers();
-  const auth = headerStore.get("authorization") ?? headerStore.get("Authorization");
+  const auth =
+    headerStore.get("authorization") ?? headerStore.get("Authorization");
 
   if (auth?.startsWith("Bearer ")) {
     const token = auth.slice(7);
     const client = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       {
         auth: { persistSession: false },
         global: { headers: { Authorization: `Bearer ${token}` } },
-      }
+      },
     );
-    const { data: { user } } = await client.auth.getUser(token);
+    const {
+      data: { user },
+    } = await client.auth.getUser(token);
     return { client, user };
   }
 
   const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
+  const {
+    data: { user },
+  } = await client.auth.getUser();
   return { client, user };
 }
 
 /** Server-only admin client (bypasses RLS). Use only for trusted server logic, never expose. */
 export function createAdminClient() {
-  const key = process.env.SUPABASE_SECRET_KEY;
-  if (!key) throw new Error("SUPABASE_SECRET_KEY is required for createAdminClient");
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    key,
-    { auth: { persistSession: false } }
-  );
+  const key = env.SUPABASE_SECRET_KEY;
+  if (!key)
+    throw new Error("SUPABASE_SECRET_KEY is required for createAdminClient");
+  return createSupabaseClient(env.NEXT_PUBLIC_SUPABASE_URL, key, {
+    auth: { persistSession: false },
+  });
 }

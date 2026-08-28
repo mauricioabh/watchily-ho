@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { getProviderMeta } from "@/lib/streaming/provider-meta";
 
 type Props = {
@@ -19,6 +20,7 @@ export function ProviderFilterBar({
   onToggle,
   onSelectAll,
 }: Props) {
+  const t = useTranslations("common");
   if (userProviderIds.length === 0) return null;
 
   const activeSet = new Set(activeIds);
@@ -28,7 +30,7 @@ export function ProviderFilterBar({
     <div className="mb-5 space-y-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground">
-          Plataformas
+          {t("platforms")}
         </span>
         <span
           className="rounded-full border border-white/12 bg-white/8 px-2.5 py-0.5 text-xs font-semibold text-foreground/70"
@@ -42,7 +44,7 @@ export function ProviderFilterBar({
             onClick={onSelectAll}
             className="text-xs font-medium text-primary hover:underline"
           >
-            Ver todas
+            {t("all")}
           </button>
         )}
       </div>

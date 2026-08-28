@@ -1,6 +1,5 @@
+import { env, isConfiguredPair } from "@/env";
+
 export function isInngestEnabled(): boolean {
-  return (
-    Boolean(process.env.INNGEST_EVENT_KEY?.trim()) &&
-    Boolean(process.env.INNGEST_SIGNING_KEY?.trim())
-  );
+  return isConfiguredPair(env.INNGEST_EVENT_KEY, env.INNGEST_SIGNING_KEY);
 }

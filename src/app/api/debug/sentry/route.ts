@@ -1,9 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
+import { env } from "@/env";
 
 /** Dev-only probe — throws a test error visible in Sentry when SENTRY_DSN is set. */
 export async function GET() {
-  if (process.env.VERCEL_ENV === "production") {
+  if (env.VERCEL_ENV === "production") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   Sentry.setTag("platform", "web");

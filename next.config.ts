@@ -1,6 +1,8 @@
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
+import { env } from "./src/env";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -18,9 +20,11 @@ const analyzedConfig = withBundleAnalyzer({
   openAnalyzer: false,
 })(nextConfig);
 
-export default withSentryConfig(analyzedConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT ?? "watchily-ho",
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withSentryConfig(withNextIntl(analyzedConfig), {
+  org: env.SENTRY_ORG,
+  project: env.SENTRY_PROJECT ?? "watchily-ho",
   silent: !process.env.CI,
   widenClientFileUpload: true,
   disableLogger: true,

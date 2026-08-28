@@ -4,14 +4,14 @@ import {
   tvLogoutModalHtml,
   tvLogoutModalCss,
 } from "@/lib/tv-shared";
+import { env } from "@/env";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 
 export const dynamic = "force-dynamic";
 
-const BASE =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE = env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 function escapeHtml(s: string): string {
   return s

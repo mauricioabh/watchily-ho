@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Bookmark } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,95 +16,186 @@ import {
 import { Input } from "@/components/ui/input";
 import { WatchStatusControls } from "@/components/watch-status-controls";
 import { cn } from "@/lib/utils";
-import type { WatchStatus } from "@/types/library";
-
+import { captureProductEvent } from "@/lib/analytics";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
+import { useAuthScope } from "@/components/app-providers";
+import {
+  queryKeys,
+  type LikesResponse,
+  type ListResponse,
+  type MembershipResponse,
+  type WatchStatusResponse,
+} from "@/lib/query";
 export function TitleActions({
   titleId,
   titleType,
   titleName,
+  userId,
 }: {
   titleId: string;
   titleType: "movie" | "series";
   titleName: string;
+  userId?: string | null;
 }) {
-  const [liked, setLiked] = useState(false);
-  const [watchStatus, setWatchStatus] = useState<WatchStatus | null>(null);
+  const t = useTranslations("common");
+  const queryClient = useQueryClient();
+  const authScope = useAuthScope();
+  const scope = authScope === undefined ? (userId ?? null) : authScope;
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
-  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
-  const [listIdsForTitle, setListIdsForTitle] = useState<string[]>([]);
   const [newListName, setNewListName] = useState("");
 
-  useEffect(() => {
-    fetch(`/api/likes?ids=${titleId}`)
-      .then((r) => r.json())
-      .then((d) => setLiked((d.likedIds ?? []).includes(titleId)))
-      .catch(() => {});
-  }, [titleId]);
+  const likedQuery = useQuery({
+    queryKey: queryKeys.likes(titleId, scope),
+    queryFn: async (): Promise<LikesResponse> =>
+      (await fetch(`/api/likes?ids=${encodeURIComponent(titleId)}`)).json(),
+    enabled: scope !== undefined,
+  });
+  const watchQuery = useQuery({
+    queryKey: queryKeys.watchStatus(titleId, scope),
+    queryFn: async (): Promise<WatchStatusResponse> =>
+      (
+        await fetch(`/api/watch-status?ids=${encodeURIComponent(titleId)}`)
+      ).json(),
+    enabled: scope !== undefined,
+  });
+  const listsQuery = useQuery({
+    queryKey: queryKeys.lists(scope),
+    queryFn: async (): Promise<{ lists: ListResponse[] }> =>
+      (await fetch("/api/lists")).json(),
+    enabled: bookmarkOpen && scope !== undefined,
+  });
+  const membershipQuery = useQuery({
+    queryKey: queryKeys.membership(titleId, scope),
+    queryFn: async (): Promise<MembershipResponse> =>
+      (
+        await fetch(`/api/lists/items?title_id=${encodeURIComponent(titleId)}`)
+      ).json(),
+    enabled: scope !== undefined,
+  });
 
-  useEffect(() => {
-    fetch(`/api/watch-status?ids=${titleId}`)
-      .then((r) => r.json())
-      .then((d) => setWatchStatus(d.statuses?.[titleId] ?? null))
-      .catch(() => {});
-  }, [titleId]);
+  const likeMutation = useMutation({
+    mutationKey: ["like-title", titleId, scope],
+    mutationFn: async (currentlyLiked: boolean) => {
+      const response = currentlyLiked
+        ? await fetch(`/api/likes?title_id=${encodeURIComponent(titleId)}`, {
+            method: "DELETE",
+          })
+        : await fetch("/api/likes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title_id: titleId, title_type: titleType }),
+          });
+      await requireSuccessfulResponse(response, t("updateLikeError"));
+    },
+    onSuccess: (_data, currentlyLiked) => {
+      queryClient.setQueryData<LikesResponse>(queryKeys.likes(titleId, scope), {
+        likedIds: currentlyLiked ? [] : [titleId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["likes"] });
+    },
+  });
 
-  useEffect(() => {
-    if (!bookmarkOpen) return;
-    Promise.all([
-      fetch("/api/lists").then((r) => r.json()),
-      fetch(`/api/lists/items?title_id=${titleId}`).then((r) => r.json()),
-    ])
-      .then(([listRes, itemRes]) => {
-        setLists(listRes.lists ?? []);
-        setListIdsForTitle(itemRes.listIdsByTitle?.[titleId] ?? []);
-      })
-      .catch(() => {});
-  }, [bookmarkOpen, titleId]);
+  const membershipMutation = useMutation({
+    mutationKey: ["list-membership", titleId, scope],
+    mutationFn: async ({
+      listId,
+      action,
+    }: {
+      listId: string;
+      action: "add" | "remove";
+    }) => {
+      const response = await fetch(
+        `/api/lists/${listId}/items?title_id=${encodeURIComponent(titleId)}`,
+        action === "add"
+          ? {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title_id: titleId,
+                title_type: titleType,
+              }),
+            }
+          : { method: "DELETE" },
+      );
+      await requireSuccessfulResponse(
+        response,
+        action === "add" ? t("addListError") : t("removeListError"),
+      );
+      return action;
+    },
+    onSuccess: (_action, variables) => {
+      queryClient.setQueryData<MembershipResponse>(
+        queryKeys.membership(titleId, scope),
+        (previous) => {
+          const current = previous?.listIdsByTitle[titleId] ?? [];
+          const next =
+            variables.action === "add"
+              ? [...new Set([...current, variables.listId])]
+              : current.filter((id) => id !== variables.listId);
+          return { listIdsByTitle: { [titleId]: next } };
+        },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
+      void queryClient.invalidateQueries({ queryKey: ["list-membership"] });
+    },
+  });
 
-  const toggleLike = async () => {
-    if (liked) {
-      await fetch(`/api/likes?title_id=${titleId}`, { method: "DELETE" });
-      setLiked(false);
-    } else {
-      await fetch("/api/likes", {
+  const createListMutation = useMutation({
+    mutationKey: ["create-list", scope],
+    mutationFn: async () => {
+      const response = await fetch("/api/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title_id: titleId, title_type: titleType }),
+        body: JSON.stringify({ name: newListName.trim(), is_public: false }),
       });
-      setLiked(true);
+      await requireSuccessfulResponse(response, t("createListError"));
+      return (await response.json()) as ListResponse;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.lists(scope) });
+    },
+  });
+
+  const liked = likedQuery.data?.likedIds.includes(titleId) ?? false;
+  const watchStatus = watchQuery.data?.statuses[titleId] ?? null;
+  const lists = listsQuery.data?.lists ?? [];
+  const listIdsForTitle = membershipQuery.data?.listIdsByTitle[titleId] ?? [];
+
+  const toggleLike = async () => {
+    try {
+      await likeMutation.mutateAsync(liked);
+      toast.success(liked ? t("unlike") : t("like"));
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("updateLikeError")));
     }
   };
 
-  const addToList = async (listId: string) => {
-    await fetch(`/api/lists/${listId}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title_id: titleId, title_type: titleType }),
-    });
-    setListIdsForTitle((prev) =>
-      prev.includes(listId) ? prev : [...prev, listId],
-    );
-  };
-
-  const removeFromList = async (listId: string) => {
-    await fetch(`/api/lists/${listId}/items?title_id=${titleId}`, {
-      method: "DELETE",
-    });
-    setListIdsForTitle((prev) => prev.filter((id) => id !== listId));
+  const changeMembership = async (listId: string, action: "add" | "remove") => {
+    try {
+      await membershipMutation.mutateAsync({ listId, action });
+      captureProductEvent("list_membership_changed", { action, titleType });
+      toast.success(action === "add" ? t("add") : t("remove"));
+    } catch (error) {
+      toast.error(
+        getMutationErrorMessage(
+          error,
+          action === "add" ? t("addListError") : t("removeListError"),
+        ),
+      );
+    }
   };
 
   const createListAndAdd = async () => {
     if (!newListName.trim()) return;
-    const res = await fetch("/api/lists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newListName.trim(), is_public: false }),
-    });
-    const created = await res.json();
-    if (created.id) {
-      await addToList(created.id);
-      setLists((prev) => [...prev, { id: created.id, name: created.name }]);
+    try {
+      const created = await createListMutation.mutateAsync();
+      await changeMembership(created.id, "add");
       setNewListName("");
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("createListError")));
     }
   };
 
@@ -110,24 +204,34 @@ export function TitleActions({
       <WatchStatusControls
         titleId={titleId}
         status={watchStatus}
-        onChange={(_id, status) => setWatchStatus(status)}
+        onChange={(_id, status) => {
+          queryClient.setQueryData<WatchStatusResponse>(
+            queryKeys.watchStatus(titleId, scope),
+            { statuses: status ? { [titleId]: status } : {} },
+          );
+        }}
       />
-      <Button variant="outline" size="sm" onClick={toggleLike}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={toggleLike}
+        disabled={likeMutation.isPending}
+      >
         <Heart
           className={cn("mr-1 h-4 w-4", liked && "fill-red-500 text-red-500")}
         />
-        {liked ? "Unlike" : "Like"}
+        {liked ? t("remove") : t("add")}
       </Button>
       <Dialog open={bookmarkOpen} onOpenChange={setBookmarkOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             <Bookmark className="mr-1 h-4 w-4" />
-            Lists
+            {t("lists")}
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add to list</DialogTitle>
+            <DialogTitle>{t("add")}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">{titleName}</p>
           <div className="space-y-2">
@@ -142,11 +246,12 @@ export function TitleActions({
                   <Button
                     variant={inList ? "destructive" : "default"}
                     size="sm"
+                    disabled={membershipMutation.isPending}
                     onClick={() =>
-                      inList ? removeFromList(list.id) : addToList(list.id)
+                      void changeMembership(list.id, inList ? "remove" : "add")
                     }
                   >
-                    {inList ? "Remove" : "Add"}
+                    {inList ? t("remove") : t("add")}
                   </Button>
                 </div>
               );
@@ -154,12 +259,15 @@ export function TitleActions({
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="New list"
+              placeholder={t("newList")}
               value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
+              onChange={(event) => setNewListName(event.target.value)}
             />
-            <Button onClick={createListAndAdd} disabled={!newListName.trim()}>
-              Create & add
+            <Button
+              onClick={() => void createListAndAdd()}
+              disabled={!newListName.trim() || createListMutation.isPending}
+            >
+              {t("create")}
             </Button>
           </div>
         </DialogContent>

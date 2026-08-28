@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -11,6 +12,8 @@ import {
   filterTitlesByUserProviders,
 } from "@/lib/streaming/providers";
 import { TitleActions } from "@/components/title-actions";
+import { TitleViewAnalytics } from "@/components/title-view-analytics";
+import { StreamingLink } from "@/components/streaming-link";
 import { BackButton } from "@/components/back-button";
 import { createClient } from "@/lib/supabase/server";
 import { TbBrandDisney, TbBrandHbo, TbBrandNetflix } from "react-icons/tb";
@@ -22,6 +25,7 @@ import {
 } from "react-icons/si";
 import type { StreamingSource } from "@/types/streaming";
 import type { ComponentType } from "react";
+import type { AppLocale } from "@/i18n/routing";
 
 /* ── Platform icon helper ── */
 type IconComponent = ComponentType<{
@@ -47,22 +51,26 @@ function getPlatformDef(name: string): PlatformDef | null {
 }
 
 /* ── Source card ── */
-function SourceCard({ s }: { s: StreamingSource }) {
+function SourceCard({
+  s,
+  labels,
+}: {
+  s: StreamingSource;
+  labels: { included: string; rent: string; buy: string; free: string };
+}) {
   const def = getPlatformDef(s.providerName);
   const typeLabel =
     s.type === "sub"
-      ? "Incluido"
+      ? labels.included
       : s.type === "rent"
-        ? "Alquiler"
+        ? labels.rent
         : s.type === "buy"
-          ? "Compra"
-          : "Gratis";
+          ? labels.buy
+          : labels.free;
 
   return (
-    <a
-      href={s.url ?? "#"}
-      target="_blank"
-      rel="noopener noreferrer"
+    <StreamingLink
+      source={s}
       className="group flex items-center gap-3 rounded-xl border border-white/10 bg-card/60 px-4 py-3 transition-all duration-200 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_16px_2px_rgba(59,130,246,0.15)]"
     >
       {def ? (
@@ -85,7 +93,7 @@ function SourceCard({ s }: { s: StreamingSource }) {
           {s.price != null ? ` · $${s.price}` : ""}
         </p>
       </div>
-    </a>
+    </StreamingLink>
   );
 }
 
@@ -111,37 +119,56 @@ function ScoreBadge({
 
 export async function generateMetadata({
   params,
+  locale,
 }: {
   params: Promise<{ id: string }>;
+  locale?: AppLocale;
 }): Promise<Metadata> {
   const { id } = await params;
+  const activeLocale = locale ?? (await getLocale());
+  const t = await getTranslations({ locale: activeLocale, namespace: "title" });
   const title = await getTitleDetails(id, { region: "MX", country: "MX" });
 
   if (!title) {
     return buildPageMetadata({
-      title: "Título no encontrado",
+      title: t("notFound"),
       pathname: `/title/${id}`,
+      locale: activeLocale,
     });
   }
 
   const yearSuffix = title.year != null ? ` (${title.year})` : "";
 
   return buildPageMetadata({
-    title: `Dónde ver ${title.name}${yearSuffix} en streaming`,
+    title: `${t("justWatch")} ${title.name}${yearSuffix}`,
     description: title.overview,
     pathname: `/title/${id}`,
+    locale: activeLocale,
   });
 }
 
 export default async function TitlePage({
   params,
   searchParams,
+  locale,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ region?: string }>;
+  locale?: AppLocale;
 }) {
   const { id } = await params;
   const { region } = await searchParams;
+  const activeLocale = locale ?? (await getLocale());
+  const t = await getTranslations({
+    locale: activeLocale,
+    namespace: "title",
+  });
+  const sourceLabels = {
+    included: t("included"),
+    rent: t("rent"),
+    buy: t("buy"),
+    free: t("free"),
+  };
 
   // Use user's saved country, fallback to region param or MX
   const supabase = await createClient();
@@ -187,6 +214,7 @@ export default async function TitlePage({
 
   return (
     <main>
+      <TitleViewAnalytics titleType={title.type} />
       <JsonLd data={movieOrSeriesJsonLd(title)} />
       {/* Hero with backdrop */}
       <div className="relative">
@@ -232,11 +260,13 @@ export default async function TitlePage({
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   {title.type === "series" && (
                     <span className="rounded bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
-                      SERIE
+                      {t("seriesBadge")}
                     </span>
                   )}
                   {title.year != null && <span>{title.year}</span>}
-                  {title.runtime != null && <span>{title.runtime} min</span>}
+                  {title.runtime != null && (
+                    <span>{t("runtime", { minutes: title.runtime })}</span>
+                  )}
                   {title.genres?.length ? (
                     <span>{title.genres.slice(0, 3).join(" · ")}</span>
                   ) : null}
@@ -266,14 +296,14 @@ export default async function TitlePage({
                   )}
                   {title.userRating != null && (
                     <ScoreBadge
-                      label="Usuario"
+                      label={t("user")}
                       value={title.userRating.toFixed(1)}
                       color="#60a5fa"
                     />
                   )}
                   {title.criticScore != null && (
                     <ScoreBadge
-                      label="Crítica"
+                      label={t("critic")}
                       value={`${title.criticScore}%`}
                       color={title.criticScore >= 60 ? "#4ade80" : "#f87171"}
                     />
@@ -302,6 +332,7 @@ export default async function TitlePage({
                 titleId={title.id}
                 titleType={title.type}
                 titleName={title.name}
+                userId={user?.id ?? null}
               />
 
               {/* Trailer link */}
@@ -312,7 +343,7 @@ export default async function TitlePage({
                   rel="noopener noreferrer"
                   className="inline-flex w-fit items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm transition-colors hover:bg-white/10"
                 >
-                  ▶ Ver tráiler
+                  ▶ {t("trailer")}
                 </a>
               )}
             </div>
@@ -324,12 +355,10 @@ export default async function TitlePage({
       <div className="container mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {subSources.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-4 text-lg font-semibold">
-              Disponible con suscripción
-            </h2>
+            <h2 className="mb-4 text-lg font-semibold">{t("subscription")}</h2>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {subSources.map((s, i) => (
-                <SourceCard key={i} s={s} />
+                <SourceCard key={i} s={s} labels={sourceLabels} />
               ))}
             </div>
           </section>
@@ -337,24 +366,22 @@ export default async function TitlePage({
 
         {paidSources.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-4 text-lg font-semibold">Alquiler / Compra</h2>
+            <h2 className="mb-4 text-lg font-semibold">{t("rentBuy")}</h2>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {paidSources.map((s, i) => (
-                <SourceCard key={i} s={s} />
+                <SourceCard key={i} s={s} labels={sourceLabels} />
               ))}
             </div>
           </section>
         )}
 
         {uniqueSources.length === 0 && (
-          <p className="text-muted-foreground">
-            No hay fuentes de streaming disponibles para esta región.
-          </p>
+          <p className="text-muted-foreground">{t("noSources")}</p>
         )}
 
         {title.availabilitySource === "sa" && uniqueSources.length > 0 && (
           <p className="mt-4 text-xs text-muted-foreground">
-            Disponibilidad regional vía{" "}
+            {t("availability")}{" "}
             <a
               href="https://www.movieofthenight.com/about/api"
               target="_blank"
@@ -362,8 +389,7 @@ export default async function TitlePage({
               className="underline underline-offset-2 hover:text-foreground"
             >
               Streaming Availability
-            </a>{" "}
-            (Movie of the Night). Puede ir unos días detrás de JustWatch.
+            </a>
           </p>
         )}
 
@@ -374,7 +400,7 @@ export default async function TitlePage({
             rel="noopener noreferrer"
             className="underline underline-offset-2 hover:text-foreground"
           >
-            Ver en JustWatch
+            {t("justWatch")}
           </a>{" "}
           (fuente más actualizada; no scrapamos su sitio).
         </p>

@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { localizedPath } from "@/i18n/routing";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
 
 export function ListActions({
   listId,
@@ -21,6 +28,8 @@ export function ListActions({
   listId: string;
   listName: string;
 }) {
+  const t = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [name, setName] = useState(listName);
@@ -35,25 +44,29 @@ export function ListActions({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim() }),
       });
-      if (res.ok) {
-        setEditOpen(false);
-        router.refresh();
-      }
+      await requireSuccessfulResponse(res, t("renameListError"));
+      setEditOpen(false);
+      toast.success(t("rename"));
+      router.refresh();
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("renameListError")));
     } finally {
       setLoading(false);
     }
   };
 
   const deleteList = async () => {
-    if (
-      !confirm(
-        "Delete this list? Titles are not removed — only the list is deleted.",
-      )
-    ) {
+    if (!confirm(t("deleteListConfirm"))) {
       return;
     }
-    const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
-    if (res.ok) router.push("/library");
+    try {
+      const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
+      await requireSuccessfulResponse(res, t("deleteListError"));
+      toast.success(t("delete"));
+      router.push(localizedPath("/library", locale));
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("deleteListError")));
+    }
   };
 
   return (
@@ -62,16 +75,16 @@ export function ListActions({
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             <Pencil className="mr-1 h-4 w-4" />
-            Edit
+            {t("edit")}
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit list</DialogTitle>
+            <DialogTitle>{t("edit")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={updateList} className="space-y-4">
             <div>
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">{t("newList")}</Label>
               <Input
                 id="edit-name"
                 value={name}
@@ -79,14 +92,14 @@ export function ListActions({
               />
             </div>
             <Button type="submit" disabled={loading || !name.trim()}>
-              Save
+              {t("save")}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
       <Button variant="destructive" size="sm" onClick={deleteList}>
         <Trash2 className="mr-1 h-4 w-4" />
-        Delete
+        {t("delete")}
       </Button>
     </div>
   );

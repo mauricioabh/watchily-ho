@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryStates } from "nuqs";
 import {
   DndContext,
   closestCenter,
@@ -42,6 +45,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
@@ -58,9 +62,16 @@ import type {
 } from "@/types/library";
 import type { UnifiedTitle } from "@/types/streaming";
 import { cn } from "@/lib/utils";
+import { captureProductEvent } from "@/lib/analytics";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
+import { useAuthScope } from "@/components/app-providers";
+import { queryKeys, type LibraryEnrichmentResponse } from "@/lib/query";
+import { libraryParsers } from "@/lib/url-state";
 
 const COLLAPSED_KEY = "watchily.library.collapsed";
-const TYPE_FILTER_KEY = "watchily.library.typeFilter";
 const ENRICH_BATCH = 8;
 
 interface Props {
@@ -69,6 +80,8 @@ interface Props {
   statusMap: StatusMap;
   prefs: LibraryPrefs;
   pendingTitleIds: string[];
+  userScope: string;
+  country: string;
 }
 
 function sortTitlesByName<T extends { name: string }>(
@@ -150,6 +163,7 @@ function SortableListSection({
   onListsChange: () => void;
   onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
 }) {
+  const t = useTranslations("library");
   const {
     attributes,
     listeners,
@@ -269,7 +283,7 @@ function SortableListSection({
         <div className="border-t border-white/6 px-4 pb-4 pt-2">
           {section.titles.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              This list is empty or no titles match your filters.
+              {t("noMatch")}
             </p>
           ) : canReorderTitles ? (
             <SortableTitlesGrid
@@ -332,6 +346,7 @@ function SortableTitlesGrid({
 
   return (
     <DndContext
+      id={`titles-${listId}`}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={(event) => onTitlesDragEnd(listId, event)}
@@ -411,21 +426,30 @@ export function LibraryContent({
   statusMap: initialStatusMap,
   prefs: initialPrefs,
   pendingTitleIds: initialPendingIds,
+  userScope,
+  country,
 }: Props) {
+  const t = useTranslations("library");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [urlState, setUrlState] = useQueryStates(libraryParsers, {
+    history: "push",
+    shallow: true,
+  });
+  const authScope = useAuthScope();
+  const effectiveScope = authScope === undefined ? userScope : authScope;
   const [sections, setSections] = useState(initialSections);
   const [statusMap, setStatusMap] = useState<StatusMap>(initialStatusMap);
-  const [query, setQuery] = useState("");
-  const [titleSort, setTitleSort] = useState<TitleSortMode>(
-    initialPrefs.titleSort,
-  );
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
-    initialPrefs.statusFilter,
-  );
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const query = urlState.query;
+  const titleSort = searchParams.has("sort")
+    ? urlState.sort
+    : initialPrefs.titleSort;
+  const statusFilter = searchParams.has("status")
+    ? urlState.status
+    : initialPrefs.statusFilter;
+  const typeFilter = urlState.type;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [pendingIds, setPendingIds] = useState(initialPendingIds);
-  const [enriching, setEnriching] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [collapsedReady, setCollapsedReady] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -435,6 +459,20 @@ export function LibraryContent({
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
+  const enrichMutation = useMutation({
+    mutationKey: queryKeys.libraryEnrichment(country, effectiveScope ?? null),
+    mutationFn: async (ids: string[]): Promise<LibraryEnrichmentResponse> => {
+      const response = await fetch("/api/library/titles/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, country }),
+      });
+      if (!response.ok) throw new Error("Could not enrich library titles");
+      return (await response.json()) as LibraryEnrichmentResponse;
+    },
+  });
+  const enrichTitles = enrichMutation.mutateAsync;
 
   const { activeIds, activeCount, totalCount, toggle, setAll } =
     useProviderFilter(userProviderIds);
@@ -454,14 +492,6 @@ export function LibraryContent({
   useEffect(() => {
     setCollapsed(loadCollapsed());
     setCollapsedReady(true);
-    try {
-      const raw = localStorage.getItem(TYPE_FILTER_KEY);
-      if (raw === "movie" || raw === "series" || raw === "all") {
-        setTypeFilter(raw);
-      }
-    } catch {
-      // ignore
-    }
   }, []);
 
   useEffect(() => {
@@ -477,11 +507,6 @@ export function LibraryContent({
   }, [initialPendingIds]);
 
   useEffect(() => {
-    setStatusFilter(initialPrefs.statusFilter);
-    setTitleSort(initialPrefs.titleSort);
-  }, [initialPrefs]);
-
-  useEffect(() => {
     const stubIds = initialSections.flatMap((section) =>
       section.titles.filter((t) => !isLibraryTitleHydrated(t)).map((t) => t.id),
     );
@@ -491,21 +516,17 @@ export function LibraryContent({
     let cancelled = false;
 
     const run = async () => {
-      setEnriching(true);
       try {
         for (let i = 0; i < queue.length; i += ENRICH_BATCH) {
           if (cancelled) return;
           const batch = queue.slice(i, i + ENRICH_BATCH);
-          const res = await fetch("/api/library/titles/enrich", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ids: batch, country: "MX" }),
-          });
-          if (!res.ok) {
-            console.error("[library/enrich]", res.status, await res.text());
+          let data: LibraryEnrichmentResponse;
+          try {
+            data = await enrichTitles(batch);
+          } catch (error) {
+            console.error("[library/enrich]", error);
             continue;
           }
-          const data = (await res.json()) as { titles?: UnifiedTitle[] };
           const titles = data.titles ?? [];
           if (titles.length === 0) continue;
           const map = new Map(titles.map((t) => [t.id, t]));
@@ -517,8 +538,8 @@ export function LibraryContent({
           );
           setPendingIds((prev) => prev.filter((id) => !map.has(id)));
         }
-      } finally {
-        if (!cancelled) setEnriching(false);
+      } catch (error) {
+        console.error("[library/enrich]", error);
       }
     };
 
@@ -526,38 +547,79 @@ export function LibraryContent({
     return () => {
       cancelled = true;
     };
-  }, [initialPendingIds, initialSections]);
+  }, [enrichTitles, initialPendingIds, initialSections]);
 
   const persistPrefs = useCallback(
     async (patch: Partial<LibraryPrefs>) => {
-      const res = await fetch("/api/library/prefs", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) router.refresh();
+      try {
+        const res = await fetch("/api/library/prefs", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        await requireSuccessfulResponse(
+          res,
+          "Could not save library preferences.",
+        );
+        toast.success("Library preferences saved.");
+        return true;
+      } catch (error) {
+        toast.error(
+          getMutationErrorMessage(error, "Could not save library preferences."),
+        );
+        router.refresh();
+        return false;
+      }
     },
     [router],
   );
 
-  const changeStatusFilter = (next: StatusFilter) => {
-    setStatusFilter(next);
-    void persistPrefs({ statusFilter: next });
-  };
-
-  const changeTypeFilter = (next: TypeFilter) => {
-    setTypeFilter(next);
-    try {
-      localStorage.setItem(TYPE_FILTER_KEY, next);
-    } catch {
-      // ignore
+  const changeStatusFilter = async (next: StatusFilter) => {
+    void setUrlState({ status: next });
+    if (await persistPrefs({ statusFilter: next })) {
+      captureProductEvent("library_filter_changed", {
+        filter: "status",
+        value: next,
+      });
     }
   };
 
-  const changeTitleSort = (next: TitleSortMode) => {
-    setTitleSort(next);
-    void persistPrefs({ titleSort: next });
+  const changeTypeFilter = (next: TypeFilter) => {
+    void setUrlState({ type: next });
+    captureProductEvent("library_filter_changed", {
+      filter: "type",
+      value: next,
+    });
   };
+
+  const changeTitleSort = async (next: TitleSortMode) => {
+    void setUrlState({ sort: next });
+    if (await persistPrefs({ titleSort: next })) {
+      captureProductEvent("library_filter_changed", {
+        filter: "sort",
+        value: next,
+      });
+    }
+  };
+
+  const toggleProviderFilter = useCallback(
+    (id: string) => {
+      toggle(id);
+      captureProductEvent("library_filter_changed", {
+        filter: "provider",
+        value: id,
+      });
+    },
+    [toggle],
+  );
+
+  const selectAllProviders = useCallback(() => {
+    setAll();
+    captureProductEvent("library_filter_changed", {
+      filter: "provider",
+      value: "all",
+    });
+  }, [setAll]);
 
   const handleStatusChange = useCallback(
     (titleId: string, status: WatchStatus | null) => {
@@ -684,11 +746,13 @@ export function LibraryContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newListName.trim(), is_public: false }),
       });
-      if (res.ok) {
-        setNewListName("");
-        setCreateOpen(false);
-        router.refresh();
-      }
+      await requireSuccessfulResponse(res, "Could not create list.");
+      setNewListName("");
+      setCreateOpen(false);
+      toast.success("List created.");
+      router.refresh();
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, "Could not create list."));
     } finally {
       setCreating(false);
     }
@@ -704,10 +768,12 @@ export function LibraryContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: renameName.trim() }),
       });
-      if (res.ok) {
-        setRenameSection(null);
-        router.refresh();
-      }
+      await requireSuccessfulResponse(res, "Could not rename list.");
+      setRenameSection(null);
+      toast.success("List renamed.");
+      router.refresh();
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, "Could not rename list."));
     } finally {
       setRenaming(false);
     }
@@ -721,8 +787,14 @@ export function LibraryContent({
     ) {
       return;
     }
-    const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
-    if (res.ok) router.refresh();
+    try {
+      const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
+      await requireSuccessfulResponse(res, "Could not delete list.");
+      toast.success("List deleted.");
+      router.refresh();
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, "Could not delete list."));
+    }
   };
 
   const onListsDragEnd = async (event: DragEndEvent) => {
@@ -734,14 +806,18 @@ export function LibraryContent({
     const previous = sections;
     const next = arrayMove(sections, oldIndex, newIndex);
     setSections(next);
-    const res = await fetch("/api/lists/reorder", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderedIds: next.map((s) => s.id) }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/lists/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds: next.map((s) => s.id) }),
+      });
+      await requireSuccessfulResponse(res, "Could not reorder lists.");
+      toast.success("Lists reordered.");
+    } catch (error) {
       setSections(previous);
       router.refresh();
+      toast.error(getMutationErrorMessage(error, "Could not reorder lists."));
     }
   };
 
@@ -764,14 +840,18 @@ export function LibraryContent({
       prev.map((s) => (s.id === listId ? { ...s, titles: nextTitles } : s)),
     );
 
-    const res = await fetch(`/api/lists/${listId}/items/reorder`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderedIds: nextTitles.map((t) => t.id) }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch(`/api/lists/${listId}/items/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds: nextTitles.map((t) => t.id) }),
+      });
+      await requireSuccessfulResponse(res, "Could not reorder titles.");
+      toast.success("Titles reordered.");
+    } catch (error) {
       setSections(previous);
       router.refresh();
+      toast.error(getMutationErrorMessage(error, "Could not reorder titles."));
     }
   };
 
@@ -837,9 +917,14 @@ export function LibraryContent({
       <div className="relative w-full sm:max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Find in library..."
+          placeholder={t("find")}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) =>
+            void setUrlState(
+              { query: e.target.value || null },
+              { history: "replace" },
+            )
+          }
           className="h-9 pl-9 pr-9 text-sm"
         />
         {query ? (
@@ -847,7 +932,7 @@ export function LibraryContent({
             variant="ghost"
             size="icon"
             className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-            onClick={() => setQuery("")}
+            onClick={() => void setUrlState({ query: null })}
           >
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -861,21 +946,21 @@ export function LibraryContent({
           className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground"
           aria-label="Sort titles"
         >
-          <option value="custom">Custom order</option>
-          <option value="asc">Name A–Z</option>
-          <option value="desc">Name Z–A</option>
+          <option value="custom">{t("customOrder")}</option>
+          <option value="asc">{t("nameAsc")}</option>
+          <option value="desc">{t("nameDesc")}</option>
         </select>
         <Button variant="outline" size="sm" onClick={expandAll}>
-          Expand all
+          {t("expandAll")}
         </Button>
         <Button variant="outline" size="sm" onClick={collapseAll}>
-          Collapse all
+          {t("collapseAll")}
         </Button>
       </div>
 
       <div className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Status
+          {t("status")}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -883,21 +968,21 @@ export function LibraryContent({
             className={statusChipClass(statusFilter === "all")}
             onClick={() => changeStatusFilter("all")}
           >
-            All
+            {t("all")}
           </button>
           <button
             type="button"
             className={statusChipClass(statusFilter === "watching")}
             onClick={() => changeStatusFilter("watching")}
           >
-            Watching
+            {t("watching")}
           </button>
           <button
             type="button"
             className={statusChipClass(statusFilter === "finished")}
             onClick={() => changeStatusFilter("finished")}
           >
-            Finished
+            {t("finished")}
           </button>
         </div>
       </div>
@@ -912,21 +997,21 @@ export function LibraryContent({
             className={statusChipClass(typeFilter === "all")}
             onClick={() => changeTypeFilter("all")}
           >
-            All
+            {t("all")}
           </button>
           <button
             type="button"
             className={statusChipClass(typeFilter === "movie")}
             onClick={() => changeTypeFilter("movie")}
           >
-            Movies
+            {t("movies")}
           </button>
           <button
             type="button"
             className={statusChipClass(typeFilter === "series")}
             onClick={() => changeTypeFilter("series")}
           >
-            Series
+            {t("series")}
           </button>
         </div>
       </div>
@@ -940,8 +1025,8 @@ export function LibraryContent({
           activeIds={activeIds}
           activeCount={activeCount}
           totalCount={totalCount}
-          onToggle={toggle}
-          onSelectAll={setAll}
+          onToggle={toggleProviderFilter}
+          onSelectAll={selectAllProviders}
         />
       </div>
     </div>
@@ -951,7 +1036,7 @@ export function LibraryContent({
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">My Library</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <div className="flex shrink-0 items-center gap-2">
             {createListButton}
             {filtersToggle}
@@ -959,15 +1044,13 @@ export function LibraryContent({
         </div>
         {filterDrawer}
         <div className="rounded-xl border border-white/8 bg-card/30 py-16 text-center">
-          <p className="text-muted-foreground">
-            Your library is empty. Create a list and add titles from search.
-          </p>
+          <p className="text-muted-foreground">{t("empty")}</p>
         </div>
       </div>
     );
   }
 
-  const showUpdating = enriching || pendingIds.length > 0;
+  const showUpdating = enrichMutation.isPending || pendingIds.length > 0;
 
   return (
     <div className="space-y-8">
@@ -975,13 +1058,16 @@ export function LibraryContent({
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-bold">My Library</h1>
+              <h1 className="text-2xl font-bold">{t("title")}</h1>
               <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-0.5 text-sm font-semibold text-foreground/60">
                 {totalUnique}
               </span>
               {activeCount < totalCount && totalCount > 0 ? (
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                  {activeCount}/{totalCount} platforms
+                  {t("platformCount", {
+                    active: activeCount,
+                    total: totalCount,
+                  })}
                 </span>
               ) : null}
             </div>
@@ -993,7 +1079,7 @@ export function LibraryContent({
           </div>
 
           {showUpdating ? (
-            <p className="text-xs text-muted-foreground">Updating…</p>
+            <p className="text-xs text-muted-foreground">{t("updating")}</p>
           ) : null}
         </div>
 
@@ -1016,6 +1102,7 @@ export function LibraryContent({
         </div>
       ) : (
         <DndContext
+          id="library-lists"
           sensors={listSensors}
           collisionDetection={closestCenter}
           onDragEnd={onListsDragEnd}

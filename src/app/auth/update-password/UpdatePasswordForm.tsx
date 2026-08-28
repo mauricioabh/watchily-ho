@@ -1,14 +1,17 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { env } from "@/env";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE = env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
 export function UpdatePasswordForm() {
   const router = useRouter();
-  const [status, setStatus] = useState<"form" | "loading" | "ok" | "error">("form");
+  const [status, setStatus] = useState<"form" | "loading" | "ok" | "error">(
+    "form",
+  );
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -24,8 +27,10 @@ export function UpdatePasswordForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-    const confirm = (form.elements.namedItem("confirm") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement)
+      .value;
+    const confirm = (form.elements.namedItem("confirm") as HTMLInputElement)
+      .value;
 
     if (password.length < 6) {
       setMessage("La contraseña debe tener al menos 6 caracteres");
@@ -63,9 +68,14 @@ export function UpdatePasswordForm() {
   if (status === "error" && !message.includes("Enlace")) {
     return (
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="rounded-lg bg-red-500/20 p-3 text-red-400 text-sm">{message}</div>
+        <div className="rounded-lg bg-red-500/20 p-3 text-red-400 text-sm">
+          {message}
+        </div>
         <div>
-          <label htmlFor="password" className="block text-sm text-zinc-400 mb-1">
+          <label
+            htmlFor="password"
+            className="block text-sm text-zinc-400 mb-1"
+          >
             Nueva contraseña
           </label>
           <input
@@ -106,7 +116,9 @@ export function UpdatePasswordForm() {
   if (status === "error") {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg bg-red-500/20 p-4 text-center text-red-400">{message}</div>
+        <div className="rounded-lg bg-red-500/20 p-4 text-center text-red-400">
+          {message}
+        </div>
         <a
           href={`${BASE}/auth/forgot-password-standalone`}
           className="block text-center text-indigo-400 hover:underline"

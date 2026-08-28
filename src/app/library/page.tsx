@@ -5,10 +5,25 @@ import { LibraryContent } from "@/components/library-content";
 import type { LibraryPrefs, ListSection, StatusMap } from "@/types/library";
 import { isLibraryTitleHydrated } from "@/lib/streaming/unified";
 import type { TitleType, UnifiedTitle } from "@/types/streaming";
+import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { localizedPath } from "@/i18n/routing";
 
 export type { ListSection } from "@/types/library";
 
 const CACHE_COUNTRY = "MX";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = await getTranslations("metadata");
+  return buildPageMetadata({
+    title: t("library"),
+    pathname: "/library",
+    locale,
+    noIndex: true,
+  });
+}
 
 function normalizePrefs(
   row: {
@@ -54,7 +69,7 @@ async function LibraryData() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(localizedPath("/login", await getLocale()));
 
   const { data: providerRows } = await supabase
     .from("user_providers")
@@ -95,6 +110,8 @@ async function LibraryData() {
         statusMap={statusMap}
         prefs={prefs}
         pendingTitleIds={[]}
+        userScope={user.id}
+        country={CACHE_COUNTRY}
       />
     );
   }
@@ -171,6 +188,8 @@ async function LibraryData() {
       statusMap={statusMap}
       prefs={prefs}
       pendingTitleIds={pendingTitleIds}
+      userScope={user.id}
+      country={CACHE_COUNTRY}
     />
   );
 }

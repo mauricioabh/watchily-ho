@@ -1,25 +1,33 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { getTitleDetails } from "@/lib/streaming/unified";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { ListTitlesContent } from "@/components/list-titles-content";
 import type { StatusMap } from "@/types/library";
 import type { UnifiedTitle } from "@/types/streaming";
+import { getLocale, getTranslations } from "next-intl/server";
+import { localizedPath, Link, type AppLocale } from "@/i18n/routing";
 
 export default async function ListDetailPage({
   params,
   searchParams,
+  locale,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ type?: string; sort?: string }>;
+  locale?: AppLocale;
 }) {
   const { id } = await params;
+  const activeLocale = locale ?? (await getLocale());
+  const t = await getTranslations({
+    locale: activeLocale,
+    namespace: "common",
+  });
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(localizedPath("/login", activeLocale));
 
   const { data: providerRows } = await supabase
     .from("user_providers")
@@ -75,7 +83,7 @@ export default async function ListDetailPage({
           href="/library"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          ← My Library
+          ← {t("myLibrary")}
         </Link>
       </div>
       <ListTitlesContent

@@ -6,12 +6,14 @@ import {
   allowSearchIndexing,
   getSiteUrl,
 } from "@/lib/seo/site";
+import { localizedPath } from "@/i18n/routing";
 
 export type PageMetadataInput = {
   title: string;
   description?: string;
   pathname: string;
   noIndex?: boolean;
+  locale?: string;
 };
 
 function resolveTitle(title: string): string {
@@ -27,6 +29,7 @@ export function buildPageMetadata({
   description = DEFAULT_DESCRIPTION,
   pathname,
   noIndex = false,
+  locale = "en",
 }: PageMetadataInput): Metadata {
   const canonicalPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
   const pageUrl = new URL(canonicalPath, getSiteUrl()).href;
@@ -36,7 +39,13 @@ export function buildPageMetadata({
   return {
     title: resolvedTitle,
     description,
-    alternates: { canonical: canonicalPath },
+    alternates: {
+      canonical: localizedPath(pathname, locale),
+      languages: {
+        en: localizedPath(pathname, "en"),
+        es: localizedPath(pathname, "es"),
+      },
+    },
     robots: indexingBlocked
       ? { index: false, follow: false }
       : {
@@ -50,7 +59,7 @@ export function buildPageMetadata({
         },
     openGraph: {
       type: "website",
-      locale: "es_MX",
+      locale: locale === "es" ? "es_ES" : "en_US",
       url: pageUrl,
       siteName: PRODUCT_NAME,
       title: resolvedTitle,
@@ -98,7 +107,10 @@ export function rootLayoutMetadata(): Metadata {
       template: `%s — ${PRODUCT_NAME}`,
     },
     description: DEFAULT_DESCRIPTION,
-    alternates: { canonical: "/" },
+    alternates: {
+      canonical: "/",
+      languages: { en: "/", es: "/es" },
+    },
     robots: indexingBlocked
       ? { index: false, follow: false }
       : {

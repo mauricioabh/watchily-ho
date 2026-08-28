@@ -1,0 +1,190 @@
+{
+  "common": {
+    "search": "Search",
+    "myLibrary": "My Library",
+    "settings": "Settings",
+    "lists": "Lists",
+    "signOut": "Sign out",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "home": "Home",
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create",
+    "delete": "Delete",
+    "rename": "Rename",
+    "edit": "Edit",
+    "add": "Add",
+    "remove": "Remove",
+    "createListError": "Could not create list.",
+    "movies": "Movies",
+    "series": "Series",
+    "movie": "Movie",
+    "title": "title",
+    "titles": "titles",
+    "platforms": "Platforms",
+    "all": "All",
+    "language": "Language",
+    "english": "English",
+    "spanish": "Spanish",
+    "switchLanguage": "Switch language",
+    "watchNow": "Watch now",
+    "included": "Included",
+    "rent": "Rent",
+    "buy": "Buy",
+    "free": "Free",
+    "loading": "Loading…",
+    "tryAgain": "Try again",
+    "noResults": "No results.",
+    "enablePlatform": "Enable at least one platform to see titles.",
+    "viewList": "View list",
+    "newList": "New list",
+    "newList": "New list",
+    "listActions": "List actions",
+    "closeMenuLabel": "Close menu"
+    ,"like": "Like"
+    ,"unlike": "Unlike"
+    ,"createListError": "Could not create list."
+    ,"addListError": "Could not add title to list."
+    ,"removeListError": "Could not remove title from list."
+    ,"updateLikeError": "Could not update like."
+    ,"updateStatusError": "Could not update watch status."
+    ,"renameListError": "Could not rename list."
+    ,"deleteListError": "Could not delete list."
+    ,"deleteListConfirm": "Delete this list? Titles are not removed — only the list is deleted."
+  },
+  "home": {
+    "title": "Find where to watch every title",
+    "description": "Sign in and pick your streaming services to get results tailored to your platforms."
+  },
+  "auth": {
+    "signInToContinue": "Sign in to continue",
+    "continueWithGoogle": "Continue with Google",
+    "orEmail": "or continue with email",
+    "email": "Email",
+    "emailPlaceholder": "you@email.com",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "backHome": "Back to home",
+    "checkEmail": "Check your email to confirm your account.",
+    "invalidCredentials": "Unable to sign in. Check your credentials and try again.",
+    "signInWatchily": "Sign in to Watchily"
+  },
+  "search": {
+    "search": "Search",
+    "placeholder": "Movies or series…",
+    "filters": "Filters",
+    "filterDescription": "Type and platforms. Changes apply instantly.",
+    "type": "Type",
+    "movies": "Movies",
+    "series": "Series",
+    "resultsFor": "Results for “{query}”",
+    "searching": "Searching…",
+    "error": "We couldn’t complete the search. Please try again.",
+    "noResultsFor": "No results for this search.",
+    "tryAnother": "Try another title, keyword, or adjust your filters.",
+    "selectPlatforms": "Open filters and select platforms."
+  },
+  "library": {
+    "title": "My Library",
+    "empty": "Your library is empty. Create a list and add titles from search.",
+    "updating": "Updating…",
+    "customOrder": "Custom order",
+    "nameAsc": "Name A–Z",
+    "nameDesc": "Name Z–A",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "status": "Status",
+    "all": "All",
+    "movies": "Movies",
+    "series": "Series",
+    "watching": "Watching",
+    "finished": "Finished",
+    "find": "Find in library…",
+    "noMatch": "This list is empty or no titles match your filters.",
+    "noResultsFor": "No results for “{query}”",
+    "resultsFor": "{count, plural, =1 {# result} other {# results}} for “{query}”",
+    "platformCount": "{active}/{total} platforms"
+    ,"markWatching": "Mark as watching"
+    ,"removeWatching": "Remove from watching"
+    ,"markFinished": "Mark as finished"
+    ,"removeFinished": "Remove from finished"
+  },
+  "lists": {
+    "add": "Add",
+    "remove": "Remove",
+    "title": "My Lists",
+    "createTitle": "Create list",
+    "editTitle": "Edit list",
+    "name": "Name",
+    "namePlaceholder": "e.g. Watch later",
+    "createAndAdd": "Create & add",
+    "addToList": "Add to list",
+    "newListPlaceholder": "New list…",
+    "noLists": "You don’t have any lists yet. Create one below.",
+    "empty": "Your lists are empty.",
+    "listDeleted": "Delete this list? Titles are not removed — only the list is deleted.",
+    "listDeletedShort": "Delete list",
+    "viewList": "View list",
+    "filtered": "(filtered · {active}/{total} platforms)",
+    "noSelectedTitles": "No titles on the selected platforms."
+  },
+  "settings": {
+    "email": "Email",
+    "save": "Save",
+    "cancel": "Cancel",
+    "title": "Settings",
+    "signedInWith": "Signed in with",
+    "emailPassword": "Email and password",
+    "country": "Country (for streaming availability)",
+    "providers": "Providers (platforms you have)",
+    "providerDescription": "Select the platforms you subscribe to so we can show where each title is available.",
+    "saved": "Saved.",
+    "saving": "Saving…",
+    "savedToast": "Settings saved."
+    ,"saveError": "Could not save settings."
+  },
+  "title": {
+    "notFound": "Title not found",
+    "seriesBadge": "SERIES",
+    "movieBadge": "MOVIE",
+    "runtime": "{minutes} min",
+    "subscription": "Available with subscription",
+    "included": "Included",
+    "rent": "Rent",
+    "buy": "Buy",
+    "free": "Free",
+    "rentBuy": "Rent / Buy",
+    "noSources": "No streaming sources are available for this region.",
+    "trailer": "Watch trailer",
+    "justWatch": "View on JustWatch",
+    "availability": "Regional availability via Streaming Availability (Movie of the Night). It may lag JustWatch by a few days.",
+    "user": "User",
+    "critic": "Critic"
+  },
+  "metadata": {
+    "defaultTitle": "Where to watch movies and series",
+    "defaultDescription": "Find where to watch movies and series across your streaming services.",
+    "home": "Find where to watch every title",
+    "search": "Search movies and series",
+    "library": "My Library",
+    "settings": "Settings",
+    "login": "Sign in"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "retry": "Try again",
+    "offlineTitle": "You’re offline",
+    "offlineDescription": "We couldn’t load this content. Check your internet connection. Content you have already seen may still be available."
+  },
+  "tv": {
+    "home": "Home",
+    "search": "Search",
+    "lists": "Lists",
+    "all": "View all",
+    "signOut": "Sign out",
+    "loading": "Loading…"
+  }
+}

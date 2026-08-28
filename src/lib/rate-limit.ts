@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { env, isConfiguredPair } from "@/env";
 
 let searchLimiter: Ratelimit | null | undefined;
 
@@ -7,8 +8,8 @@ function getSearchLimiter(): Ratelimit | null {
   if (searchLimiter !== undefined) {
     return searchLimiter;
   }
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const url = env.UPSTASH_REDIS_REST_URL;
+  const token = env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
     searchLimiter = null;
     return null;
@@ -44,7 +45,6 @@ export async function rateLimitTitleSearch(
 
 export function isUpstashConfigured(): boolean {
   return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL?.trim() &&
-      process.env.UPSTASH_REDIS_REST_TOKEN?.trim(),
+    isConfiguredPair(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN),
   );
 }

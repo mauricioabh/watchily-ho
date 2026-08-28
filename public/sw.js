@@ -11,7 +11,7 @@
  *  - Web Push: show notifications + focus/open the app on click.
  */
 
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL_CACHE = `watchily-shell-${VERSION}`;
 const STATIC_CACHE = `watchily-static-${VERSION}`;
 const IMAGE_CACHE = `watchily-images-${VERSION}`;

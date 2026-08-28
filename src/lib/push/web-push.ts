@@ -1,6 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/server";
+import { env, isConfiguredPair } from "@/env";
 
 export type PushPayload = {
   title: string;
@@ -15,16 +16,19 @@ let configured = false;
 
 /** Returns true when VAPID keys are present and web-push is ready to send. */
 export function isPushConfigured(): boolean {
-  return Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+  return Boolean(
+    isConfiguredPair(env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY) &&
+    env.SUPABASE_SECRET_KEY,
+  );
 }
 
 function ensureConfigured(): boolean {
   if (configured) return true;
   if (!isPushConfigured()) return false;
   webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || "mailto:notificaciones@watchily.app",
-    process.env.VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!,
+    env.VAPID_SUBJECT ?? "mailto:notificaciones@watchily.app",
+    env.VAPID_PUBLIC_KEY!,
+    env.VAPID_PRIVATE_KEY!,
   );
   configured = true;
   return true;

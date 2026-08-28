@@ -6,8 +6,21 @@ import {
 } from "@/lib/streaming/providers";
 import { createClient } from "@/lib/supabase/server";
 import { SearchContent } from "@/components/search-content";
+import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
 const PAGE_SIZE = 16;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = await getTranslations("metadata");
+  return buildPageMetadata({
+    title: t("search"),
+    pathname: "/search",
+    locale,
+  });
+}
 
 async function SearchPageData() {
   const supabase = await createClient();
@@ -23,6 +36,14 @@ async function SearchPageData() {
     : { data: [] };
 
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("country_code")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
+  const country = profile?.country_code ?? "MX";
   const sourceIds = userProviderIds
     .map((id) => PROVIDER_TO_SOURCE_ID[id])
     .filter(Boolean) as number[];
@@ -56,6 +77,8 @@ async function SearchPageData() {
       initialPage={1}
       initialHasMore={initialHasMore}
       userProviderIds={userProviderIds}
+      userScope={user?.id ?? null}
+      country={country}
     />
   );
 }

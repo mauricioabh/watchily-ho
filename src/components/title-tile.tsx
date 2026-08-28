@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, BookmarkCheck, Play } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,6 +29,17 @@ import type { WatchStatus } from "@/types/library";
 import { WatchStatusControls } from "@/components/watch-status-controls";
 import { dedupeSubscriptionSourcesByBrand } from "@/lib/streaming/providers";
 import { cn } from "@/lib/utils";
+import { captureProductEvent } from "@/lib/analytics";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
+import { useAuthScope } from "@/components/app-providers";
+import {
+  queryKeys,
+  type ListResponse,
+  type MembershipResponse,
+} from "@/lib/query";
 
 const API_BASE = "";
 
@@ -98,29 +112,91 @@ function BookmarkDialog({
   title: UnifiedTitle;
   onListsChange?: () => void;
 }) {
+  const t = useTranslations("lists");
+  const queryClient = useQueryClient();
+  const authScope = useAuthScope();
   const [open, setOpen] = useState(false);
-  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
-  const [listIdsForTitle, setListIdsForTitle] = useState<string[]>([]);
   const [newListName, setNewListName] = useState("");
   const [creating, setCreating] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  // Check on mount if the title is already in any list (so icon shows correctly)
-  useEffect(() => {
-    fetch(`${API_BASE}/api/lists/items?title_id=${title.id}`)
-      .then((r) => r.json())
-      .then((d) => setListIdsForTitle(d.listIdsByTitle?.[title.id] ?? []))
-      .catch(() => {});
-  }, [title.id]);
-
-  // When dialog opens, also load the full list of lists
-  useEffect(() => {
-    if (!open) return;
-    fetch(`${API_BASE}/api/lists`)
-      .then((r) => r.json())
-      .then((d) => setLists(d.lists ?? []))
-      .catch(() => {});
-  }, [open]);
+  const membershipQuery = useQuery({
+    queryKey: queryKeys.membership(title.id, authScope ?? null),
+    queryFn: async (): Promise<MembershipResponse> =>
+      (
+        await fetch(
+          `${API_BASE}/api/lists/items?title_id=${encodeURIComponent(title.id)}`,
+        )
+      ).json(),
+    enabled: authScope !== undefined,
+  });
+  const listsQuery = useQuery({
+    queryKey: queryKeys.lists(authScope ?? null),
+    queryFn: async (): Promise<{ lists: ListResponse[] }> =>
+      (await fetch(`${API_BASE}/api/lists`)).json(),
+    enabled: open && authScope !== undefined,
+  });
+  const membershipMutation = useMutation({
+    mutationKey: ["list-membership", title.id, authScope],
+    mutationFn: async ({
+      listId,
+      action,
+    }: {
+      listId: string;
+      action: "add" | "remove";
+    }) => {
+      const response = await fetch(
+        `${API_BASE}/api/lists/${listId}/items?title_id=${encodeURIComponent(title.id)}`,
+        action === "add"
+          ? {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title_id: title.id,
+                title_type: title.type,
+              }),
+            }
+          : { method: "DELETE" },
+      );
+      await requireSuccessfulResponse(
+        response,
+        action === "add" ? t("addListError") : t("removeListError"),
+      );
+      return { listId, action };
+    },
+    onSuccess: ({ listId, action }) => {
+      queryClient.setQueryData<MembershipResponse>(
+        queryKeys.membership(title.id, authScope ?? null),
+        (previous) => {
+          const current = previous?.listIdsByTitle[title.id] ?? [];
+          const next =
+            action === "add"
+              ? [...new Set([...current, listId])]
+              : current.filter((id) => id !== listId);
+          return { listIdsByTitle: { [title.id]: next } };
+        },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
+      setDirty(true);
+    },
+  });
+  const createListMutation = useMutation({
+    mutationKey: ["create-list", authScope],
+    mutationFn: async () => {
+      const response = await fetch(`${API_BASE}/api/lists`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newListName.trim(), is_public: false }),
+      });
+      await requireSuccessfulResponse(response, t("createListError"));
+      return (await response.json()) as ListResponse;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.lists(authScope ?? null),
+      });
+    },
+  });
 
   const handleOpenChange = (next: boolean) => {
     if (!next && dirty) {
@@ -131,45 +207,52 @@ function BookmarkDialog({
   };
 
   const addToList = async (listId: string) => {
-    await fetch(`${API_BASE}/api/lists/${listId}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title_id: title.id, title_type: title.type }),
-    });
-    setDirty(true);
-    setListIdsForTitle((prev) =>
-      prev.includes(listId) ? prev : [...prev, listId],
-    );
+    try {
+      await membershipMutation.mutateAsync({ listId, action: "add" });
+      captureProductEvent("list_membership_changed", {
+        action: "add",
+        titleType: title.type,
+      });
+      toast.success("Añadido a la lista.");
+      return true;
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("addListError")));
+      return false;
+    }
   };
 
   const removeFromList = async (listId: string) => {
-    await fetch(`${API_BASE}/api/lists/${listId}/items?title_id=${title.id}`, {
-      method: "DELETE",
-    });
-    setDirty(true);
-    setListIdsForTitle((prev) => prev.filter((id) => id !== listId));
+    try {
+      await membershipMutation.mutateAsync({ listId, action: "remove" });
+      captureProductEvent("list_membership_changed", {
+        action: "remove",
+        titleType: title.type,
+      });
+      toast.success("Quitado de la lista.");
+      return true;
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("removeListError")));
+      return false;
+    }
   };
 
   const createListAndAdd = async () => {
     if (!newListName.trim()) return;
-    setCreating(true);
     try {
-      const res = await fetch(`${API_BASE}/api/lists`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newListName.trim(), is_public: false }),
-      });
-      const created = await res.json();
-      if (created.id) {
-        await addToList(created.id);
-        setLists((prev) => [...prev, { id: created.id, name: created.name }]);
+      setCreating(true);
+      const created = await createListMutation.mutateAsync();
+      if (created.id && created.name && (await addToList(created.id))) {
         setNewListName("");
       }
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("createListError")));
     } finally {
       setCreating(false);
     }
   };
 
+  const lists = listsQuery.data?.lists ?? [];
+  const listIdsForTitle = membershipQuery.data?.listIdsByTitle[title.id] ?? [];
   const inAnyList = listIdsForTitle.length > 0;
 
   return (
@@ -179,7 +262,7 @@ function BookmarkDialog({
           variant="secondary"
           size="icon"
           className="h-8 w-8 shrink-0 rounded-full bg-black/60 backdrop-blur-sm transition-all duration-150 hover:scale-110 hover:bg-black/85 hover:ring-2 hover:ring-primary/60"
-          title="Añadir a lista"
+          title={t("addToList")}
         >
           {inAnyList ? (
             <BookmarkCheck className="h-4 w-4 text-primary" />
@@ -190,14 +273,12 @@ function BookmarkDialog({
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Añadir a lista</DialogTitle>
+          <DialogTitle>{t("addToList")}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground truncate">{title.name}</p>
 
         {lists.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">
-            Aún no tienes listas. Crea una abajo.
-          </p>
+          <p className="text-sm text-muted-foreground py-2">{t("noLists")}</p>
         ) : (
           <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
             {lists.map((list) => {
@@ -216,7 +297,7 @@ function BookmarkDialog({
                       inList ? removeFromList(list.id) : addToList(list.id)
                     }
                   >
-                    {inList ? "Quitar" : "Añadir"}
+                    {inList ? t("remove") : t("add")}
                   </Button>
                 </div>
               );
@@ -226,7 +307,7 @@ function BookmarkDialog({
 
         <div className="flex gap-2 pt-1">
           <Input
-            placeholder="Nueva lista..."
+            placeholder={t("newListPlaceholder")}
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && createListAndAdd()}
@@ -238,7 +319,7 @@ function BookmarkDialog({
             size="sm"
             className="h-9 shrink-0"
           >
-            Crear y añadir
+            {t("createAndAdd")}
           </Button>
         </div>
       </DialogContent>
@@ -261,6 +342,7 @@ export function TitleTile({
   /** Called after list membership changes when the bookmark dialog closes. */
   onListsChange?: () => void;
 }) {
+  const t = useTranslations("common");
   const pending = title.sources === undefined && !title.poster && !title.name;
   const posterUrl = title.poster?.startsWith("http") ? title.poster : undefined;
   const subSources = title.sources
@@ -324,7 +406,7 @@ export function TitleTile({
               : "bg-black/60 text-white/90 backdrop-blur-sm"
           }`}
         >
-          {title.type === "series" ? "SERIES" : "MOVIE"}
+          {title.type === "series" ? t("series") : t("movie")}
         </span>
 
         {/* Watch status + bookmark — top right */}
@@ -381,6 +463,12 @@ export function TitleTile({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
+                      onClickCapture={() =>
+                        captureProductEvent("streaming_link_clicked", {
+                          provider: source.providerName,
+                          offerType: source.type,
+                        })
+                      }
                       title={def?.label ?? source.providerName}
                     >
                       {children}
@@ -435,6 +523,12 @@ export function TitleTile({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
+                onClickCapture={() =>
+                  captureProductEvent("streaming_link_clicked", {
+                    provider: firstSource.providerName,
+                    offerType: firstSource.type,
+                  })
+                }
                 className="group/play hidden sm:block"
               >
                 <div
@@ -446,7 +540,7 @@ export function TitleTile({
                   }}
                 >
                   <Play className="h-3 w-3 shrink-0 fill-white" />
-                  <span>Ver ahora</span>
+                  <span>{t("watchNow")}</span>
                   {def && (
                     <def.Icon
                       className="ml-auto h-4 w-4 shrink-0"
@@ -461,7 +555,7 @@ export function TitleTile({
         {/* Fallback: no info, just show genre/type hint */}
         {!hasInfo && !firstSource?.url && (
           <p className="text-[11px] text-muted-foreground">
-            {title.type === "series" ? "Series" : "Movie"}
+            {title.type === "series" ? t("series") : t("movie")}
           </p>
         )}
       </div>

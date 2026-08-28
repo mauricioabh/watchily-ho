@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Search, LogOut, Settings, Film, Library, Menu, X } from "lucide-react";
 import { TbBrandDisney, TbBrandHbo, TbBrandNetflix } from "react-icons/tb";
@@ -26,6 +26,7 @@ function isActive(pathname: string, href: string): boolean {
 
 export function HeaderClient({ user }: { user: User | null }) {
   const pathname = usePathname();
+  const t = useTranslations("common");
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPath, setMenuPath] = useState(pathname);
 
@@ -82,9 +83,9 @@ export function HeaderClient({ user }: { user: User | null }) {
                 variant="ghost"
                 size="icon"
                 className={iconBtnClass("/search")}
-                title="Search"
+                title={t("search")}
               >
-                <Link href="/search" aria-label="Search">
+                <Link href="/search" aria-label={t("search")}>
                   <Search className="size-5" />
                 </Link>
               </Button>
@@ -93,9 +94,9 @@ export function HeaderClient({ user }: { user: User | null }) {
                 variant="ghost"
                 size="icon"
                 className={iconBtnClass("/library")}
-                title="My Library"
+                title={t("myLibrary")}
               >
-                <Link href="/library" aria-label="My Library">
+                <Link href="/library" aria-label={t("myLibrary")}>
                   <Library className="size-5" />
                 </Link>
               </Button>
@@ -104,9 +105,9 @@ export function HeaderClient({ user }: { user: User | null }) {
                 variant="ghost"
                 size="icon"
                 className={iconBtnClass("/settings")}
-                title="Settings"
+                title={t("settings")}
               >
-                <Link href="/settings" aria-label="Settings">
+                <Link href="/settings" aria-label={t("settings")}>
                   <Settings className="size-4" />
                 </Link>
               </Button>
@@ -116,7 +117,7 @@ export function HeaderClient({ user }: { user: User | null }) {
                   size="icon"
                   type="submit"
                   className="size-9 text-muted-foreground hover:text-foreground"
-                  title="Sign out"
+                  title={t("signOut")}
                 >
                   <LogOut className="size-4" />
                 </Button>
@@ -129,11 +130,11 @@ export function HeaderClient({ user }: { user: User | null }) {
                 variant="ghost"
                 size="icon"
                 className={iconBtnClass("/search")}
-                title="Search"
+                title={t("search")}
               >
                 <Link
                   href="/search"
-                  aria-label="Search"
+                  aria-label={t("search")}
                   onClick={() => setMenuOpen(false)}
                 >
                   <Search className="size-5" />
@@ -144,11 +145,11 @@ export function HeaderClient({ user }: { user: User | null }) {
                 variant="ghost"
                 size="icon"
                 className={iconBtnClass("/library")}
-                title="My Library"
+                title={t("myLibrary")}
               >
                 <Link
                   href="/library"
-                  aria-label="My Library"
+                  aria-label={t("myLibrary")}
                   onClick={() => setMenuOpen(false)}
                 >
                   <Library className="size-5" />
@@ -159,7 +160,7 @@ export function HeaderClient({ user }: { user: User | null }) {
                 variant="ghost"
                 size="icon"
                 className="size-9"
-                aria-label={menuOpen ? "Close menu" : "Open menu"}
+                aria-label={menuOpen ? t("closeMenu") : t("openMenu")}
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((o) => !o)}
               >
@@ -207,7 +208,7 @@ export function HeaderClient({ user }: { user: User | null }) {
               >
                 <Link href="/settings" onClick={() => setMenuOpen(false)}>
                   <Settings className="size-5" />
-                  Settings
+                  {t("settings")}
                 </Link>
               </Button>
               <form action="/auth/signout" method="post">
@@ -217,7 +218,7 @@ export function HeaderClient({ user }: { user: User | null }) {
                   className="h-11 w-full justify-start gap-3 px-3"
                 >
                   <LogOut className="size-5" />
-                  Sign out
+                  {t("signOut")}
                 </Button>
               </form>
             </div>

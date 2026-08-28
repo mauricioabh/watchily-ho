@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { ListActions } from "@/components/list-actions";
@@ -29,6 +30,7 @@ export function ListTitlesContent({
   statusMap: initialStatusMap,
   filterType,
 }: Props) {
+  const t = useTranslations("common");
   const router = useRouter();
   const [statusMap, setStatusMap] = useState<StatusMap>(initialStatusMap);
   const { activeIds, activeCount, totalCount, toggle, setAll } =
@@ -61,10 +63,10 @@ export function ListTitlesContent({
         <div>
           <h1 className="text-2xl font-bold">{listName}</h1>
           <p className="text-muted-foreground">
-            {visible.length} {visible.length === 1 ? "title" : "titles"}
+            {visible.length} {visible.length === 1 ? t("title") : t("titles")}
             {activeCount < totalCount && totalCount > 0 ? (
               <span className="ml-1.5 text-foreground/45">
-                (filtered · {activeCount}/{totalCount} platforms)
+                (filtered · {activeCount}/{totalCount} {t("platforms")})
               </span>
             ) : null}
           </p>
@@ -84,7 +86,7 @@ export function ListTitlesContent({
       <div className="mb-4 flex gap-2">
         <Link href={`/lists/${listId}`}>
           <Button variant={!filterType ? "default" : "outline"} size="sm">
-            All
+            {t("all")}
           </Button>
         </Link>
         <Link href={`/lists/${listId}?type=movie`}>
@@ -92,7 +94,7 @@ export function ListTitlesContent({
             variant={filterType === "movie" ? "default" : "outline"}
             size="sm"
           >
-            Movies
+            {t("movies")}
           </Button>
         </Link>
         <Link href={`/lists/${listId}?type=series`}>
@@ -100,7 +102,7 @@ export function ListTitlesContent({
             variant={filterType === "series" ? "default" : "outline"}
             size="sm"
           >
-            Series
+            {t("series")}
           </Button>
         </Link>
       </div>
@@ -108,9 +110,7 @@ export function ListTitlesContent({
       {visible.length === 0 ? (
         <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center">
           <p className="text-muted-foreground">
-            {activeCount === 0
-              ? "Enable at least one platform to see titles."
-              : "No titles on the selected platforms."}
+            {activeCount === 0 ? t("enablePlatform") : t("noResults")}
           </p>
         </div>
       ) : (

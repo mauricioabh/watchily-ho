@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { env } from "@/env";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const VAPID_PUBLIC_KEY = env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -57,7 +63,9 @@ export function PushToggle() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        setMessage("Permiso de notificaciones denegado.");
+        const message = "Permiso de notificaciones denegado.";
+        setMessage(message);
+        toast.error(message);
         setBusy(false);
         return;
       }
@@ -71,11 +79,18 @@ export function PushToggle() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(subscription.toJSON()),
       });
-      if (!res.ok) throw new Error("No se pudo guardar la suscripción.");
+      await requireSuccessfulResponse(
+        res,
+        "No se pudo guardar la suscripción.",
+      );
       setStatus("on");
-      setMessage("Notificaciones activadas.");
+      const message = "Notificaciones activadas.";
+      setMessage(message);
+      toast.success(message);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Error al activar.");
+      const message = getMutationErrorMessage(err, "Error al activar.");
+      setMessage(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -88,17 +103,25 @@ export function PushToggle() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
-        await fetch("/api/push/subscribe", {
+        const res = await fetch("/api/push/subscribe", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: subscription.endpoint }),
         });
+        await requireSuccessfulResponse(
+          res,
+          "No se pudo desactivar la suscripción.",
+        );
         await subscription.unsubscribe();
       }
       setStatus("off");
-      setMessage("Notificaciones desactivadas.");
+      const message = "Notificaciones desactivadas.";
+      setMessage(message);
+      toast.success(message);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Error al desactivar.");
+      const message = getMutationErrorMessage(err, "Error al desactivar.");
+      setMessage(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -115,13 +138,16 @@ export function PushToggle() {
       };
       if (!res.ok)
         throw new Error(data.error || "No se pudo enviar la prueba.");
-      setMessage(
+      const message =
         data.sent && data.sent > 0
           ? "Notificación de prueba enviada."
-          : "No hay dispositivos suscritos.",
-      );
+          : "No hay dispositivos suscritos.";
+      setMessage(message);
+      toast.success(message);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Error al enviar.");
+      const message = getMutationErrorMessage(err, "Error al enviar.");
+      setMessage(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
