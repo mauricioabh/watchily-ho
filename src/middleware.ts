@@ -1,9 +1,15 @@
 import * as Sentry from "@sentry/nextjs";
+import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { routing } from "@/i18n/routing";
 
 const TV_UA =
   /webos|web0s|tizen|smart-?tv|netcast|webappmanager|hbbtv|vidaa|silk|crkey|googletv|android.?tv|apple.?tv|lg browser|aft[a-z0-9]/i;
+
+const intlMiddleware = createMiddleware(routing);
+const NON_LOCALIZED_PATH =
+  /^\/(?:api(?:\/|$)|auth(?:\/|$)|api-docs(?:\/|$)|tv-standalone(?:\/|$)|search-standalone(?:\/|$)|lists-standalone(?:\/|$)|lists-all-standalone(?:\/|$)|title-standalone(?:\/|$)|settings-standalone(?:\/|$)|login-standalone(?:\/|$)|manifest\.webmanifest$|robots\.txt$|sitemap\.xml$|apple-icon$|icons(?:\/|$))/;
 
 function isTVRequest(request: NextRequest): boolean {
   const ua = request.headers.get("user-agent") ?? "";
@@ -19,7 +25,8 @@ export async function middleware(request: NextRequest) {
   if (isTVRequest(request)) {
     Sentry.setTag("platform", "webos");
     let rewritePath: string | null = null;
-    if (path === "/tv" || path === "/") rewritePath = "/tv-standalone";
+    if (path === "/tv" || path === "/" || path === "/es" || path === "/es/tv")
+      rewritePath = "/tv-standalone";
     else if (path === "/search") rewritePath = "/search-standalone";
     else if (path === "/lists") rewritePath = "/lists-standalone";
     else if (path === "/lists/all") rewritePath = "/lists-all-standalone";
@@ -37,7 +44,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return updateSession(request);
+  if (NON_LOCALIZED_PATH.test(path)) return updateSession(request);
+
+  const intlResponse = intlMiddleware(request);
+  if (intlResponse.headers.has("location")) return intlResponse;
+
+  const sessionResponse = await updateSession(request);
+  for (const cookie of intlResponse.cookies.getAll()) {
+    sessionResponse.cookies.set(cookie);
+  }
+  return sessionResponse;
 }
 
 export const config = {

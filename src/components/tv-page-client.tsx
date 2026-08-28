@@ -1,9 +1,35 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
+import Link from "next/link";
+import type { AppLocale } from "@/i18n/locale";
 
-export function TVPageClient() {
+export type TVPageLabels = {
+  home: string;
+  search: string;
+  lists: string;
+  all: string;
+  signOut: string;
+};
+
+const DEFAULT_LABELS: TVPageLabels = {
+  home: "Home",
+  search: "Search",
+  lists: "Lists",
+  all: "View all",
+  signOut: "Sign out",
+};
+
+export function TVPageClient({
+  labels = DEFAULT_LABELS,
+  locale = "en",
+}: {
+  labels?: TVPageLabels;
+  locale?: AppLocale;
+}) {
+  const localizedPath = (path: string) =>
+    locale === "es" ? `/es${path}` : path;
+
   return (
     <>
       <motion.h1
@@ -21,35 +47,35 @@ export function TVPageClient() {
         transition={{ duration: 0.3, delay: 0.1 }}
       >
         <Link
-          href="/tv"
+          href={localizedPath("/tv")}
           className="rounded bg-primary px-4 py-2 text-primary-foreground focus:outline-2 focus:outline-primary"
         >
-          Inicio
+          {labels.home}
         </Link>
         <Link
-          href="/search?device=tv"
+          href={localizedPath("/search?device=tv")}
           className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
         >
-          Buscar
+          {labels.search}
         </Link>
         <Link
-          href="/lists?device=tv"
+          href={localizedPath("/lists?device=tv")}
           className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
         >
-          Listas
+          {labels.lists}
         </Link>
         <Link
-          href="/lists/all?device=tv"
+          href={localizedPath("/lists/all?device=tv")}
           className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
         >
-          Ver todo
+          {labels.all}
         </Link>
         <form action="/auth/signout" method="POST" className="inline">
           <button
             type="submit"
             className="rounded border border-border px-4 py-2 focus:outline-2 focus:outline-primary"
           >
-            Cerrar sesión
+            {labels.signOut}
           </button>
         </form>
       </motion.nav>

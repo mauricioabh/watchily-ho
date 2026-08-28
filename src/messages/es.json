@@ -1,0 +1,190 @@
+{
+  "common": {
+    "search": "Buscar",
+    "myLibrary": "Mi biblioteca",
+    "settings": "Configuración",
+    "lists": "Listas",
+    "signOut": "Cerrar sesión",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "home": "Inicio",
+    "back": "Volver",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "create": "Crear",
+    "delete": "Eliminar",
+    "rename": "Renombrar",
+    "edit": "Editar",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "createListError": "No se pudo crear la lista.",
+    "movies": "Películas",
+    "series": "Series",
+    "movie": "Película",
+    "title": "título",
+    "titles": "títulos",
+    "platforms": "Plataformas",
+    "all": "Todas",
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español",
+    "switchLanguage": "Cambiar idioma",
+    "watchNow": "Ver ahora",
+    "included": "Incluido",
+    "rent": "Alquiler",
+    "buy": "Compra",
+    "free": "Gratis",
+    "loading": "Cargando…",
+    "tryAgain": "Reintentar",
+    "noResults": "Sin resultados.",
+    "enablePlatform": "Activa al menos una plataforma para ver títulos.",
+    "viewList": "Ver lista",
+    "newList": "Nueva lista",
+    "newList": "Nueva lista",
+    "listActions": "Acciones de lista",
+    "closeMenuLabel": "Cerrar menú"
+    ,"like": "Me gusta"
+    ,"unlike": "Quitar me gusta"
+    ,"createListError": "No se pudo crear la lista."
+    ,"addListError": "No se pudo añadir el título a la lista."
+    ,"removeListError": "No se pudo quitar el título de la lista."
+    ,"updateLikeError": "No se pudo actualizar el me gusta."
+    ,"updateStatusError": "No se pudo actualizar el estado."
+    ,"renameListError": "No se pudo renombrar la lista."
+    ,"deleteListError": "No se pudo eliminar la lista."
+    ,"deleteListConfirm": "¿Eliminar esta lista? Los títulos no se eliminarán, solo la lista."
+  },
+  "home": {
+    "title": "Encuentra dónde ver cada título",
+    "description": "Inicia sesión y elige tus servicios de streaming para obtener resultados adaptados a tus plataformas."
+  },
+  "auth": {
+    "signInToContinue": "Inicia sesión para continuar",
+    "continueWithGoogle": "Continuar con Google",
+    "orEmail": "o continúa con email",
+    "email": "Email",
+    "emailPlaceholder": "tu@email.com",
+    "password": "Contraseña",
+    "signIn": "Entrar",
+    "signUp": "Registrarse",
+    "backHome": "Volver al inicio",
+    "checkEmail": "Revisa tu correo para confirmar la cuenta.",
+    "invalidCredentials": "No se pudo iniciar sesión. Revisa tus datos e inténtalo de nuevo.",
+    "signInWatchily": "Inicia sesión en Watchily"
+  },
+  "search": {
+    "search": "Buscar",
+    "placeholder": "Películas o series…",
+    "filters": "Filtros",
+    "filterDescription": "Tipo y plataformas. Los cambios se aplican al instante.",
+    "type": "Tipo",
+    "movies": "Películas",
+    "series": "Series",
+    "resultsFor": "Resultados para «{query}»",
+    "searching": "Buscando…",
+    "error": "No se pudo completar la búsqueda. Inténtalo de nuevo.",
+    "noResultsFor": "No hay resultados para esta búsqueda.",
+    "tryAnother": "Prueba con otro título o palabra clave, o ajusta los filtros.",
+    "selectPlatforms": "Abre los filtros y selecciona plataformas."
+  },
+  "library": {
+    "title": "Mi biblioteca",
+    "empty": "Tu biblioteca está vacía. Crea una lista y añade títulos desde la búsqueda.",
+    "updating": "Actualizando…",
+    "customOrder": "Orden personalizado",
+    "nameAsc": "Nombre A–Z",
+    "nameDesc": "Nombre Z–A",
+    "expandAll": "Expandir todo",
+    "collapseAll": "Contraer todo",
+    "status": "Estado",
+    "all": "Todas",
+    "movies": "Películas",
+    "series": "Series",
+    "watching": "Viendo",
+    "finished": "Terminada",
+    "find": "Buscar en la biblioteca…",
+    "noMatch": "Esta lista está vacía o ningún título coincide con tus filtros.",
+    "noResultsFor": "Sin resultados para «{query}»",
+    "resultsFor": "{count, plural, =1 {# resultado} other {# resultados}} para «{query}»",
+    "platformCount": "{active}/{total} plataformas"
+    ,"markWatching": "Marcar como viendo"
+    ,"removeWatching": "Quitar de viendo"
+    ,"markFinished": "Marcar como terminada"
+    ,"removeFinished": "Quitar de terminadas"
+  },
+  "lists": {
+    "add": "Añadir",
+    "remove": "Quitar",
+    "title": "Mis listas",
+    "createTitle": "Crear lista",
+    "editTitle": "Editar lista",
+    "name": "Nombre",
+    "namePlaceholder": "p. ej. Para ver después",
+    "createAndAdd": "Crear y añadir",
+    "addToList": "Añadir a lista",
+    "newListPlaceholder": "Nueva lista…",
+    "noLists": "Aún no tienes listas. Crea una abajo.",
+    "empty": "Tus listas están vacías.",
+    "listDeleted": "¿Eliminar esta lista? Los títulos no se eliminarán, solo la lista.",
+    "listDeletedShort": "Eliminar lista",
+    "viewList": "Ver lista",
+    "filtered": "(filtrado · {active}/{total} plataformas)",
+    "noSelectedTitles": "No hay títulos en las plataformas seleccionadas."
+  },
+  "settings": {
+    "email": "Email",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "title": "Configuración",
+    "signedInWith": "Iniciaste sesión con",
+    "emailPassword": "Email y contraseña",
+    "country": "País (para disponibilidad de streaming)",
+    "providers": "Proveedores (plataformas que tienes)",
+    "providerDescription": "Selecciona las plataformas a las que estás suscrito para ver dónde puedes ver cada título.",
+    "saved": "Guardado.",
+    "saving": "Guardando…",
+    "savedToast": "Configuración guardada."
+    ,"saveError": "No se pudo guardar la configuración."
+  },
+  "title": {
+    "notFound": "Título no encontrado",
+    "seriesBadge": "SERIE",
+    "movieBadge": "PELÍCULA",
+    "runtime": "{minutes} min",
+    "subscription": "Disponible con suscripción",
+    "included": "Incluido",
+    "rent": "Alquiler",
+    "buy": "Compra",
+    "free": "Gratis",
+    "rentBuy": "Alquiler / Compra",
+    "noSources": "No hay fuentes de streaming disponibles para esta región.",
+    "trailer": "Ver tráiler",
+    "justWatch": "Ver en JustWatch",
+    "availability": "Disponibilidad regional vía Streaming Availability (Movie of the Night). Puede ir unos días detrás de JustWatch.",
+    "user": "Usuario",
+    "critic": "Crítica"
+  },
+  "metadata": {
+    "defaultTitle": "Dónde ver películas y series",
+    "defaultDescription": "Encuentra dónde ver películas y series en tus servicios de streaming.",
+    "home": "Encuentra dónde ver cada título",
+    "search": "Buscar películas y series",
+    "library": "Mi biblioteca",
+    "settings": "Configuración",
+    "login": "Iniciar sesión"
+  },
+  "errors": {
+    "somethingWentWrong": "Algo salió mal",
+    "retry": "Reintentar",
+    "offlineTitle": "Estás sin conexión",
+    "offlineDescription": "No pudimos cargar este contenido. Revisa tu conexión a internet. El contenido que ya habías visto puede seguir disponible."
+  },
+  "tv": {
+    "home": "Inicio",
+    "search": "Buscar",
+    "lists": "Listas",
+    "all": "Ver todo",
+    "signOut": "Cerrar sesión",
+    "loading": "Cargando…"
+  }
+}

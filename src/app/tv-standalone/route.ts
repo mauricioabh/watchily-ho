@@ -1,20 +1,38 @@
 import { NextResponse } from "next/server";
 import { getPopularTitles } from "@/lib/streaming/unified";
 import { createClient } from "@/lib/supabase/server";
-import { PROVIDER_TO_SOURCE_ID, filterTitlesByUserProviders } from "@/lib/streaming/providers";
-import { tvNavHtml, tvNavCss, tvTileCss, tvLogoutScript, tvLogoutModalCheck, tvLogoutModalCheckKeydown } from "@/lib/tv-shared";
+import {
+  PROVIDER_TO_SOURCE_ID,
+  filterTitlesByUserProviders,
+} from "@/lib/streaming/providers";
+import {
+  tvNavHtml,
+  tvNavCss,
+  tvTileCss,
+  tvLogoutScript,
+  tvLogoutModalCheck,
+  tvLogoutModalCheckKeydown,
+} from "@/lib/tv-shared";
+import { env } from "@/env";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
+const BASE = env.NEXT_PUBLIC_APP_URL ?? "https://watchily-ho.vercel.app";
 
-function tileHtml(t: { id: string; name: string; poster?: string | null; type: string; year?: number | null; sources?: { providerName: string }[] }) {
+function tileHtml(t: {
+  id: string;
+  name: string;
+  poster?: string | null;
+  type: string;
+  year?: number | null;
+  sources?: { providerName: string }[];
+}) {
   const platform = t.sources?.[0]?.providerName ?? "";
   return `
     <a href="${BASE}/title-standalone/${t.id}" tabindex="0" class="tile-link">
       <div class="tile">
         <div class="tile-poster">
-          ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0,2))}</div>`}
+          ${t.poster?.startsWith("http") ? `<img src="${t.poster}" alt="${escapeHtml(t.name)}" loading="lazy" />` : `<div class="tile-placeholder">${escapeHtml(t.name.slice(0, 2))}</div>`}
           <span class="tile-badge">${t.type === "series" ? "SERIE" : "PELÍCULA"}</span>
           ${platform ? `<span class="tile-platform">${escapeHtml(platform)}</span>` : ""}
         </div>
@@ -29,14 +47,19 @@ function tileHtml(t: { id: string; name: string; poster?: string | null; type: s
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.redirect(`${BASE}/login-standalone`, 302);
     }
 
     const { data: providerRows } = user
-      ? await supabase.from("user_providers").select("provider_id").eq("user_id", user.id)
+      ? await supabase
+          .from("user_providers")
+          .select("provider_id")
+          .eq("user_id", user.id)
       : { data: [] as { provider_id: string }[] };
 
     const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
@@ -49,7 +72,10 @@ export async function GET() {
       getPopularTitles({ type: "series", enrich: true, sourceIds }),
     ]);
 
-    const combined = filterTitlesByUserProviders([...movies, ...series], userProviderIds).slice(0, 20);
+    const combined = filterTitlesByUserProviders(
+      [...movies, ...series],
+      userProviderIds,
+    ).slice(0, 20);
 
     const tiles = combined.map((t) => tileHtml(t)).join("");
 

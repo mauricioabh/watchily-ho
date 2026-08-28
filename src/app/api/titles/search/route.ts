@@ -47,6 +47,14 @@ export async function GET(request: NextRequest) {
 
   const country = parsed.data.country ?? profile?.country_code ?? "MX";
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
+  const providersParam = searchParams.get("providers");
+  const filterProviderIds =
+    providersParam === null
+      ? userProviderIds
+      : providersParam
+          .split(",")
+          .map((provider) => provider.trim())
+          .filter((provider) => userProviderIds.includes(provider));
 
   try {
     const types = type ? ([type] as ("movie" | "series")[]) : undefined;
@@ -75,7 +83,7 @@ export async function GET(request: NextRequest) {
     // Also require a poster so every tile has something to display
     const filtered = filterTitlesByUserProviders(
       [...enrichedTitles, ...rest],
-      userProviderIds,
+      filterProviderIds,
     ).filter((t) => t.poster?.startsWith("http"));
 
     return Response.json({ titles: filtered, totalCount: filtered.length });

@@ -1,3 +1,5 @@
+import { env } from "@/env";
+
 const WATCHMODE_BASE = "https://api.watchmode.com/v1";
 
 export interface WatchmodeTitleResult {
@@ -82,7 +84,7 @@ async function fetchWatchmode<T>(
   path: string,
   params: Record<string, string> = {},
 ): Promise<T> {
-  const key = process.env.WATCHMODE_API_KEY;
+  const key = env.WATCHMODE_API_KEY;
   if (!key) throw new Error("WATCHMODE_API_KEY is not set");
   const url = new URL(`${WATCHMODE_BASE}${path}`);
   url.searchParams.set("apiKey", key);
@@ -231,7 +233,7 @@ export async function watchmodeListTitles(
 ): Promise<WatchmodeListTitlesResult> {
   const page = Math.max(1, options.page ?? 1);
   try {
-    const key = process.env.WATCHMODE_API_KEY;
+    const key = env.WATCHMODE_API_KEY;
     if (!key) return { titles: [], page, totalPages: 0 };
     const url = new URL(`${WATCHMODE_BASE}/list-titles/`);
     url.searchParams.set("apiKey", key);

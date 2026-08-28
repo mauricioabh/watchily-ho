@@ -3,6 +3,7 @@ import type {
   UnifiedSearchResult,
   StreamingSource,
 } from "@/types/streaming";
+import { env } from "@/env";
 import * as watchmode from "./watchmode";
 import * as streamingAvailability from "./streaming-availability";
 
@@ -14,8 +15,7 @@ export const AVAILABILITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
  * Set AVAILABILITY_SA_FOR_UNSUPPORTED_REGIONS=0 to rollback to Watchmode-primary (US remap).
  */
 export function isSaUnsupportedRegionRoutingEnabled(): boolean {
-  const v =
-    process.env.AVAILABILITY_SA_FOR_UNSUPPORTED_REGIONS?.trim().toLowerCase();
+  const v = env.AVAILABILITY_SA_FOR_UNSUPPORTED_REGIONS.toLowerCase();
   if (v === "0" || v === "false" || v === "off") return false;
   return true;
 }

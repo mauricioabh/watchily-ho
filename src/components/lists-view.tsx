@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
 
 interface ListRow {
   id: string;
@@ -21,6 +27,8 @@ interface ListRow {
 }
 
 export function ListsView({ lists }: { lists: ListRow[] }) {
+  void lists;
+  const t = useTranslations("lists");
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,11 +43,13 @@ export function ListsView({ lists }: { lists: ListRow[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), is_public: false }),
       });
-      if (res.ok) {
-        setName("");
-        setOpen(false);
-        window.location.reload();
-      }
+      await requireSuccessfulResponse(res, t("createListError"));
+      setName("");
+      setOpen(false);
+      toast.success(t("createTitle"));
+      window.location.reload();
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("createListError")));
     } finally {
       setLoading(false);
     }
@@ -53,25 +63,25 @@ export function ListsView({ lists }: { lists: ListRow[] }) {
           className="h-9 gap-2 bg-blue-800 text-white hover:bg-blue-900 hover:text-white"
         >
           <Plus className="h-3.5 w-3.5" />
-          New list
+          {t("newListPlaceholder")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create list</DialogTitle>
+          <DialogTitle>{t("createTitle")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={createList} className="space-y-4">
           <div>
-            <Label htmlFor="list-name">Name</Label>
+            <Label htmlFor="list-name">{t("name")}</Label>
             <Input
               id="list-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Watch later"
+              placeholder={t("namePlaceholder")}
             />
           </div>
           <Button type="submit" disabled={loading || !name.trim()}>
-            Create
+            {t("createTitle")}
           </Button>
         </form>
       </DialogContent>

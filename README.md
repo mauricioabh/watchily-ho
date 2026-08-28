@@ -41,11 +41,15 @@ npm install
 cp .env.local.example .env.local
 ```
 
-3. Configura en `.env.local` (claves actuales de Supabase: Publishable + Secret, no legacy):
-   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Dashboard → API Keys → publishable)
-   - `SUPABASE_SECRET_KEY` (opcional; solo si usas `createAdminClient()` en servidor; crear en API Keys → Create new → Secret)
+3. Configura las variables en `.env.local`. La configuración mínima requerida es:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Dashboard → API Keys → publishable)
    - `WATCHMODE_API_KEY` (https://api.watchmode.com/requestApiKey)
-   - Opcional: `STREAMING_AVAILABILITY_API_KEY` para fallback
+
+   Todas las variables soportadas, su scope público/servidor, requiredness y
+   comportamiento cuando faltan están documentados en
+   [`docs/application-foundation.md`](docs/application-foundation.md). Nunca
+   pongas valores secretos en Git ni en variables `NEXT_PUBLIC_`.
 
 4. Crea un proyecto en Supabase y aplica las migraciones:
 
@@ -65,13 +69,15 @@ supabase db push
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
+Abre [http://localhost:3000](http://localhost:3000). English is the default
+locale and keeps the existing unprefixed URLs. Spanish uses the `/es`
+namespace, for example `/es`, `/es/search`, and `/es/library`.
 
 Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la clave Secret solo se usa en servidor con `createAdminClient()` cuando hace falta bypass RLS (p. ej. jobs internos). No exponer la Secret key al cliente.
 
 ## Deploy en Vercel
 
-1. En [Vercel](https://vercel.com/new) importa el repo `mauricioabh/watchily-ho`. Configura las mismas variables que en `.env.local` (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY si aplica, y opcionalmente las API keys de streaming).
+1. En [Vercel](https://vercel.com/new) importa el repo `mauricioabh/watchily-ho`. Configura las variables requeridas y las integraciones opcionales descritas en [`docs/application-foundation.md`](docs/application-foundation.md). Las variables `NEXT_PUBLIC_*` son públicas; las API keys, claves VAPID privadas y `SUPABASE_SECRET_KEY` son solo de servidor.
 2. Añade en **Supabase** > Authentication > URL Configuration la URL de producción (ej. `https://tu-app.vercel.app/auth/callback`).
 3. Tras el primer deploy, reemplaza en `lg-tv-hosted/index.html` la URL `YOUR_APP.vercel.app` por tu URL de Vercel, y en `apps/mobile/.env` define `EXPO_PUBLIC_API_URL` con esa misma URL.
 
@@ -83,6 +89,25 @@ Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la
 - `src/types` – Tipos TypeScript
 - `supabase/migrations` – SQL (profiles, user_providers, lists, list_items, likes, RLS)
 - `docs/schema.md` – Documentación del schema de la base de datos
+- `docs/application-foundation.md` – Variables, providers, analytics, cache y localization
+
+## Foundation boundaries
+
+- **Providers:** `AppProviders` is the single client boundary for the theme,
+  TanStack Query, nuqs URL state, PostHog, and Sonner. Server-only credentials
+  remain in server modules.
+- **Analytics:** PostHog is opt-in and browser-only. Each allowlisted event
+  includes `app_tag: "app:wat"` and a `web`/`tv` surface; raw query text,
+  emails, passwords, list names, provider URLs, and API payloads are excluded.
+  The supported event contract is documented in
+  [`docs/application-foundation.md`](docs/application-foundation.md).
+- **URL state/cache:** Search (`q`, `type`, `providers`) and library
+  (`query`, `type`, `status`, `sort`) filters are typed URL state. TanStack
+  Query keys include response inputs and user scope, reuse server-rendered
+  initial data, and invalidate affected data after mutations.
+- **Localization:** `en` is the deterministic default for existing URLs;
+  Spanish pages live under `/es`. API, auth callback, OpenAPI, asset, and
+  standalone TV contracts remain unlocalized.
 
 ## LG TV
 
@@ -93,9 +118,10 @@ Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la
 
 - **Pre-commit:** Husky runs lint-staged (`eslint --fix`, `prettier --write`) on staged `*.ts` / `*.tsx`.
 - **API contracts:** Zod schemas for priority `/api/*` routes → OpenAPI via `@asteasolutions/zod-to-openapi` → Scalar UI at `/api-docs` (spec JSON at `/api/openapi`).
-- **Observability:** `@sentry/nextjs` on web/TV (`platform=web|webos` tags); `@sentry/react-native` on Expo (`platform=mobile`). Set `SENTRY_DSN` in `.env.local` and `EXPO_PUBLIC_SENTRY_DSN` in `apps/mobile/.env`. Auth tokens and emails are scrubbed from breadcrumbs. **Core Web Vitals (RUM):** Sentry Performance → Web Vitals (`browserTracingIntegration`, 10% sample in prod). **Lab:** Lighthouse CI on PRs (`.github/workflows/lighthouse.yml`). Dev probe: `GET /api/debug/sentry`; verify with `npm run test:observability`.
-- **Async jobs:** Inngest refreshes watchlist title availability into `title_availability_cache` on add-to-list and daily cron. Supabase Queues alternative: [`docs/supabase-queues-alternative.md`](docs/supabase-queues-alternative.md). Set `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`.
-- **Rate limiting:** Upstash sliding window (20 req/min/user) on `GET /api/titles/search`. Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Verify with `npm run test:rate-limit`.
+- **Observability:** `@sentry/nextjs` on web/TV (`platform=web|webos` tags); `@sentry/react-native` on Expo (`platform=mobile`). `SENTRY_DSN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are optional. Auth tokens and emails are scrubbed from breadcrumbs. **Core Web Vitals (RUM):** Sentry Performance → Web Vitals (`browserTracingIntegration`, 10% sample in prod). **Lab:** Lighthouse CI on PRs (`.github/workflows/lighthouse.yml`). Dev probe: `GET /api/debug/sentry`; verify with `npm run test:observability`.
+- **Analytics:** Configure `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` together to enable the privacy-safe PostHog contract. Missing either variable disables analytics without affecting the app.
+- **Async jobs:** Inngest refreshes watchlist title availability into `title_availability_cache` on add-to-list and daily cron when `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` are both configured. Supabase Queues alternative: [`docs/supabase-queues-alternative.md`](docs/supabase-queues-alternative.md).
+- **Rate limiting:** Upstash sliding window (20 req/min/user) on `GET /api/titles/search` when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are both configured. Verify with `npm run test:rate-limit`.
 - **CI:** Supabase RLS isolation tests (`.github/workflows/rls.yml`); CodeQL; Playwright landing smoke on PRs (`npm run test:e2e`, workflow `e2e.yml`).
 - **RLS tests:** Row-level security policies in `supabase/migrations/` are verified with Vitest against local Supabase (`supabase start` then `npm run test:rls`). Covers profiles, lists, likes, and `pairing_codes` isolation. CI runs `.github/workflows/rls.yml` on PRs.
 - **Security scanning:** CodeQL (`.github/workflows/codeql.yml`); Dependabot for npm and GitHub Actions.

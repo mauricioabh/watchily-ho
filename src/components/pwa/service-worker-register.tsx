@@ -27,6 +27,26 @@ export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
+    if (process.env.NODE_ENV === "development") {
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      void navigator.serviceWorker
+        .getRegistrations()
+        .then(async (registrations) => {
+          await Promise.all(
+            registrations.map((registration) => registration.unregister()),
+          );
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+              cacheNames
+                .filter((name) => name.startsWith("watchily-"))
+                .map((name) => caches.delete(name)),
+            );
+          }
+          if (hadController) window.location.reload();
+        });
+      return;
+    }
     // Never run the PWA layer on the TV (content must stay fresh from Vercel).
     if (isTvEnvironment()) return;
 

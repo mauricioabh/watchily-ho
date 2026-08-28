@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  localizedPath,
+  usePathname as useLocalePathname,
+  useRouter as useLocaleRouter,
+} from "@/i18n/routing";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { type IconType } from "react-icons";
@@ -15,15 +21,36 @@ import {
 } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { captureProductEvent } from "@/lib/analytics";
+import {
+  getMutationErrorMessage,
+  requireSuccessfulResponse,
+} from "@/lib/mutation-feedback";
 
 const PROVIDERS = [
   { id: "netflix", name: "Netflix", icon: SiNetflix, color: "#E50914" },
   { id: "disney_plus", name: "Disney+", icon: TbBrandDisney, color: "#113CCF" },
   { id: "hbo_max", name: "HBO Max", icon: SiHbo, color: "#B535F6" },
-  { id: "amazon_prime", name: "Amazon Prime Video", icon: SiPrimevideo, color: "#00A8E1" },
+  {
+    id: "amazon_prime",
+    name: "Amazon Prime Video",
+    icon: SiPrimevideo,
+    color: "#00A8E1",
+  },
   { id: "apple_tv_plus", name: "Apple TV+", icon: SiAppletv, color: "#FFFFFF" },
-  { id: "paramount_plus", name: "Paramount+", icon: SiParamountplus, color: "#0064FF" },
-  { id: "crunchyroll", name: "Crunchyroll", icon: SiCrunchyroll, color: "#F47521" },
+  {
+    id: "paramount_plus",
+    name: "Paramount+",
+    icon: SiParamountplus,
+    color: "#0064FF",
+  },
+  {
+    id: "crunchyroll",
+    name: "Crunchyroll",
+    icon: SiCrunchyroll,
+    color: "#F47521",
+  },
 ] as const satisfies readonly {
   id: string;
   name: string;
@@ -53,9 +80,16 @@ export function SettingsForm({
   initialProviderIds: string[];
   redirectOnSave?: boolean;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("settings");
+  const common = useTranslations("common");
+  const localizedRouter = useLocaleRouter();
+  const localizedPathname = useLocalePathname();
   const router = useRouter();
   const [country, setCountry] = useState(initialCountry);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialProviderIds));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    new Set(initialProviderIds),
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -73,11 +107,17 @@ export function SettingsForm({
     });
   };
 
+  const switchLocale = (nextLocale: "en" | "es") => {
+    localizedRouter.replace(`${localizedPathname}${window.location.search}`, {
+      locale: nextLocale,
+    });
+  };
+
   const save = async () => {
     setSaving(true);
     setSaved(false);
     try {
-      await Promise.all([
+      const [profileResponse, providersResponse] = await Promise.all([
         fetch("/api/profile", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -89,18 +129,29 @@ export function SettingsForm({
           body: JSON.stringify({ providerIds: Array.from(selectedIds) }),
         }),
       ]);
+      await Promise.all([
+        requireSuccessfulResponse(profileResponse, t("saveError")),
+        requireSuccessfulResponse(providersResponse, t("saveError")),
+      ]);
       setSaved(true);
+      captureProductEvent("settings_saved", {
+        country,
+        providerCount: selectedIds.size,
+      });
+      toast.success(t("savedToast"));
       if (redirectOnSave) {
         // Onboarding: ir a popular (primera vez configurando)
-        router.push("/popular");
+        router.push(localizedPath("/popular", locale));
       } else {
         // Ya configurado: volver a la página anterior
         if (window.history.length > 1) {
           router.back();
         } else {
-          router.push("/popular");
+          router.push(localizedPath("/popular", locale));
         }
       }
+    } catch (error) {
+      toast.error(getMutationErrorMessage(error, t("saveError")));
     } finally {
       setSaving(false);
     }
@@ -109,7 +160,20 @@ export function SettingsForm({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="country">País (para disponibilidad de streaming)</Label>
+        <Label htmlFor="locale-setting">{common("language")}</Label>
+        <select
+          id="locale-setting"
+          aria-label={common("switchLanguage")}
+          value={locale}
+          onChange={(event) => switchLocale(event.target.value as "en" | "es")}
+          className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="en">{common("english")}</option>
+          <option value="es">{common("spanish")}</option>
+        </select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="country">{t("country")}</Label>
         <div className="relative">
           <select
             id="country"
@@ -127,9 +191,9 @@ export function SettingsForm({
         </div>
       </div>
       <div className="space-y-3">
-        <Label>Proveedores (plataformas que tienes)</Label>
+        <Label>{t("providers")}</Label>
         <p className="text-sm text-muted-foreground">
-          Selecciona las plataformas a las que estás suscrito para ver dónde puedes ver cada título.
+          {t("providerDescription")}
         </p>
         <div className="flex flex-wrap gap-2">
           {PROVIDERS.map((p) => (
@@ -148,7 +212,10 @@ export function SettingsForm({
                 className="h-4 w-4 shrink-0 rounded border-input"
               />
               {p.icon ? (
-                <p.icon className="size-4 shrink-0" style={{ color: p.color }} />
+                <p.icon
+                  className="size-4 shrink-0"
+                  style={{ color: p.color }}
+                />
               ) : null}
               <span className="font-medium">{p.name}</span>
             </label>
@@ -158,15 +225,17 @@ export function SettingsForm({
       <div className="flex items-center justify-between gap-3 pt-2">
         <Button
           variant="outline"
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/popular"))}
+          onClick={() =>
+            window.history.length > 1 ? router.back() : router.push("/popular")
+          }
         >
-          Cancelar
+          {t("cancel")}
         </Button>
         <Button onClick={save} disabled={saving}>
-          {saving ? "Guardando…" : "Guardar"}
+          {saving ? t("saving") : t("save")}
         </Button>
       </div>
-      {saved && <p className="text-right text-sm text-primary">Guardado.</p>}
+      {saved && <p className="text-right text-sm text-primary">{t("saved")}</p>}
     </div>
   );
 }

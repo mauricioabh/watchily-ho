@@ -1,22 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
+import { localizedPath } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
 import { createClient } from "@/lib/supabase/client";
+import { captureProductEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/popular";
+  const locale = useLocale();
+  const t = useTranslations("auth");
+  const next = searchParams.get("next") ?? localizedPath("/popular", locale);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const supabase = createClient();
 
   const handleGoogleSignIn = async () => {
@@ -24,11 +32,18 @@ export default function LoginPage() {
     setMessage(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     if (error) {
       setMessage({ type: "error", text: error.message });
       setLoading(false);
+    } else {
+      captureProductEvent("auth_completed", {
+        method: "google",
+        flow: "sign_in",
+      });
     }
   };
 
@@ -39,23 +54,38 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     setLoading(false);
     if (error) setMessage({ type: "error", text: error.message });
-    else setMessage({ type: "success", text: "Revisa tu correo para confirmar la cuenta." });
+    else {
+      captureProductEvent("auth_completed", {
+        method: "email",
+        flow: "sign_up",
+      });
+      setMessage({
+        type: "success",
+        text: t("checkEmail"),
+      });
+    }
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
     if (error) {
       setMessage({ type: "error", text: error.message });
       return;
     }
+    captureProductEvent("auth_completed", { method: "email", flow: "sign_in" });
 
     try {
       const onboardingRes = await fetch("/api/profile/onboarding");
@@ -83,7 +113,9 @@ export default function LoginPage() {
       >
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Watchily</h1>
-          <p className="text-muted-foreground text-sm">Inicia sesión para continuar</p>
+          <p className="text-muted-foreground text-sm">
+            {t("signInToContinue")}
+          </p>
         </div>
 
         <Button
@@ -94,7 +126,7 @@ export default function LoginPage() {
           disabled={loading}
         >
           <FcGoogle className="size-5" aria-hidden />
-          Continuar con Google
+          {t("continueWithGoogle")}
         </Button>
 
         <div className="relative">
@@ -102,24 +134,24 @@ export default function LoginPage() {
             <span className="w-full border-t border-border" />
           </div>
           <span className="relative flex justify-center text-xs uppercase text-muted-foreground">
-            o con email
+            {t("orEmail")}
           </span>
         </div>
 
         <form className="space-y-4" onSubmit={handleEmailSignIn}>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("email")}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="tu@email.com"
+              placeholder={t("emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password">{t("password")}</Label>
             <Input
               id="password"
               type="password"
@@ -137,7 +169,7 @@ export default function LoginPage() {
           )}
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={loading}>
-              Entrar
+              {t("signIn")}
             </Button>
             <Button
               type="button"
@@ -146,14 +178,14 @@ export default function LoginPage() {
               disabled={loading}
               onClick={handleEmailSignUp}
             >
-              Registrarse
+              {t("signUp")}
             </Button>
           </div>
         </form>
 
         <p className="text-center text-muted-foreground text-xs">
           <Link href="/" className="underline hover:text-foreground">
-            Volver al inicio
+            {t("backHome")}
           </Link>
         </p>
       </motion.div>
