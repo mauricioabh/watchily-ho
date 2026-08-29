@@ -3,6 +3,11 @@ import {
   type InfiniteData,
   type QueryKey,
 } from "@tanstack/react-query";
+import {
+  canonicalTitleIds,
+  updateTitleMembership,
+  updateTitleStatus,
+} from "@/lib/interaction-state";
 import type { UnifiedTitle } from "@/types/streaming";
 
 export type QueryScope = string | null;
@@ -55,6 +60,16 @@ export const queryKeys = {
   lists: (userId: QueryScope) => ["lists", { userId }] as const,
   membership: (titleId: string, userId: QueryScope) =>
     ["list-membership", { titleId, userId }] as const,
+  watchStatusBatch: (titleIds: readonly string[], userId: QueryScope) =>
+    [
+      "watch-status-batch",
+      { titleIds: canonicalTitleIds(titleIds), userId },
+    ] as const,
+  membershipBatch: (titleIds: readonly string[], userId: QueryScope) =>
+    [
+      "list-membership-batch",
+      { titleIds: canonicalTitleIds(titleIds), userId },
+    ] as const,
   libraryEnrichment: (country: string, userId: QueryScope) =>
     ["library-enrichment", { country, userId }] as const,
 };
@@ -115,3 +130,82 @@ export type LikesResponse = {
 };
 
 export type InfiniteTitles = InfiniteData<PagedTitlesResponse, number>;
+
+function matchesUserScope(queryKey: QueryKey, userId: QueryScope): boolean {
+  return queryKey.some(
+    (part) =>
+      part &&
+      typeof part === "object" &&
+      !Array.isArray(part) &&
+      "userId" in part &&
+      part.userId === userId,
+  );
+}
+
+export function updateWatchStatusCaches(
+  queryClient: QueryClient,
+  userId: QueryScope,
+  titleId: string,
+  status: WatchStatusResponse["statuses"][string] | null,
+): void {
+  queryClient.setQueriesData<WatchStatusResponse>(
+    {
+      predicate: (query) => {
+        if (!matchesUserScope(query.queryKey, userId)) return false;
+        const [kind, input] = query.queryKey;
+        if (kind === "watch-status") {
+          return (input as { titleId?: string }).titleId === titleId;
+        }
+        if (kind === "watch-status-batch") {
+          return (
+            (input as { titleIds?: string[] }).titleIds?.includes(titleId) ??
+            false
+          );
+        }
+        return false;
+      },
+    },
+    (previous) =>
+      previous
+        ? { statuses: updateTitleStatus(previous.statuses, titleId, status) }
+        : previous,
+  );
+}
+
+export function updateMembershipCaches(
+  queryClient: QueryClient,
+  userId: QueryScope,
+  titleId: string,
+  listId: string,
+  action: "add" | "remove",
+): void {
+  queryClient.setQueriesData<MembershipResponse>(
+    {
+      predicate: (query) => {
+        if (!matchesUserScope(query.queryKey, userId)) return false;
+        const [kind, input] = query.queryKey;
+        if (kind === "list-membership") {
+          return (input as { titleId?: string }).titleId === titleId;
+        }
+        if (kind === "list-membership-batch") {
+          return (
+            (input as { titleIds?: string[] }).titleIds?.includes(titleId) ??
+            false
+          );
+        }
+        return false;
+      },
+    },
+    (previous) =>
+      previous
+        ? {
+            listIdsByTitle: updateTitleMembership(
+              previous.listIdsByTitle,
+              titleId,
+              listId,
+              action,
+            ),
+          }
+        : previous,
+  );
+}

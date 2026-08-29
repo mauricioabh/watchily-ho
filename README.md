@@ -11,12 +11,15 @@ Para personas que quieren saber rápidamente dónde ver un título (Netflix, Dis
 ## FAQ
 
 ### ¿Cómo sé dónde ver una película o serie?
+
 Busca el título en Watchily o abre su ficha de detalle. Watchily muestra en qué plataformas está disponible para ver con suscripción, alquiler o compra en tu región.
 
 ### ¿Necesito pagar para usar Watchily?
+
 No. Watchily es gratuito. Solo necesitas crear una cuenta si quieres guardar listas y filtrar por tus plataformas suscritas.
 
 ### ¿De dónde obtiene Watchily la información de streaming?
+
 Watchily combina datos de Watchmode y Streaming Availability para mostrar disponibilidad actualizada por país y plataforma.
 
 # Watchily
@@ -105,6 +108,12 @@ Las rutas API usan la sesión del usuario (cookies) con la clave Publishable; la
   (`query`, `type`, `status`, `sort`) filters are typed URL state. TanStack
   Query keys include response inputs and user scope, reuse server-rendered
   initial data, and invalidate affected data after mutations.
+- **Interaction batching:** `GET /api/watch-status?ids=a,b` and
+  `GET /api/lists/items?title_ids=a,b` accept up to 100 unique title IDs and
+  omit titles without state. The singular `title_id` membership URL remains
+  compatible. Library uses server-rendered state plus a user-scoped Upstash
+  cache-aside snapshot with a 15-minute TTL; successful list/status mutations
+  invalidate the relevant cache, while Redis failures fall back to Supabase.
 - **Localization:** `en` is the deterministic default for existing URLs;
   Spanish pages live under `/es`. API, auth callback, OpenAPI, asset, and
   standalone TV contracts remain unlocalized.

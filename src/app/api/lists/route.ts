@@ -3,6 +3,7 @@ import { parseJsonBody } from "@/lib/api/validate";
 import { CreateListBodySchema } from "@/lib/openapi/schemas";
 import { bumpListPositions } from "@/lib/lists/order";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 
 export async function GET() {
   const { client: supabase, user } = await getSupabaseAndUser();
@@ -61,5 +62,6 @@ export async function POST(request: NextRequest) {
     .select("id, name, is_public, position")
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await invalidateLibraryCatalog(user.id);
   return Response.json(data);
 }

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { parseJsonBody } from "@/lib/api/validate";
 import { UpdateListBodySchema } from "@/lib/openapi/schemas";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 
 export async function GET(
   _request: NextRequest,
@@ -51,6 +52,7 @@ export async function PATCH(
     .select()
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await invalidateLibraryCatalog(user.id);
   return Response.json(data);
 }
 
@@ -69,5 +71,6 @@ export async function DELETE(
     .eq("id", listId)
     .eq("user_id", user.id);
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await invalidateLibraryCatalog(user.id);
   return Response.json({ ok: true });
 }

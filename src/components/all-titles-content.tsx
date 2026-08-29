@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { TitleTile } from "@/components/title-tile";
 import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
+import { useBatchedInteractionState } from "@/hooks/use-batched-interaction-state";
+import { useAuthScope } from "@/components/app-providers";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import type { ListSection } from "@/types/library";
 
@@ -17,6 +19,7 @@ interface Props {
 
 export function AllTitlesContent({ sections, userProviderIds }: Props) {
   const [query, setQuery] = useState("");
+  const authScope = useAuthScope();
   const { activeIds, activeCount, totalCount, toggle, setAll } =
     useProviderFilter(userProviderIds);
 
@@ -54,6 +57,12 @@ export function AllTitlesContent({ sections, userProviderIds }: Props) {
     () => filteredSections.reduce((acc, s) => acc + s.titles.length, 0),
     [filteredSections],
   );
+  const interaction = useBatchedInteractionState({
+    titleIds: sections.flatMap((section) =>
+      section.titles.map((title) => title.id),
+    ),
+    userId: authScope,
+  });
 
   if (sections.length === 0) {
     return (
@@ -146,7 +155,14 @@ export function AllTitlesContent({ sections, userProviderIds }: Props) {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
               {section.titles.map((title) => (
-                <TitleTile key={title.id} title={title} />
+                <TitleTile
+                  key={title.id}
+                  title={title}
+                  listIds={interaction.membershipFor(title.id) ?? []}
+                  membershipKnown={interaction.membershipKnown(title.id)}
+                  interactionStateShared={interaction.isShared}
+                  interactionLoading={interaction.isLoading}
+                />
               ))}
             </div>
           </section>

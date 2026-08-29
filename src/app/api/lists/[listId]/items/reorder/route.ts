@@ -3,6 +3,7 @@ import { parseJsonBody } from "@/lib/api/validate";
 import { ReorderListItemsBodySchema } from "@/lib/openapi/schemas";
 import { applyListItemOrder } from "@/lib/lists/order";
 import { getSupabaseAndUser } from "@/lib/supabase/server";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 
 export async function PATCH(
   request: NextRequest,
@@ -38,5 +39,6 @@ export async function PATCH(
       { status: result.status ?? 500 },
     );
   }
+  await invalidateLibraryCatalog(user.id);
   return Response.json({ ok: true });
 }

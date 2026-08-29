@@ -1,14 +1,20 @@
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { after } from "next/server";
 import { LibraryContent } from "@/components/library-content";
 import type { LibraryPrefs, ListSection, StatusMap } from "@/types/library";
-import { isLibraryTitleHydrated } from "@/lib/streaming/unified";
 import type { TitleType, UnifiedTitle } from "@/types/streaming";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { localizedPath } from "@/i18n/routing";
+import {
+  readLibraryCatalog,
+  readLibraryStatuses,
+  writeLibraryCatalog,
+  writeLibraryStatuses,
+} from "@/lib/library-cache";
 
 export type { ListSection } from "@/types/library";
 
@@ -43,16 +49,6 @@ function normalizePrefs(
   return { statusFilter, titleSort };
 }
 
-function isUnifiedTitle(value: unknown): value is UnifiedTitle {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.id === "string" &&
-    typeof v.name === "string" &&
-    (v.type === "movie" || v.type === "series")
-  );
-}
-
 function stubTitle(id: string, titleType: string): UnifiedTitle {
   const type: TitleType = titleType === "series" ? "series" : "movie";
   return {
@@ -71,30 +67,57 @@ async function LibraryData() {
   } = await supabase.auth.getUser();
   if (!user) redirect(localizedPath("/login", await getLocale()));
 
-  const { data: providerRows } = await supabase
-    .from("user_providers")
-    .select("provider_id")
-    .eq("user_id", user.id);
+  const statusPromise = readLibraryStatuses(user.id).then(async (cached) => {
+    if (cached) return { cached, statusMap: cached.statusMap };
+    const { data: statusRows } = await supabase
+      .from("user_title_statuses")
+      .select("title_id, status")
+      .eq("user_id", user.id);
+    const statusMap: StatusMap = {};
+    for (const row of statusRows ?? []) {
+      if (row.status === "watching" || row.status === "finished") {
+        statusMap[row.title_id] = row.status;
+      }
+    }
+    return { cached: null, statusMap };
+  });
+  const [providerResult, prefsResult, statusResult, cachedCatalog] =
+    await Promise.all([
+      supabase
+        .from("user_providers")
+        .select("provider_id")
+        .eq("user_id", user.id),
+      supabase
+        .from("profiles")
+        .select("library_status_filter, library_title_sort")
+        .eq("id", user.id)
+        .single(),
+      statusPromise,
+      readLibraryCatalog(user.id, CACHE_COUNTRY),
+    ]);
+  const providerRows = providerResult.data;
   const userProviderIds = (providerRows ?? []).map((r) => r.provider_id);
 
-  const { data: statusRows } = await supabase
-    .from("user_title_statuses")
-    .select("title_id, status")
-    .eq("user_id", user.id);
-
-  const statusMap: StatusMap = {};
-  for (const row of statusRows ?? []) {
-    if (row.status === "watching" || row.status === "finished") {
-      statusMap[row.title_id] = row.status;
-    }
+  const { statusMap } = statusResult;
+  if (!statusResult.cached) {
+    after(() => writeLibraryStatuses(user.id, { statusMap }));
   }
 
-  const { data: prefsRow } = await supabase
-    .from("profiles")
-    .select("library_status_filter, library_title_sort")
-    .eq("id", user.id)
-    .single();
-  const prefs = normalizePrefs(prefsRow);
+  const prefs = normalizePrefs(prefsResult.data);
+
+  if (cachedCatalog) {
+    return (
+      <LibraryContent
+        sections={cachedCatalog.sections}
+        userProviderIds={userProviderIds}
+        statusMap={statusMap}
+        prefs={prefs}
+        pendingTitleIds={cachedCatalog.pendingTitleIds}
+        userScope={user.id}
+        country={CACHE_COUNTRY}
+      />
+    );
+  }
 
   const { data: lists } = await supabase
     .from("lists")
@@ -103,6 +126,12 @@ async function LibraryData() {
     .order("position", { ascending: true });
 
   if (!lists?.length) {
+    after(() =>
+      writeLibraryCatalog(user.id, CACHE_COUNTRY, {
+        sections: [],
+        pendingTitleIds: [],
+      }),
+    );
     return (
       <LibraryContent
         sections={[]}
@@ -148,31 +177,10 @@ async function LibraryData() {
     }
   }
 
-  const detailsMap = new Map<string, UnifiedTitle>();
-  if (allUniqueIds.length > 0) {
-    const admin = createAdminClient();
-    const { data: cachedRaw } = await admin
-      .from("title_availability_cache")
-      .select("title_id, payload")
-      .eq("country_code", CACHE_COUNTRY)
-      .in("title_id", allUniqueIds);
-
-    for (const row of (cachedRaw ?? []) as {
-      title_id: string;
-      payload: unknown;
-    }[]) {
-      if (isUnifiedTitle(row.payload) && isLibraryTitleHydrated(row.payload)) {
-        detailsMap.set(row.title_id, row.payload);
-      }
-    }
-  }
-
-  const pendingTitleIds = allUniqueIds.filter((id) => !detailsMap.has(id));
+  const pendingTitleIds = allUniqueIds;
 
   const sections: ListSection[] = lists.map((list) => {
     const titles = (byList[list.id] ?? []).map((row) => {
-      const cached = detailsMap.get(row.title_id);
-      if (cached) return cached;
       return stubTitle(
         row.title_id,
         typeById.get(row.title_id) ?? row.title_type,
@@ -180,6 +188,12 @@ async function LibraryData() {
     });
     return { id: list.id, name: list.name, titles };
   });
+  after(() =>
+    writeLibraryCatalog(user.id, CACHE_COUNTRY, {
+      sections,
+      pendingTitleIds,
+    }),
+  );
 
   return (
     <LibraryContent

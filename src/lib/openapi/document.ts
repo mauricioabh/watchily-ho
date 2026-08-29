@@ -9,6 +9,8 @@ import {
   ErrorResponseSchema,
   LikeBodySchema,
   LikedIdsResponseSchema,
+  InteractionIdsQuerySchema,
+  MembershipResponseSchema,
   ListItemsResponseSchema,
   ListsResponseSchema,
   ListSummarySchema,
@@ -22,6 +24,7 @@ import {
   SearchResponseSchema,
   UpdateListBodySchema,
   UpdateProfileBodySchema,
+  WatchStatusResponseSchema,
 } from "./schemas";
 
 const registry = new OpenAPIRegistry();
@@ -145,6 +148,48 @@ registry.registerPath({
     },
     404: jsonError,
     500: jsonError,
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/lists/items",
+  tags: ["Lists"],
+  summary: "Get current-user memberships for title IDs",
+  operationId: "getTitleMemberships",
+  request: { query: InteractionIdsQuerySchema },
+  responses: {
+    200: {
+      description:
+        "Membership map. Use title_ids for up to 100 IDs; title_id remains compatible.",
+      content: { "application/json": { schema: MembershipResponseSchema } },
+    },
+    400: jsonError,
+    401: jsonError,
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/watch-status",
+  tags: ["Watch status"],
+  summary: "Get current-user watch statuses for title IDs",
+  operationId: "getWatchStatuses",
+  request: {
+    query: z.object({
+      ids: z.string().optional().openapi({
+        description: "Comma-separated title IDs, maximum 100 unique IDs",
+      }),
+    }),
+  },
+  responses: {
+    200: {
+      description:
+        "Statuses keyed by title ID; titles without a status are omitted.",
+      content: { "application/json": { schema: WatchStatusResponseSchema } },
+    },
+    400: jsonError,
+    401: jsonError,
   },
 });
 

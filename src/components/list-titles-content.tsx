@@ -9,6 +9,8 @@ import { ProviderFilterBar } from "@/components/provider-filter-bar";
 import { ListActions } from "@/components/list-actions";
 import { Button } from "@/components/ui/button";
 import { useProviderFilter } from "@/hooks/use-provider-filter";
+import { useBatchedInteractionState } from "@/hooks/use-batched-interaction-state";
+import { useAuthScope } from "@/components/app-providers";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import type { StatusMap, WatchStatus } from "@/types/library";
 import type { UnifiedTitle } from "@/types/streaming";
@@ -31,10 +33,19 @@ export function ListTitlesContent({
   filterType,
 }: Props) {
   const t = useTranslations("common");
+  const errors = useTranslations("errors");
   const router = useRouter();
+  const authScope = useAuthScope();
   const [statusMap, setStatusMap] = useState<StatusMap>(initialStatusMap);
   const { activeIds, activeCount, totalCount, toggle, setAll } =
     useProviderFilter(userProviderIds);
+  const titleIds = useMemo(() => titles.map((title) => title.id), [titles]);
+  const interaction = useBatchedInteractionState({
+    titleIds,
+    userId: authScope,
+    initialStatuses: initialStatusMap,
+    initialStatusIds: titleIds,
+  });
 
   useEffect(() => {
     setStatusMap(initialStatusMap);
@@ -107,6 +118,22 @@ export function ListTitlesContent({
         </Link>
       </div>
 
+      {interaction.isError ? (
+        <div
+          className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+          role="alert"
+        >
+          <span>{errors("somethingWentWrong")}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void interaction.retry()}
+          >
+            {errors("retry")}
+          </Button>
+        </div>
+      ) : null}
+
       {visible.length === 0 ? (
         <div className="rounded-xl border border-white/8 bg-card/30 py-10 text-center">
           <p className="text-muted-foreground">
@@ -119,10 +146,14 @@ export function ListTitlesContent({
             <TitleTile
               key={title.id}
               title={title}
-              watchStatus={statusMap[title.id]}
+              watchStatus={statusMap[title.id] ?? null}
               showWatchStatus
               onWatchStatusChange={handleStatusChange}
               onListsChange={() => router.refresh()}
+              listIds={interaction.membershipFor(title.id) ?? []}
+              membershipKnown={interaction.membershipKnown(title.id)}
+              interactionStateShared={interaction.isShared}
+              interactionLoading={interaction.isLoading}
             />
           ))}
         </div>

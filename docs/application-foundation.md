@@ -150,6 +150,13 @@ membership, enrichment, search, and popular-title mutations update or
 invalidate affected queries. Auth changes clear user-scoped cached data before
 another user can observe it.
 
+Dense title grids use page-scoped interaction batches of at most 100 unique
+IDs. The Library server loader additionally uses a server-only, user-scoped
+Upstash Redis cache-aside snapshot with a 15-minute TTL for assembled catalog
+and status data. List membership/order and watch-status writes invalidate the
+corresponding snapshot; Redis misses, malformed values, or outages fall back
+to the authenticated Supabase path.
+
 ## Localization and routing
 
 The supported locales are `en` and `es`, configured with

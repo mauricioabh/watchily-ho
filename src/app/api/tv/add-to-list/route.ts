@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { bumpListItemPositions } from "@/lib/lists/order";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
     title_type: titleType,
     position: 0,
   });
+  await invalidateLibraryCatalog(user.id);
 
   return NextResponse.redirect(
     redirectTo ?? new URL(request.url).origin + "/tv-standalone",

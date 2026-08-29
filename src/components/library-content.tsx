@@ -70,6 +70,7 @@ import {
 import { useAuthScope } from "@/components/app-providers";
 import { queryKeys, type LibraryEnrichmentResponse } from "@/lib/query";
 import { libraryParsers } from "@/lib/url-state";
+import { useBatchedInteractionState } from "@/hooks/use-batched-interaction-state";
 
 const COLLAPSED_KEY = "watchily.library.collapsed";
 const ENRICH_BATCH = 8;
@@ -83,6 +84,13 @@ interface Props {
   userScope: string;
   country: string;
 }
+
+type SharedInteractionProps = {
+  memberships: Record<string, string[]>;
+  membershipKnown: (titleId: string) => boolean;
+  shared: boolean;
+  loading: boolean;
+};
 
 function sortTitlesByName<T extends { name: string }>(
   titles: T[],
@@ -145,6 +153,7 @@ function SortableListSection({
   onWatchStatusChange,
   onListsChange,
   onTitlesDragEnd,
+  interaction,
 }: {
   section: ListSection;
   isCollapsed: boolean;
@@ -162,6 +171,7 @@ function SortableListSection({
   onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
   onListsChange: () => void;
   onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
+  interaction: SharedInteractionProps;
 }) {
   const t = useTranslations("library");
   const {
@@ -185,7 +195,7 @@ function SortableListSection({
     <section
       ref={setNodeRef}
       style={style}
-      className="rounded-xl border border-white/8 bg-card/20"
+      className="rounded-xl border border-white/8 bg-card/20 [content-visibility:auto] [contain-intrinsic-size:0_28rem]"
     >
       <div className="flex items-center gap-2 px-4 py-3">
         {canReorderLists ? (
@@ -294,6 +304,7 @@ function SortableListSection({
               onWatchStatusChange={onWatchStatusChange}
               onListsChange={onListsChange}
               onTitlesDragEnd={onTitlesDragEnd}
+              interaction={interaction}
             />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
@@ -301,10 +312,14 @@ function SortableListSection({
                 <TitleTile
                   key={title.id}
                   title={title}
-                  watchStatus={statusMap[title.id]}
+                  watchStatus={statusMap[title.id] ?? null}
                   showWatchStatus
                   onWatchStatusChange={onWatchStatusChange}
                   onListsChange={onListsChange}
+                  listIds={interaction.memberships[title.id] ?? []}
+                  membershipKnown={interaction.membershipKnown(title.id)}
+                  interactionStateShared={interaction.shared}
+                  interactionLoading={interaction.loading}
                 />
               ))}
             </div>
@@ -323,6 +338,7 @@ function SortableTitlesGrid({
   onWatchStatusChange,
   onListsChange,
   onTitlesDragEnd,
+  interaction,
 }: {
   listId: string;
   titles: UnifiedTitle[];
@@ -331,6 +347,7 @@ function SortableTitlesGrid({
   onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
   onListsChange: () => void;
   onTitlesDragEnd: (listId: string, event: DragEndEvent) => void;
+  interaction: SharedInteractionProps;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -358,9 +375,10 @@ function SortableTitlesGrid({
               key={title.id}
               listId={listId}
               title={title}
-              watchStatus={statusMap[title.id]}
+              watchStatus={statusMap[title.id] ?? null}
               onWatchStatusChange={onWatchStatusChange}
               onListsChange={onListsChange}
+              interaction={interaction}
             />
           ))}
         </div>
@@ -375,12 +393,14 @@ function SortableTitleTile({
   watchStatus,
   onWatchStatusChange,
   onListsChange,
+  interaction,
 }: {
   listId: string;
   title: UnifiedTitle;
   watchStatus?: WatchStatus;
   onWatchStatusChange: (titleId: string, status: WatchStatus | null) => void;
   onListsChange: () => void;
+  interaction: SharedInteractionProps;
 }) {
   const id = titleSortableId(listId, title.id);
   const {
@@ -415,6 +435,10 @@ function SortableTitleTile({
         showWatchStatus
         onWatchStatusChange={onWatchStatusChange}
         onListsChange={onListsChange}
+        listIds={interaction.memberships[title.id] ?? []}
+        membershipKnown={interaction.membershipKnown(title.id)}
+        interactionStateShared={interaction.shared}
+        interactionLoading={interaction.loading}
       />
     </div>
   );
@@ -459,6 +483,39 @@ export function LibraryContent({
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const interactionTitleIds = useMemo(
+    () => [
+      ...new Set(
+        sections.flatMap((section) => section.titles.map((title) => title.id)),
+      ),
+    ],
+    [sections],
+  );
+  const libraryMemberships = useMemo(() => {
+    const memberships: Record<string, string[]> = {};
+    for (const section of sections) {
+      for (const title of section.titles) {
+        const listIds = memberships[title.id] ?? [];
+        if (!listIds.includes(section.id)) listIds.push(section.id);
+        memberships[title.id] = listIds;
+      }
+    }
+    return memberships;
+  }, [sections]);
+  const interactionState = useBatchedInteractionState({
+    titleIds: interactionTitleIds,
+    userId: effectiveScope,
+    initialStatuses: initialStatusMap,
+    initialMemberships: libraryMemberships,
+    initialStatusIds: interactionTitleIds,
+    initialMembershipIds: interactionTitleIds,
+  });
+  const sharedInteraction: SharedInteractionProps = {
+    memberships: interactionState.memberships,
+    membershipKnown: interactionState.membershipKnown,
+    shared: interactionState.isShared,
+    loading: interactionState.isLoading,
+  };
 
   const enrichMutation = useMutation({
     mutationKey: queryKeys.libraryEnrichment(country, effectiveScope ?? null),
@@ -516,10 +573,12 @@ export function LibraryContent({
     let cancelled = false;
 
     const run = async () => {
-      try {
-        for (let i = 0; i < queue.length; i += ENRICH_BATCH) {
-          if (cancelled) return;
-          const batch = queue.slice(i, i + ENRICH_BATCH);
+      let nextIndex = 0;
+      const worker = async () => {
+        while (!cancelled) {
+          const batch = queue.slice(nextIndex, nextIndex + ENRICH_BATCH);
+          nextIndex += ENRICH_BATCH;
+          if (batch.length === 0) return;
           let data: LibraryEnrichmentResponse;
           try {
             data = await enrichTitles(batch);
@@ -527,6 +586,7 @@ export function LibraryContent({
             console.error("[library/enrich]", error);
             continue;
           }
+          if (cancelled) return;
           const titles = data.titles ?? [];
           if (titles.length === 0) continue;
           const map = new Map(titles.map((t) => [t.id, t]));
@@ -538,9 +598,8 @@ export function LibraryContent({
           );
           setPendingIds((prev) => prev.filter((id) => !map.has(id)));
         }
-      } catch (error) {
-        console.error("[library/enrich]", error);
-      }
+      };
+      await Promise.all([worker(), worker()]);
     };
 
     void run();
@@ -1131,6 +1190,7 @@ export function LibraryContent({
                     onWatchStatusChange={handleStatusChange}
                     onListsChange={() => router.refresh()}
                     onTitlesDragEnd={onTitlesDragEnd}
+                    interaction={sharedInteraction}
                   />
                 );
               })}

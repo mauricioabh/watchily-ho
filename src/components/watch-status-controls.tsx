@@ -13,13 +13,20 @@ import {
 } from "@/lib/mutation-feedback";
 import type { WatchStatus } from "@/types/library";
 import { useAuthScope } from "@/components/app-providers";
-import { queryKeys, type WatchStatusResponse } from "@/lib/query";
+import {
+  queryKeys,
+  type WatchStatusResponse,
+  updateWatchStatusCaches,
+} from "@/lib/query";
 
 type Props = {
   titleId: string;
   status?: WatchStatus | null;
   onChange?: (titleId: string, status: WatchStatus | null) => void;
   compact?: boolean;
+  isKnown?: boolean;
+  isLoading?: boolean;
+  suppressFallback?: boolean;
 };
 
 export function WatchStatusControls({
@@ -27,6 +34,9 @@ export function WatchStatusControls({
   status,
   onChange,
   compact = false,
+  isKnown = status !== undefined,
+  isLoading = false,
+  suppressFallback = false,
 }: Props) {
   const t = useTranslations("library");
   const queryClient = useQueryClient();
@@ -37,7 +47,13 @@ export function WatchStatusControls({
       (
         await fetch(`/api/watch-status?ids=${encodeURIComponent(titleId)}`)
       ).json(),
-    enabled: status === undefined && authScope !== undefined,
+    enabled:
+      status === undefined &&
+      !isKnown &&
+      !isLoading &&
+      !suppressFallback &&
+      authScope !== undefined &&
+      authScope !== null,
   });
   const currentStatus =
     status !== undefined
@@ -63,11 +79,12 @@ export function WatchStatusControls({
       return resolved;
     },
     onSuccess: (resolved) => {
-      queryClient.setQueryData<WatchStatusResponse>(
-        queryKeys.watchStatus(titleId, authScope ?? null),
-        { statuses: resolved ? { [titleId]: resolved } : {} },
+      updateWatchStatusCaches(
+        queryClient,
+        authScope ?? null,
+        titleId,
+        resolved,
       );
-      void queryClient.invalidateQueries({ queryKey: ["watch-status"] });
     },
   });
 
@@ -117,10 +134,11 @@ export function WatchStatusControls({
         )}
         title={watching ? t("removeWatching") : t("markWatching")}
         aria-pressed={watching}
+        disabled={isLoading || mutation.isPending}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          void setStatus("watching");
+          if (!isLoading) void setStatus("watching");
         }}
       >
         <Eye
@@ -141,10 +159,11 @@ export function WatchStatusControls({
         )}
         title={finished ? t("removeFinished") : t("markFinished")}
         aria-pressed={finished}
+        disabled={isLoading || mutation.isPending}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          void setStatus("finished");
+          if (!isLoading) void setStatus("finished");
         }}
       >
         <CircleCheck

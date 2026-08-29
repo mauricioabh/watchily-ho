@@ -6,6 +6,7 @@ import { getSupabaseAndUser } from "@/lib/supabase/server";
 import { isInngestEnabled } from "@/lib/inngest-enabled";
 import { inngest } from "@/inngest/client";
 import { z } from "@/lib/openapi/common";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 
 const DeleteItemQuerySchema = z.object({
   title_id: z.string().min(1),
@@ -93,6 +94,7 @@ export async function POST(
     });
   }
 
+  await invalidateLibraryCatalog(user.id);
   return Response.json({ ok: true });
 }
 
@@ -118,5 +120,6 @@ export async function DELETE(
     .eq("list_id", listId)
     .eq("title_id", query.data.title_id);
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await invalidateLibraryCatalog(user.id);
   return Response.json({ ok: true });
 }
