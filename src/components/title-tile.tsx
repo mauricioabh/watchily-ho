@@ -39,6 +39,7 @@ import {
   queryKeys,
   type ListResponse,
   type MembershipResponse,
+  updateMembershipCaches,
 } from "@/lib/query";
 
 const API_BASE = "";
@@ -108,9 +109,13 @@ function RTBadge({ rating }: { rating: number }) {
 function BookmarkDialog({
   title,
   onListsChange,
+  listIds,
+  membershipKnown = false,
 }: {
   title: UnifiedTitle;
   onListsChange?: () => void;
+  listIds?: string[];
+  membershipKnown?: boolean;
 }) {
   const t = useTranslations("lists");
   const queryClient = useQueryClient();
@@ -119,6 +124,7 @@ function BookmarkDialog({
   const [newListName, setNewListName] = useState("");
   const [creating, setCreating] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [localListIds, setLocalListIds] = useState<string[]>();
 
   const membershipQuery = useQuery({
     queryKey: queryKeys.membership(title.id, authScope ?? null),
@@ -128,13 +134,14 @@ function BookmarkDialog({
           `${API_BASE}/api/lists/items?title_id=${encodeURIComponent(title.id)}`,
         )
       ).json(),
-    enabled: authScope !== undefined,
+    enabled:
+      open && !membershipKnown && authScope !== undefined && authScope !== null,
   });
   const listsQuery = useQuery({
     queryKey: queryKeys.lists(authScope ?? null),
     queryFn: async (): Promise<{ lists: ListResponse[] }> =>
       (await fetch(`${API_BASE}/api/lists`)).json(),
-    enabled: open && authScope !== undefined,
+    enabled: open && authScope !== undefined && authScope !== null,
   });
   const membershipMutation = useMutation({
     mutationKey: ["list-membership", title.id, authScope],
@@ -165,16 +172,22 @@ function BookmarkDialog({
       return { listId, action };
     },
     onSuccess: ({ listId, action }) => {
-      queryClient.setQueryData<MembershipResponse>(
-        queryKeys.membership(title.id, authScope ?? null),
-        (previous) => {
-          const current = previous?.listIdsByTitle[title.id] ?? [];
-          const next =
-            action === "add"
-              ? [...new Set([...current, listId])]
-              : current.filter((id) => id !== listId);
-          return { listIdsByTitle: { [title.id]: next } };
-        },
+      const current =
+        localListIds ??
+        (membershipKnown
+          ? (listIds ?? [])
+          : (membershipQuery.data?.listIdsByTitle[title.id] ?? []));
+      setLocalListIds(
+        action === "add"
+          ? [...new Set([...current, listId])]
+          : current.filter((id) => id !== listId),
+      );
+      updateMembershipCaches(
+        queryClient,
+        authScope ?? null,
+        title.id,
+        listId,
+        action,
       );
       void queryClient.invalidateQueries({ queryKey: ["lists"] });
       setDirty(true);
@@ -252,7 +265,11 @@ function BookmarkDialog({
   };
 
   const lists = listsQuery.data?.lists ?? [];
-  const listIdsForTitle = membershipQuery.data?.listIdsByTitle[title.id] ?? [];
+  const listIdsForTitle =
+    localListIds ??
+    (membershipKnown
+      ? (listIds ?? [])
+      : (membershipQuery.data?.listIdsByTitle[title.id] ?? []));
   const inAnyList = listIdsForTitle.length > 0;
 
   return (
@@ -334,6 +351,10 @@ export function TitleTile({
   watchStatus,
   onWatchStatusChange,
   onListsChange,
+  listIds,
+  membershipKnown = false,
+  interactionStateShared = false,
+  interactionLoading = false,
 }: {
   title: UnifiedTitle;
   showWatchStatus?: boolean;
@@ -341,6 +362,10 @@ export function TitleTile({
   onWatchStatusChange?: (titleId: string, status: WatchStatus | null) => void;
   /** Called after list membership changes when the bookmark dialog closes. */
   onListsChange?: () => void;
+  listIds?: string[];
+  membershipKnown?: boolean;
+  interactionStateShared?: boolean;
+  interactionLoading?: boolean;
 }) {
   const t = useTranslations("common");
   const pending = title.sources === undefined && !title.poster && !title.name;
@@ -416,11 +441,19 @@ export function TitleTile({
               titleId={title.id}
               status={watchStatus}
               onChange={onWatchStatusChange}
+              isKnown={watchStatus !== undefined}
+              isLoading={interactionLoading && watchStatus === undefined}
+              suppressFallback={interactionStateShared}
               compact
             />
           )}
           {!pending && (
-            <BookmarkDialog title={title} onListsChange={onListsChange} />
+            <BookmarkDialog
+              title={title}
+              onListsChange={onListsChange}
+              listIds={listIds}
+              membershipKnown={membershipKnown}
+            />
           )}
         </div>
 

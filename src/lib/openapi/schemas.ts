@@ -53,6 +53,25 @@ export const ListItemsResponseSchema = z
   })
   .openapi("ListItemsResponse");
 
+export const InteractionIdsQuerySchema = z
+  .object({
+    title_id: z.string().min(1).optional(),
+    title_ids: z.string().min(1).optional(),
+  })
+  .openapi("InteractionIdsQuery");
+
+export const MembershipResponseSchema = z
+  .object({
+    listIdsByTitle: z.record(z.string(), z.array(z.string().uuid())),
+  })
+  .openapi("MembershipResponse");
+
+export const WatchStatusResponseSchema = z
+  .object({
+    statuses: z.record(z.string(), z.enum(["watching", "finished"])),
+  })
+  .openapi("WatchStatusResponse");
+
 export const AddListItemBodySchema = z
   .object({
     title_id: z.string().min(1),

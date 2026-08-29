@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { after } from "next/server";
 import { getSupabaseAndUser, createAdminClient } from "@/lib/supabase/server";
 import {
   getTitleDetails,
   isLibraryTitleHydrated,
 } from "@/lib/streaming/unified";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 import type { UnifiedTitle } from "@/types/streaming";
 
 const BodySchema = z.object({
@@ -72,27 +74,45 @@ export async function POST(request: Request) {
 
   const missing = ids.filter((id) => !byId.has(id));
 
-  // Sequential fetches — avoids serverless timeouts from parallel Watchmode+SA calls.
-  for (const id of missing) {
-    try {
-      const detail = await getTitleDetails(id, {
-        country,
-        region: country,
-      });
-      if (!detail || !isLibraryTitleHydrated(detail)) continue;
-      byId.set(id, detail);
-      await admin.from("title_availability_cache").upsert(
-        {
-          title_id: id,
-          country_code: country,
-          payload: detail,
-          refreshed_at: new Date().toISOString(),
-        },
-        { onConflict: "title_id,country_code" },
-      );
-    } catch (err) {
-      console.error("[library/enrich]", id, err);
+  const enrichOne = async (id: string) => {
+    const detail = await getTitleDetails(id, {
+      country,
+      region: country,
+    });
+    if (!detail || !isLibraryTitleHydrated(detail)) return null;
+    const { error } = await admin.from("title_availability_cache").upsert(
+      {
+        title_id: id,
+        country_code: country,
+        payload: detail,
+        refreshed_at: new Date().toISOString(),
+      },
+      { onConflict: "title_id,country_code" },
+    );
+    if (error) throw error;
+    return { id, detail };
+  };
+
+  const enriched: PromiseSettledResult<
+    Awaited<ReturnType<typeof enrichOne>>
+  >[] = [];
+  for (let i = 0; i < missing.length; i += 4) {
+    enriched.push(
+      ...(await Promise.allSettled(missing.slice(i, i + 4).map(enrichOne))),
+    );
+  }
+
+  let enrichedCount = 0;
+  for (const result of enriched) {
+    if (result.status === "fulfilled" && result.value) {
+      byId.set(result.value.id, result.value.detail);
+      enrichedCount += 1;
+    } else if (result.status === "rejected") {
+      console.error("[library/enrich]", result.reason);
     }
+  }
+  if (enrichedCount > 0) {
+    after(() => invalidateLibraryCatalog(user.id, country));
   }
 
   const titles = ids

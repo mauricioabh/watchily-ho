@@ -28,6 +28,7 @@ import {
   type ListResponse,
   type MembershipResponse,
   type WatchStatusResponse,
+  updateMembershipCaches,
 } from "@/lib/query";
 export function TitleActions({
   titleId,
@@ -51,7 +52,7 @@ export function TitleActions({
     queryKey: queryKeys.likes(titleId, scope),
     queryFn: async (): Promise<LikesResponse> =>
       (await fetch(`/api/likes?ids=${encodeURIComponent(titleId)}`)).json(),
-    enabled: scope !== undefined,
+    enabled: scope !== undefined && scope !== null,
   });
   const watchQuery = useQuery({
     queryKey: queryKeys.watchStatus(titleId, scope),
@@ -59,13 +60,13 @@ export function TitleActions({
       (
         await fetch(`/api/watch-status?ids=${encodeURIComponent(titleId)}`)
       ).json(),
-    enabled: scope !== undefined,
+    enabled: scope !== undefined && scope !== null,
   });
   const listsQuery = useQuery({
     queryKey: queryKeys.lists(scope),
     queryFn: async (): Promise<{ lists: ListResponse[] }> =>
       (await fetch("/api/lists")).json(),
-    enabled: bookmarkOpen && scope !== undefined,
+    enabled: bookmarkOpen && scope !== undefined && scope !== null,
   });
   const membershipQuery = useQuery({
     queryKey: queryKeys.membership(titleId, scope),
@@ -73,7 +74,7 @@ export function TitleActions({
       (
         await fetch(`/api/lists/items?title_id=${encodeURIComponent(titleId)}`)
       ).json(),
-    enabled: scope !== undefined,
+    enabled: bookmarkOpen && scope !== undefined && scope !== null,
   });
 
   const likeMutation = useMutation({
@@ -127,19 +128,14 @@ export function TitleActions({
       return action;
     },
     onSuccess: (_action, variables) => {
-      queryClient.setQueryData<MembershipResponse>(
-        queryKeys.membership(titleId, scope),
-        (previous) => {
-          const current = previous?.listIdsByTitle[titleId] ?? [];
-          const next =
-            variables.action === "add"
-              ? [...new Set([...current, variables.listId])]
-              : current.filter((id) => id !== variables.listId);
-          return { listIdsByTitle: { [titleId]: next } };
-        },
+      updateMembershipCaches(
+        queryClient,
+        scope,
+        titleId,
+        variables.listId,
+        variables.action,
       );
       void queryClient.invalidateQueries({ queryKey: ["lists"] });
-      void queryClient.invalidateQueries({ queryKey: ["list-membership"] });
     },
   });
 

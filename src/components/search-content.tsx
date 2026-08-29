@@ -24,6 +24,7 @@ import { captureProductEvent } from "@/lib/analytics";
 import { queryKeys, type SearchResponse } from "@/lib/query";
 import { normalizeSearchProviders, searchParsers } from "@/lib/url-state";
 import { useAuthScope } from "@/components/app-providers";
+import { useBatchedInteractionState } from "@/hooks/use-batched-interaction-state";
 import type { UnifiedTitle } from "@/types/streaming";
 
 type Props = {
@@ -48,6 +49,7 @@ export function SearchContent({
     shallow: true,
   });
   const t = useTranslations("search");
+  const errors = useTranslations("errors");
   const authScope = useAuthScope();
   const q = urlState.q;
   const trimmed = q.trim();
@@ -110,6 +112,10 @@ export function SearchContent({
       activeIds,
     );
   }, [activeIds, searchQuery.data?.titles]);
+  const interaction = useBatchedInteractionState({
+    titleIds: visibleResults.map((title) => title.id),
+    userId: effectiveScope,
+  });
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -311,11 +317,37 @@ export function SearchContent({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
-              {visibleResults.map((title) => (
-                <TitleTile key={title.id} title={title} />
-              ))}
-            </div>
+            <>
+              {interaction.isError ? (
+                <div
+                  className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+                  role="alert"
+                >
+                  <span>{errors("somethingWentWrong")}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void interaction.retry()}
+                  >
+                    {errors("retry")}
+                  </Button>
+                </div>
+              ) : null}
+              <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+                {visibleResults.map((title) => (
+                  <TitleTile
+                    key={title.id}
+                    title={title}
+                    watchStatus={interaction.statusFor(title.id)}
+                    showWatchStatus
+                    listIds={interaction.membershipFor(title.id) ?? []}
+                    membershipKnown={interaction.membershipKnown(title.id)}
+                    interactionStateShared={interaction.isShared}
+                    interactionLoading={interaction.isLoading}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </motion.section>
       )}

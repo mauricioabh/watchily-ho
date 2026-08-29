@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { TitleTile } from "@/components/title-tile";
+import { useTranslations } from "next-intl";
 import { filterTitlesByUserProviders } from "@/lib/streaming/providers";
 import { queryKeys, type PagedTitlesResponse } from "@/lib/query";
+import { useBatchedInteractionState } from "@/hooks/use-batched-interaction-state";
 import type { UnifiedTitle } from "@/types/streaming";
 
 function buildPopularUrl(
@@ -41,6 +43,7 @@ export function PopularInfiniteGrid({
   userScope: string | null | undefined;
   country: string;
 }) {
+  const errors = useTranslations("errors");
   const type = typeFilter ?? "all";
   const isInitialFilter =
     !typeFilter &&
@@ -96,6 +99,10 @@ export function PopularInfiniteGrid({
       },
     );
   }, [query.data?.pages]);
+  const interaction = useBatchedInteractionState({
+    titleIds: titles.map((title) => title.id),
+    userId: userScope,
+  });
   const hasMore = query.hasNextPage;
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const intersectingRef = useRef(false);
@@ -143,9 +150,33 @@ export function PopularInfiniteGrid({
         </div>
       ) : (
         <>
+          {interaction.isError ? (
+            <div
+              className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+              role="alert"
+            >
+              <span>{errors("somethingWentWrong")}</span>
+              <button
+                type="button"
+                className="rounded border border-white/15 px-2 py-1 hover:bg-white/10"
+                onClick={() => void interaction.retry()}
+              >
+                {errors("retry")}
+              </button>
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
             {titles.map((title) => (
-              <TitleTile key={title.id} title={title} />
+              <TitleTile
+                key={title.id}
+                title={title}
+                watchStatus={interaction.statusFor(title.id)}
+                showWatchStatus
+                listIds={interaction.membershipFor(title.id) ?? []}
+                membershipKnown={interaction.membershipKnown(title.id)}
+                interactionStateShared={interaction.isShared}
+                interactionLoading={interaction.isLoading}
+              />
             ))}
           </div>
           <div ref={sentinelRef} className="h-10 w-full" aria-hidden />

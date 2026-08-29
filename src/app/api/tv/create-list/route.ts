@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { bumpListPositions } from "@/lib/lists/order";
+import { invalidateLibraryCatalog } from "@/lib/library-cache";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -48,5 +49,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  await invalidateLibraryCatalog(user.id);
   return NextResponse.redirect(redirectTo, 302);
 }

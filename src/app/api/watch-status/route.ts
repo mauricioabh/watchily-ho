@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { parseJsonBody } from "@/lib/api/validate";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "@/lib/openapi/common";
+import { parseTitleIdsParam } from "@/lib/interaction-state";
+import { invalidateLibraryStatuses } from "@/lib/library-cache";
 
 const WatchStatusBodySchema = z.object({
   title_id: z.string().min(1),
@@ -24,10 +26,11 @@ export async function GET(request: NextRequest) {
     return Response.json({ statuses: {} });
   }
 
-  const idList = ids
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const parsedIds = parseTitleIdsParam(ids);
+  const idList = parsedIds.ids;
+  if (parsedIds.error) {
+    return Response.json({ error: parsedIds.error }, { status: 400 });
+  }
   if (idList.length === 0) {
     return Response.json({ statuses: {} });
   }
@@ -82,6 +85,7 @@ export async function PUT(request: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
+  await invalidateLibraryStatuses(user.id);
   return Response.json({ ok: true });
 }
 
@@ -112,5 +116,6 @@ export async function DELETE(request: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
+  await invalidateLibraryStatuses(user.id);
   return Response.json({ ok: true });
 }
